@@ -16,8 +16,8 @@ set (CXX11_FOUND "1")
 find_package (ZLIB)
 
 # Add CXX flags found by find_package (SeqAn).
-set (CMAKE_PREFIX_PATH "~/Dev/seqan/util/cmake")
-set (SEQAN_INCLUDE_PATH "~/Dev/seqan/include")
+set (CMAKE_PREFIX_PATH "seqan/util/cmake")
+set (SEQAN_INCLUDE_PATH "seqan/include")
 
 # Load the SeqAn module and fail if not found.
 find_package (OpenMP REQUIRED)
@@ -37,5 +37,8 @@ add_definitions (${SEQAN_DEFINITIONS})
 set (CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
 
 # Add executable and link against SeqAn dependencies.
-add_executable (my_project my_project.cpp)
-target_link_libraries (my_project ${SEQAN_LIBRARIES})
+add_executable (mappability mappability.cpp)
+target_link_libraries (mappability ${SEQAN_LIBRARIES})
+
+add_executable (create_index create_index.cpp)
+target_link_libraries (create_index ${SEQAN_LIBRARIES})
