@@ -1,16 +1,20 @@
 #include "common.h"
+#include <sdsl/bit_vectors.hpp>
+
 
 template <unsigned errors, typename TDistance, typename TIndex, typename TText>
 inline void run(TIndex & index, TText const & text, StringSet<CharString> const & ids,
                 CharString const & outputPath, unsigned const length, unsigned const chromosomeId)
 {
+    //sdsl::bit_vector b;
     Iter<TIndex, VSTree<TopDown<> > > it(index);
     auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
+    // fill sheme with block length (according to permutation (+ cumulative)) and start position 
     _optimalSearchSchemeComputeFixedBlocklength(scheme, length);
 
     uint64_t textLength = seqan::length(text);
     // TODO: is there an upper bound? are we interested whether a k-mer has 60.000 or 70.000 hits?
-    vector<uint16_t> c; // TODO(cpockrandt): check whether this is space efficient. also memory mapping would be better?
+    std::vector<uint16_t> c; // TODO(cpockrandt): check whether this is space efficient. also memory mapping would be better?
     c.resize(textLength - length + 1);
     cout << mytime() << "Vector initialized (size: " << (textLength - length + 1) << ")." << endl;
 
@@ -31,9 +35,16 @@ inline void run(TIndex & index, TText const & text, StringSet<CharString> const 
         c[i] = hits;
     }
     cout << mytime() << "Done." << endl;
+    vector<double> v(c.begin(), c.end());
 
+    //std::valarray<int> third (10,3);
+    //std::valarray <int> va (textLength - length + 1);
+    for (std::vector<double>::iterator it = v.begin() ; it != v.end(); ++it)
+    {
+        *it = static_cast<double>(1) / *it;
+    }
     std::ofstream outfile(toCString(outputPath) + to_string(chromosomeId), std::ios::out | std::ofstream::binary);
-    std::copy(c.begin(), c.end(), std::ostream_iterator<int>(outfile));
+    std::copy(v.begin(), v.end(), std::ostream_iterator<double>(outfile));
     outfile.close();
     cout << mytime() << "Saved to disk." << endl;
 }

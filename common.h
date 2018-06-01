@@ -25,6 +25,8 @@ struct SAValue<String<TChar, TOwner> >
 
 };
 
+
+
 std::string mytime()
 {
     auto r = time(nullptr);
@@ -41,8 +43,12 @@ std::string mytime()
 // typedef StringSet<String<Dna>, Owner<ConcatDirect<> > > TDnaText;
 // typedef StringSet<String<Dna, MMap<> >, Owner<ConcatDirect<> > > TDnaTextMMap;
 
+
 // typedef Concatenator<TText>::Type TConcat;
-typedef FastFMIndexConfig<void, uint32_t, 2, 1> TMyFastConfig;
+//typedef FastFMIndexConfig<void, uint32_t, 2, 1> TMyFastConfig;
+typedef FastFMIndexConfigS1<void, uint32_t, 2, 1> TMyFastConfig;
+
+
 typedef BidirectionalIndex<FMIndex<void, TMyFastConfig> > TIndexConfig;
 // typedef Index<TText, TIndexConfig> TIndex;
 // typedef Index<TTextMMap, TIndexConfig> TIndexMMap;
