@@ -66,3 +66,16 @@ using TIndex = seqan::Index<TText, TIndexConfig>;
 //
 // template <uint8_t width_t>
 // constexpr bool is_int_vector<sdsl::int_vector<width_t> >::value;
+
+
+// typedef Concatenator<TText>::Type TConcat;
+//typedef FastFMIndexConfig<void, uint32_t, 2, 1> TMyFastConfig;
+typedef FastFMIndexConfigS1<void, uint32_t, 2, 1> TMyFastConfig;
+
+
+typedef BidirectionalIndex<FMIndex<void, TMyFastConfig> > TIndexConfig;
+// typedef Index<TText, TIndexConfig> TIndex;
+// typedef Index<TTextMMap, TIndexConfig> TIndexMMap;
+// typedef Index<DnaString, TIndexConfig> TIndex;
+// typedef Iter<TIndex, VSTree<TopDown<> > > TIter;
+

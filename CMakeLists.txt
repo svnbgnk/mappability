@@ -17,8 +17,8 @@ set (CXX11_FOUND "1")
 find_package (ZLIB)
 
 # Add CXX flags found by find_package (SeqAn).
-set (CMAKE_PREFIX_PATH "${CUR_DIR}/seqan/util/cmake")
-set (SEQAN_INCLUDE_PATH "${CUR_DIR}/seqan/include")
+set (CMAKE_PREFIX_PATH "/home/sven/devel/seqan/util/cmake")
+set (SEQAN_INCLUDE_PATH "/home/sven/devel/seqan/include")
 
 # Load the SeqAn module and fail if not found.
 find_package (OpenMP REQUIRED)
@@ -35,7 +35,9 @@ include_directories (${SEQAN_INCLUDE_DIRS})
 add_definitions (${SEQAN_DEFINITIONS})
 
 # Add CXX flags found by find_package (SeqAn).
+
 set (CMAKE_CXX_FLAGS "-std=c++14 -DSEQAN_DISABLE_VERSION_CHECK=YES -I ${CUR_DIR}/sdsl-lite/include ${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
+# set (CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS} -I/home/sven/devel/sdsl-lite/include") # -ldivsufsort -ldivsufsort64
 
 # Add executable and link against SeqAn dependencies.
 add_executable (mappability mappability.cpp)
