@@ -1,4 +1,5 @@
 #include "common.h"
+#include <iterator> 
 
 template <typename TString, typename TStringSetConfig>
 void buildIndex(StringSet<TString, TStringSetConfig> const & chromosomes, CharString const & indexPath)

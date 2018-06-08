@@ -42,3 +42,6 @@ target_link_libraries (mappability ${SEQAN_LIBRARIES})
 
 add_executable (create_index create_index.cpp)
 target_link_libraries (create_index ${SEQAN_LIBRARIES})
+
+add_executable (create_bit_v create_bit_v.cpp)
+target_link_libraries (create_bit_v ${SEQAN_LIBRARIES})

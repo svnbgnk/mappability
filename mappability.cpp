@@ -1,12 +1,12 @@
 #include "common.h"
 #include <sdsl/bit_vectors.hpp>
-
+#include <iterator> 
+//#include <experimental/iterator>
 
 template <unsigned errors, typename TDistance, typename TIndex, typename TText>
 inline void run(TIndex & index, TText const & text, StringSet<CharString> const & ids,
-                CharString const & outputPath, unsigned const length, unsigned const chromosomeId)
+                CharString const & outputPath, unsigned const length, unsigned const chromosomeId, bool const digit)
 {
-    //sdsl::bit_vector b;
     Iter<TIndex, VSTree<TopDown<> > > it(index);
     auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
     // fill sheme with block length (according to permutation (+ cumulative)) and start position 
@@ -35,16 +35,19 @@ inline void run(TIndex & index, TText const & text, StringSet<CharString> const 
         c[i] = hits;
     }
     cout << mytime() << "Done." << endl;
-    vector<double> v(c.begin(), c.end());
 
-    //std::valarray<int> third (10,3);
-    //std::valarray <int> va (textLength - length + 1);
-    for (std::vector<double>::iterator it = v.begin() ; it != v.end(); ++it)
-    {
-        *it = static_cast<double>(1) / *it;
-    }
     std::ofstream outfile(toCString(outputPath) + to_string(chromosomeId), std::ios::out | std::ofstream::binary);
-    std::copy(v.begin(), v.end(), std::ostream_iterator<double>(outfile));
+    if(!digit)
+    {
+        vector<double> v(c.begin(), c.end());
+        for (std::vector<double>::iterator it = v.begin() ; it != v.end(); ++it)
+            *it = static_cast<double>(1) / *it;
+        std::copy(v.begin(), v.end(), (std::ostream_iterator<double>(outfile), std::ostream_iterator<double>(outfile, " ")));
+    }else{
+        std::copy(c.begin(), c.end(), std::ostream_iterator<int>(outfile));
+    }
+     
+    
     outfile.close();
     cout << mytime() << "Saved to disk." << endl;
 }
@@ -52,19 +55,19 @@ inline void run(TIndex & index, TText const & text, StringSet<CharString> const 
 template <typename TDistance, typename TIndex, typename TText>
 inline void run(TIndex /*const*/ & index, TText const & text, StringSet<CharString> const & ids,
                 CharString const & outputPath, unsigned const errors, unsigned const length,
-                unsigned const chromosomeId)
+                unsigned const chromosomeId, bool const digit)
 {
     switch (errors)
     {
-        case 0: run<0, TDistance>(index, text, ids, outputPath, length, chromosomeId);
+        case 0: run<0, TDistance>(index, text, ids, outputPath, length, chromosomeId, digit);
                 break;
-        case 1: run<1, TDistance>(index, text, ids, outputPath, length, chromosomeId);
+        case 1: run<1, TDistance>(index, text, ids, outputPath, length, chromosomeId, digit);
                 break;
-        case 2: run<2, TDistance>(index, text, ids, outputPath, length, chromosomeId);
+        case 2: run<2, TDistance>(index, text, ids, outputPath, length, chromosomeId, digit);
                 break;
-        case 3: run<3, TDistance>(index, text, ids, outputPath, length, chromosomeId);
+        case 3: run<3, TDistance>(index, text, ids, outputPath, length, chromosomeId, digit);
                break;
-        case 4: run<4, TDistance>(index, text, ids, outputPath, length, chromosomeId);
+        case 4: run<4, TDistance>(index, text, ids, outputPath, length, chromosomeId, digit);
                break;
         default: cout << "E = " << errors << " not yet supported." << endl;
                  exit(1);
@@ -73,7 +76,7 @@ inline void run(TIndex /*const*/ & index, TText const & text, StringSet<CharStri
 
 template <typename TChar, typename TAllocConfig, typename TDistance>
 inline void run(StringSet<CharString>  & ids, CharString const & indexPath, CharString const & outputPath,
-                unsigned const errors, unsigned const length, bool const singleIndex)
+                unsigned const errors, unsigned const length, bool const singleIndex, bool const digit)
 {
     typedef String<TChar, TAllocConfig> TString;
     if (singleIndex)
@@ -86,7 +89,7 @@ inline void run(StringSet<CharString>  & ids, CharString const & indexPath, Char
         typename Concatenator<StringSet<TString, Owner<ConcatDirect<> > >>::Type concatText = concat(text);
 
         cout << mytime() << "Index loaded." << endl;
-        run<TDistance>(index, concatText, ids, outputPath, errors, length, 0);
+        run<TDistance>(index, concatText, ids, outputPath, errors, length, 0, digit);
     }
     else
     {
@@ -98,36 +101,36 @@ inline void run(StringSet<CharString>  & ids, CharString const & indexPath, Char
             open(index, toCString(_indexPath), OPEN_RDONLY);
             auto & text = indexText(index);
             cout << mytime() << "Index of " << ids[i] << " loaded." << endl;
-            run<TDistance>(index, text, ids, outputPath, errors, length, i);
+            run<TDistance>(index, text, ids, outputPath, errors, length, i, digit);
         }
     }
 }
 
 template <typename TChar, typename TAllocConfig>
 inline void run(StringSet<CharString> & ids, CharString const & indexPath, CharString const & outputPath,
-                unsigned const errors, unsigned const length, bool const indels, bool const singleIndex)
+                unsigned const errors, unsigned const length, bool const indels, bool const singleIndex, bool const digit)
 {
     if (indels)
-        run<TChar, TAllocConfig, EditDistance>(ids, indexPath, outputPath, errors, length, singleIndex);
+        run<TChar, TAllocConfig, EditDistance>(ids, indexPath, outputPath, errors, length, singleIndex, digit);
     else
-        run<TChar, TAllocConfig, HammingDistance>(ids, indexPath, outputPath, errors, length, singleIndex);
+        run<TChar, TAllocConfig, HammingDistance>(ids, indexPath, outputPath, errors, length, singleIndex, digit);
 }
 
 template <typename TChar>
 inline void run(StringSet<CharString> & ids, CharString const & indexPath, CharString const & outputPath,
                 unsigned const errors, unsigned const length, bool const indels, bool const singleIndex,
-                bool const mmap)
+                bool const mmap, bool const digit)
 {
     if (mmap)
-        run<TChar, MMap<> >(ids, indexPath, outputPath, errors, length, indels, singleIndex);
+        run<TChar, MMap<> >(ids, indexPath, outputPath, errors, length, indels, singleIndex, digit);
     else
-        run<TChar, Alloc<> >(ids, indexPath, outputPath, errors, length, indels, singleIndex);
+        run<TChar, Alloc<> >(ids, indexPath, outputPath, errors, length, indels, singleIndex, digit);
 }
 
 int main(int argc, char *argv[])
 {
     // Argument parser
-    ArgumentParser parser("Mappabilty");
+    ArgumentParser parser("Mappability");
     addDescription(parser,
         "App for calculating the mappability values. Only supports Dna4/Dna5 so far.");
 
@@ -150,6 +153,9 @@ int main(int argc, char *argv[])
         "This makes the algorithm only slightly slower but the index does not have to be loaded into main memory "
         "(which takes some time)."));
 
+    addOption(parser, ArgParseOption("d", "digit",
+        "Mappability vector now displays number of occurrences of the k-mers"));
+    
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
     if (res != ArgumentParser::PARSE_OK)
         return res == ArgumentParser::PARSE_ERROR;
@@ -163,6 +169,7 @@ int main(int argc, char *argv[])
     getOptionValue(outputPath, parser, "output");
     bool indels = isSet(parser, "indels");
     bool mmap = isSet(parser, "mmap");
+    bool digit = isSet(parser, "digit");
 
     cout << mytime() << "Program started." << endl;
 
@@ -183,7 +190,7 @@ int main(int argc, char *argv[])
     open(ids, toCString(_indexPath), OPEN_RDONLY);
 
     if (alphabet == "dna4")
-        run<Dna>(ids, indexPath, outputPath, errors, length, indels, singleIndex, mmap);
+        run<Dna>(ids, indexPath, outputPath, errors, length, indels, singleIndex, mmap, digit);
     else
-        run<Dna5>(ids, indexPath, outputPath, errors, length, indels, singleIndex, mmap);
+        run<Dna5>(ids, indexPath, outputPath, errors, length, indels, singleIndex, mmap, digit);
 }

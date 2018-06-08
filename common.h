@@ -22,7 +22,15 @@ struct SAValue<String<TChar, TOwner> >
 {
     typedef uint32_t Type;
 };
+template <typename TSpec = void, typename TLengthSum = size_t, unsigned LEVELS = 2, unsigned WORDS_PER_BLOCK = 1>
+struct FastFMIndexConfigS1
+{
+     typedef TLengthSum                                                                         LengthSum;
+     typedef Levels<void, LevelsPrefixRDConfig<LengthSum, Alloc<>, LEVELS, WORDS_PER_BLOCK> >   Bwt;
+     typedef Levels<void, LevelsRDConfig<LengthSum, Alloc<>, LEVELS, WORDS_PER_BLOCK> >         Sentinels;
 
+     static const unsigned SAMPLING = 1;
+};
 };
 
 
