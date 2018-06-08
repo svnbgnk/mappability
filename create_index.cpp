@@ -3,6 +3,7 @@
 #include <seqan/index.h>
 
 #include "common.h"
+#include <iterator> 
 
 using namespace seqan;
 

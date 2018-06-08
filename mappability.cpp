@@ -4,7 +4,7 @@
 #include <seqan/arg_parse.h>
 #include <seqan/seq_io.h>
 #include <seqan/index.h>
-
+#include <iterator> 
 #include <sdsl/int_vector.hpp>
 
 // You can switch between different vector implementations. Consider that they have different thread safetyness!
@@ -13,7 +13,6 @@ typedef std::vector<uint8_t> TVector;
 // constexpr uint64_t max_val = (1 << 8) - 1;
 
 #include "common.h"
-
 #include "algo1.hpp"
 #include "algo2.hpp"
 
@@ -27,12 +26,10 @@ inline void save(vector<T> const & c, string const & output_path)
     std::copy(c.begin(), c.end(), std::ostream_iterator<uint8_t>(outfile));
 }
 
-
 template <unsigned errors, typename TDistance, typename TIndex, typename TText>
 inline void run(TIndex & index, TText const & text, StringSet<CharString> const & ids,
-                CharString const & outputPath, unsigned const length, unsigned const chromosomeId)
+                CharString const & outputPath, unsigned const length, unsigned const chromosomeId, bool const digit)
 {
-    //sdsl::bit_vector b;
     Iter<TIndex, VSTree<TopDown<> > > it(index);
     auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
     // fill sheme with block length (according to permutation (+ cumulative)) and start position 
@@ -61,16 +58,19 @@ inline void run(TIndex & index, TText const & text, StringSet<CharString> const 
         c[i] = hits;
     }
     cout << mytime() << "Done." << endl;
-    vector<double> v(c.begin(), c.end());
 
-    //std::valarray<int> third (10,3);
-    //std::valarray <int> va (textLength - length + 1);
-    for (std::vector<double>::iterator it = v.begin() ; it != v.end(); ++it)
-    {
-        *it = static_cast<double>(1) / *it;
-    }
     std::ofstream outfile(toCString(outputPath) + to_string(chromosomeId), std::ios::out | std::ofstream::binary);
-    std::copy(v.begin(), v.end(), std::ostream_iterator<double>(outfile));
+    if(!digit)
+    {
+        vector<double> v(c.begin(), c.end());
+        for (std::vector<double>::iterator it = v.begin() ; it != v.end(); ++it)
+            *it = static_cast<double>(1) / *it;
+        std::copy(v.begin(), v.end(), (std::ostream_iterator<double>(outfile), std::ostream_iterator<double>(outfile, " ")));
+    }else{
+        std::copy(c.begin(), c.end(), std::ostream_iterator<int>(outfile));
+    }
+     
+    
     outfile.close();
 }
 
@@ -115,6 +115,7 @@ inline void run(TIndex & index, TText const & text, Options & opt, signed chromo
 }
 
 template <typename TChar, typename TAllocConfig, typename TDistance>
+
 inline void run(Options & opt)
 {
     typedef String<TChar, TAllocConfig> TString;
@@ -177,7 +178,7 @@ inline void run(Options & opt)
 int main(int argc, char *argv[])
 {
     // Argument parser
-    ArgumentParser parser("Mappabilty");
+    ArgumentParser parser("Mappability");
     addDescription(parser,
         "App for calculating the mappability values. Only supports Dna4/Dna5 so far.");
 
@@ -203,9 +204,9 @@ int main(int argc, char *argv[])
         "This makes the algorithm only slightly slower but the index does not have to be loaded into main memory "
         "(which takes some time)."));
 
+
     addOption(parser, ArgParseOption("t", "threads", "Number of threads", ArgParseArgument::INTEGER, "INT"));
     setDefaultValue(parser, "threads", omp_get_max_threads());
-
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
     if (res != ArgumentParser::PARSE_OK)
         return res == ArgumentParser::PARSE_ERROR;
