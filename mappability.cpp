@@ -39,13 +39,23 @@ inline void run(TIndex & index, TText const & text, StringSet<CharString> const 
     std::ofstream outfile(toCString(outputPath) + to_string(chromosomeId), std::ios::out | std::ofstream::binary);
     if(!digit)
     {
+        int counter = 0;
         vector<double> v(c.begin(), c.end());
         for (std::vector<double>::iterator it = v.begin() ; it != v.end(); ++it)
-            *it = static_cast<double>(1) / *it;
+            if(*it == 0){
+                *it = 1;
+                counter++;
+            }
+            else{
+                *it = static_cast<double>(1) / *it;
+            }
         std::copy(v.begin(), v.end(), (std::ostream_iterator<double>(outfile), std::ostream_iterator<double>(outfile, " ")));
+        cout << "Number of zeroes: " <<  counter << endl;
+        cout << mytime() << "Final size: " << v.size() << endl;
     }else{
         std::copy(c.begin(), c.end(), std::ostream_iterator<int>(outfile));
     }
+    
      
     
     outfile.close();
