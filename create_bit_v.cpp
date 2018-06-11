@@ -19,7 +19,7 @@ std::vector<double> getDouble(std::string const& mappability_str)
 }
 
 
-Pair<sdsl::bit_vector, sdsl::bit_vector> create_bit_vector_pair(sdsl::rank_support_v<> const &rank_left, sdsl::rank_support_v<> const &rank_right, int const len, int const blockL)
+Pair<sdsl::bit_vector, sdsl::bit_vector> create_bit_vector_pair(sdsl::rank_support_v<> const &rank_left, sdsl::rank_support_v<> const &rank_right, int const blockL)
 {
     sdsl::bit_vector right_len2 (rank_right.size(), 1);
     sdsl::bit_vector left_len2 (rank_left.size(), 1);
@@ -46,11 +46,64 @@ Pair<sdsl::bit_vector, sdsl::bit_vector> create_bit_vector_pair(sdsl::rank_suppo
 }
 
 
-vector<sdsl::bit_vector> create_bit_vectors(sdsl::rank_support_v<> const &rank_left, sdsl::rank_support_v<> const &rank_right, int const len, vector<int> const sizes){
+Pair<sdsl::bit_vector, sdsl::bit_vector> create_bit_vector_pair(sdsl::rank_support_v<> const &rank_left, sdsl::rank_support_v<> const &rank_right, int const blockL, int const shift)
+{
+    sdsl::bit_vector right_len2 (rank_right.size(), 1);
+    sdsl::bit_vector left_len2 (rank_left.size(), 1);
+    
+    // cant use unsigned because expect negative values (i - blockL)
+    for(int i = 0; i < rank_left.size(); i++)
+    {
+        if(i - blockL > 0){
+            if(i + 1 + shift > rank_left.size())
+            {
+                left_len2[i] = rank_left(rank_left.size()) - rank_left(i - blockL) == rank_left.size() - (i - blockL);
+            }
+            else
+            {
+                left_len2[i] = rank_left(i + 1 + shift) - rank_left(i - blockL) == blockL + shift + 1;
+            }
+        }
+        else
+        {
+            left_len2[i] = rank_left(i + 1 + shift) == i + 1 + shift;
+        }
+        if(i + blockL + 1 <  rank_left.size())
+        {
+            if(i - shift > 0){
+                right_len2[i] = rank_right(i + blockL + 1) - rank_right(i - shift) == blockL + 1 + shift;
+            }
+            else
+            {
+                right_len2[i] = rank_right(i + blockL + 1) == i + blockL + 1;
+            }
+        }
+        else
+        {
+            right_len2[i] = rank_right(rank_left.size()) - rank_right(i - shift) == rank_left.size() - (i - shift);
+        }
+    }
+    Pair<sdsl::bit_vector, sdsl::bit_vector> result(left_len2, right_len2);
+    return (result);
+}
+
+
+vector<sdsl::bit_vector> create_bit_vectors(sdsl::rank_support_v<> const &rank_left, sdsl::rank_support_v<> const &rank_right, vector<int> const sizes){
     vector<sdsl::bit_vector> bit_vectors;
     for(int i = 0; i < sizes.size(); ++i)
     {
-        Pair<sdsl::bit_vector, sdsl::bit_vector> result = create_bit_vector_pair(rank_left, rank_right, len, sizes[i]);
+        Pair<sdsl::bit_vector, sdsl::bit_vector> result = create_bit_vector_pair(rank_left, rank_right, sizes[i]);
+        bit_vectors.push_back(getValueI1(result));
+        bit_vectors.push_back(getValueI2(result));
+    }
+    return bit_vectors;    
+}
+
+vector<sdsl::bit_vector> create_bit_vectors(sdsl::rank_support_v<> const &rank_left, sdsl::rank_support_v<> const &rank_right, vector<int> const sizes, int const shift){
+    vector<sdsl::bit_vector> bit_vectors;
+    for(int i = 0; i < sizes.size(); ++i)
+    {
+        Pair<sdsl::bit_vector, sdsl::bit_vector> result = create_bit_vector_pair(rank_left, rank_right, sizes[i], shift);
         bit_vectors.push_back(getValueI1(result));
         bit_vectors.push_back(getValueI2(result));
     }
@@ -108,9 +161,11 @@ int main(int argc, char *argv[])
     setRequired(parser, "output");
     addOption(parser, ArgParseOption("K", "length", "Length of k-mers in the mappability vector", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "length");
-    addOption(parser, ArgParseOption("T", "threshold", "Threshold for inverse frequency that get accepted", ArgParseArgument::DOUBLE, "DOUBLE"));
+    addOption(parser, ArgParseOption("T", "threshold", "Threshold for inverse frequency that gets accepted", ArgParseArgument::DOUBLE, "DOUBLE"));
     setRequired(parser, "threshold");
     addOption(parser, ArgParseOption("l", "level", "Length of k-mers in the mappability vector", ArgParseArgument::INTEGER, "INT"));
+    addOption(parser, ArgParseOption("r", "readL", "Read length", ArgParseArgument::INTEGER, "INT"));
+    addOption(parser, ArgParseOption("k", "aerrors", "Allowed errors when searching Reads", ArgParseArgument::INTEGER, "INT"));
     addOption(parser, ArgParseOption("m", "mmap",
         "Turns memory-mapping on, i.e. the index is not loaded into RAM but accessed directly in secondary-memory. "
         "This makes the algorithm only slightly slower but the index does not have to be loaded into main memory "
@@ -123,7 +178,7 @@ int main(int argc, char *argv[])
     //Retrieve input parameters
     CharString indexPath, _indexPath, outputPath;
     string mappability_path;
-    int len, level = 2; 
+    int len, level = 2, readlength = 100, allowederrors = 2; 
     double threshold;
     
     getOptionValue(mappability_path, parser, "map");
@@ -131,12 +186,15 @@ int main(int argc, char *argv[])
     getOptionValue(outputPath, parser, "output");
     getOptionValue(len, parser, "length");
     getOptionValue(threshold, parser, "threshold");
+    getOptionValue(readlength, parser, "readL");
+    getOptionValue(allowederrors, parser, "aerrors");
     bool mmap = isSet(parser, "mmap");
     
     StringSet<CharString> ids;
     CharString alphabet;
     string mappability_str;
-    
+    int shift = floor(static_cast<float>(readlength)/(allowederrors + 2));
+    //ceiling for len
     
     bool singleIndex;
     _indexPath = indexPath;
@@ -165,10 +223,7 @@ int main(int argc, char *argv[])
     open(index, toCString(indexPath), OPEN_RDONLY);
 
     */
-    
-    // The seqan way
-//     open(mappability_str, toCString("../Data/30_mappability0"));
-//     cout << mappability_str << endl;
+
     ifstream myfile;
     myfile.open(mappability_path, std::ios::in | std::ofstream::binary);
     std::getline(myfile, mappability_str);
@@ -212,18 +267,21 @@ int main(int argc, char *argv[])
     
     sdsl::rank_support_v<> rank_righti(&righti);
     sdsl::rank_support_v<> rank_lefti(&lefti);
-    vector<int> sizes{0};
+    vector<int> sizes;
+    
+    // create names
     vector<string> names{"l_bit_vector_1", "r_bit_vector_1"};
     for(int i = 0; i < level; ++i){
         int a = (i + 1) * len - 1;
-//         cout << "i" << i << endl;
-//         cout << a << endl;
         sizes.push_back(a);
-        names.push_back("l_bit_vector_" + to_string(a + 1));
-        names.push_back("r_bit_vector_" + to_string(a + 1));
+        names.push_back("l_bit_vector_" + to_string(a + 1) + "_shift_" + to_string(shift));
+        names.push_back("r_bit_vector_" + to_string(a + 1) + "_shift_" + to_string(shift));
     }
     
-    vector<sdsl::bit_vector> bit_vectors = create_bit_vectors(rank_lefti, rank_righti, len, sizes);
+    vector<sdsl::bit_vector> bit_vectors = create_bit_vectors(rank_lefti, rank_righti, {0});
+    vector<sdsl::bit_vector> bit_vectors2 = create_bit_vectors(rank_lefti, rank_righti, sizes, shift);
+    bit_vectors.insert(bit_vectors.end(), std::make_move_iterator(bit_vectors2.begin()),std::make_move_iterator(bit_vectors2.end()));
+    
   
     for(int i = 0; i < bit_vectors.size(); ++i){
         std::ofstream outfile((toCString(outputPath) + names[i]), std::ios::out | std::ofstream::binary);
