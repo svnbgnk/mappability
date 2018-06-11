@@ -117,16 +117,22 @@ void loadIndex(vector<sdsl::bit_vector> &bit_vectors, CharString const indexPath
     typedef String<TChar, TAllocConfig> TString;
     Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index;
     open(index, toCString(indexPath), OPEN_RDONLY);
+    cout << "Index size:" << seqan::length(index.fwd.sa) << endl;
     vector<sdsl::bit_vector> bit_vectors_ordered (bit_vectors);
+    int number_of_indeces = seqan::length(index.fwd.sa) - bit_vectors[0].size();
+    cout << "Number of Indeces: " << number_of_indeces << endl;
+    // skip sentinels
     for(int i = 0; i < bit_vectors.size(); ++i){
-        for (unsigned j = 0; j < seqan::length(index.fwd.sa) - 1; ++j)
+        for (unsigned j = 0; j < seqan::length(index.fwd.sa) - number_of_indeces; ++j)
         {
-            uint32_t sa_j = getValueI2(index.fwd.sa[j + 1]);
+            uint32_t sa_j = getValueI2(index.fwd.sa[j + number_of_indeces]);
             bit_vectors_ordered[i][sa_j] = bit_vectors[i][j];
         }
     }
     bit_vectors = bit_vectors_ordered;
 }
+
+
 
 template <typename TChar>
 void loadIndex(vector<sdsl::bit_vector> &bit_vectors, CharString const indexPath, bool const mmap)
@@ -178,7 +184,7 @@ int main(int argc, char *argv[])
     //Retrieve input parameters
     CharString indexPath, _indexPath, outputPath;
     string mappability_path;
-    int len, level = 2, readlength = 100, allowederrors = 2; 
+    int len, level = 1, readlength = 100, allowederrors = 2; 
     double threshold;
     
     getOptionValue(mappability_path, parser, "map");
@@ -223,13 +229,24 @@ int main(int argc, char *argv[])
     open(index, toCString(indexPath), OPEN_RDONLY);
 
     */
-
     ifstream myfile;
     myfile.open(mappability_path, std::ios::in | std::ofstream::binary);
     std::getline(myfile, mappability_str);
-    myfile.close();
     vector<double> mappability = getDouble(mappability_str);
-    
+    myfile.close();
+    cout << "mappability size:" << mappability.size() << endl;
+
+/*
+ *getline is not good?
+    ifstream myfile;
+    myfile.open(mappability_path, std::ios::in | std::ofstream::binary);
+    std::stringstream buffer << myfile.rdbuf();
+    mappability_str = buffer.str();
+    vector<double> mappability = getDouble(buffer.str());
+    myfile.close();
+    cout << "mappability size:" << mappability.size() << endl;
+    */
+       
 
     // for comma delimiter 
     /*
@@ -243,19 +260,9 @@ int main(int argc, char *argv[])
         return is;
     }
     */
-//     for(unsigned i = 0; i < mappability.size(); i++)
-//          cout << mappability[i];
     
-    // merge both into one?
-    /*
-    sdsl::bit_vector rl (mappability.size() + 2*(length + 1), 1);
-    for(unsigned i = 0; i < mappability.size(); i++){
-        rl[i + length + 1] = (mappability[i] >= threshold);  
-    }
-    // position length + 1 for l 
-    cout << endl;
-    */
-
+    // TODO Merge both bit_vectors into for creation
+ 
     sdsl::bit_vector righti (mappability.size() + len - 1, 1);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 1);
 
@@ -269,10 +276,12 @@ int main(int argc, char *argv[])
     sdsl::rank_support_v<> rank_lefti(&lefti);
     vector<int> sizes;
     
-    // create names
+    // create names and bit_vector types
     vector<string> names{"l_bit_vector_1", "r_bit_vector_1"};
-    for(int i = 0; i < level; ++i){
-        int a = (i + 1) * len - 1;
+    for(int i = 0; i <= level; ++i){
+        int a = 0;
+        if(i != 0)
+            a = i * len - 1;
         sizes.push_back(a);
         names.push_back("l_bit_vector_" + to_string(a + 1) + "_shift_" + to_string(shift));
         names.push_back("r_bit_vector_" + to_string(a + 1) + "_shift_" + to_string(shift));
@@ -296,7 +305,6 @@ int main(int argc, char *argv[])
         std::copy(bit_vectors[i].begin(), bit_vectors[i].end(), std::ostream_iterator<bool>(outfile));
         outfile.close();
     }
-    
     return 0;
 }
 
