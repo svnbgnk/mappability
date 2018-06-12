@@ -119,6 +119,7 @@ void loadIndex(vector<sdsl::bit_vector> &bit_vectors, CharString const indexPath
     typedef String<TChar, TAllocConfig> TString;
     Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index;
     open(index, toCString(indexPath), OPEN_RDONLY);
+    
     cout << "Index size:" << seqan::length(index.fwd.sa) << endl;
     vector<sdsl::bit_vector> bit_vectors_ordered (bit_vectors);    
     int number_of_indeces = seqan::length(index.fwd.sa) - bit_vectors[0].size();
