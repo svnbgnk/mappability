@@ -40,16 +40,16 @@ inline void run(TIndex & index, TText const & text, StringSet<CharString> const 
     if(!digit)
     {
         int counter = 0;
-        vector<double> v(c.begin(), c.end());
-        for (std::vector<double>::iterator it = v.begin() ; it != v.end(); ++it)
+        vector<float> v(c.begin(), c.end());
+        for (std::vector<float>::iterator it = v.begin() ; it != v.end(); ++it)
             if(*it == 0){
                 *it = 1;
                 counter++;
             }
             else{
-                *it = static_cast<double>(1) / *it;
+                *it = static_cast<float>(1) / *it;
             }
-        std::copy(v.begin(), v.end(), (std::ostream_iterator<double>(outfile), std::ostream_iterator<double>(outfile, " ")));
+        std::copy(v.begin(), v.end(), (std::ostream_iterator<float>(outfile), std::ostream_iterator<float>(outfile, " ")));
         cout << "Number of zeroes: " <<  counter << endl;
         cout << mytime() << "Final size: " << v.size() << endl;
     }else{

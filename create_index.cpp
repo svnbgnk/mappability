@@ -9,12 +9,6 @@ void buildIndex(StringSet<TString, TStringSetConfig> const & chromosomes, CharSt
     Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index(chromosomesConcat);
     indexCreate(index, FibreSALF());
     
-//    Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index2(chromosomesConcat);
-//    indexCreate(index2, FibreSA());
-    //indexRequire(index2, FibreSALF());
-    cout << "b1:" << endl;
-    //cout  << "SA: "<< saAt(1, index) << endl;
-    //cout << saAt(10, index)<< endl;
     save(index, toCString(indexPath));
 }
 
