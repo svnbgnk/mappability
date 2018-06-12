@@ -183,9 +183,11 @@ int main(int argc, char *argv[])
     setRequired(parser, "length");
     addOption(parser, ArgParseOption("T", "threshold", "Threshold for inverse frequency that gets accepted", ArgParseArgument::DOUBLE, "DOUBLE"));
     setRequired(parser, "threshold");
+    //TODO right Discription
     addOption(parser, ArgParseOption("l", "level", "Length of k-mers in the mappability vector", ArgParseArgument::INTEGER, "INT"));
     addOption(parser, ArgParseOption("r", "readL", "Read length", ArgParseArgument::INTEGER, "INT"));
     addOption(parser, ArgParseOption("k", "aerrors", "Allowed errors when searching Reads", ArgParseArgument::INTEGER, "INT"));
+    addOption(parser, ArgParseOption("d", "debug", "Also create chronical bit_vectors (for debugging)"));
     addOption(parser, ArgParseOption("m", "mmap",
         "Turns memory-mapping on, i.e. the index is not loaded into RAM but accessed directly in secondary-memory. "
         "This makes the algorithm only slightly slower but the index does not have to be loaded into main memory "
@@ -206,8 +208,10 @@ int main(int argc, char *argv[])
     getOptionValue(outputPath, parser, "output");
     getOptionValue(len, parser, "length");
     getOptionValue(threshold, parser, "threshold");
+    getOptionValue(level, parser, "level");
     getOptionValue(readlength, parser, "readL");
     getOptionValue(allowederrors, parser, "aerrors");
+    bool debug = isSet(parser, "debug");
     bool mmap = isSet(parser, "mmap");
     
     StringSet<CharString> ids;
@@ -294,24 +298,36 @@ int main(int argc, char *argv[])
     
     // create names and bit_vector types
     vector<string> names{"l_bit_vector_1", "r_bit_vector_1"};
-    for(int i = 0; i <= level; ++i){
-        int a = 0;
-        if(i != 0)
-            a = i * len - 1;
-        sizes.push_back(a);
-        names.push_back("l_bit_vector_" + to_string(a + 1) + "_shift_" + to_string(shift));
-        names.push_back("r_bit_vector_" + to_string(a + 1) + "_shift_" + to_string(shift));
+    if(level != 0)
+    {
+        names.push_back("l_bit_vector_1_shift_" + to_string(shift));
+        names.push_back("r_bit_vector_1_shift_" + to_string(shift));
+        sizes.push_back(0);
+        for(int i = 1; i < level; ++i)
+        {
+            int a = i * len - 1;
+            sizes.push_back(a);
+            names.push_back("l_bit_vector_" + to_string(a + 1) + "_shift_" + to_string(shift));
+            names.push_back("r_bit_vector_" + to_string(a + 1) + "_shift_" + to_string(shift));
+        }
     }
+    for (int i = 0; i < sizes.size(); ++i)
+        cout << "sizes:" << sizes[i] << endl;
     
     vector<sdsl::bit_vector> bit_vectors = create_bit_vectors(rank_lefti, rank_righti, {0});
-    vector<sdsl::bit_vector> bit_vectors2 = create_bit_vectors(rank_lefti, rank_righti, sizes, shift);
-    bit_vectors.insert(bit_vectors.end(), std::make_move_iterator(bit_vectors2.begin()),std::make_move_iterator(bit_vectors2.end()));
+    if(level != 0){
+        vector<sdsl::bit_vector> bit_vectors2 = create_bit_vectors(rank_lefti, rank_righti, sizes, shift);
+        bit_vectors.insert(bit_vectors.end(), std::make_move_iterator(bit_vectors2.begin()),std::make_move_iterator(bit_vectors2.end()));
+    }
     
-  
-    for(int i = 0; i < bit_vectors.size(); ++i){
-        std::ofstream outfile((toCString(outputPath) + names[i]), std::ios::out | std::ofstream::binary);
-        std::copy(bit_vectors[i].begin(), bit_vectors[i].end(), std::ostream_iterator<bool>(outfile));
-        outfile.close();
+    
+    if(debug)
+    {  
+        for(int i = 0; i < bit_vectors.size(); ++i){
+            std::ofstream outfile((toCString(outputPath) + names[i]), std::ios::out | std::ofstream::binary);
+            std::copy(bit_vectors[i].begin(), bit_vectors[i].end(), std::ostream_iterator<bool>(outfile));
+            outfile.close();
+        }
     }
        
     //order in suffix array
