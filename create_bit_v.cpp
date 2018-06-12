@@ -111,6 +111,8 @@ vector<sdsl::bit_vector> create_bit_vectors(sdsl::rank_support_v<> const &rank_l
 }
 
 
+
+
 template <typename TChar, typename TAllocConfig>
 void loadIndex(vector<sdsl::bit_vector> &bit_vectors, CharString const indexPath)
 {    
@@ -118,15 +120,26 @@ void loadIndex(vector<sdsl::bit_vector> &bit_vectors, CharString const indexPath
     Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index;
     open(index, toCString(indexPath), OPEN_RDONLY);
     cout << "Index size:" << seqan::length(index.fwd.sa) << endl;
-    vector<sdsl::bit_vector> bit_vectors_ordered (bit_vectors);
+    vector<sdsl::bit_vector> bit_vectors_ordered (bit_vectors);    
     int number_of_indeces = seqan::length(index.fwd.sa) - bit_vectors[0].size();
+    vector<int> sequenceLengths(number_of_indeces + 1, 0);
     cout << "Number of Indeces: " << number_of_indeces << endl;
+    
+    //sequenceLengths first value is 0
+    for(int i = 0; i < number_of_indeces; ++i)
+        sequenceLengths[getValueI1(index.fwd.sa[i]) + 1] = getValueI2(index.fwd.sa[i]);
+    // cumulative sum seq
+    for(int i = 1; i < sequenceLengths.size(); ++i)
+        sequenceLengths[i] += (sequenceLengths[i - 1]);
     // skip sentinels
     for(int i = 0; i < bit_vectors.size(); ++i){
         for (unsigned j = 0; j < seqan::length(index.fwd.sa) - number_of_indeces; ++j)
         {
             uint32_t sa_j = getValueI2(index.fwd.sa[j + number_of_indeces]);
-            bit_vectors_ordered[i][sa_j] = bit_vectors[i][j];
+            uint16_t seq = getValueI1(index.fwd.sa[j + number_of_indeces]);
+            bit_vectors_ordered[i][sa_j + sequenceLengths[seq]] = bit_vectors[i][j];
+//             if(i == 0)
+//                 cout << j << " <" << seq << "> " << (sa_j + sequenceLengths[seq]) << endl;
         }
     }
     bit_vectors = bit_vectors_ordered;
@@ -223,12 +236,14 @@ int main(int argc, char *argv[])
     else
         auto index = loadIndex<Dna5>(indexPath, mmap);
     */   
-/*
+
     typedef String<Dna, Alloc<> > TString;
     Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index;
     open(index, toCString(indexPath), OPEN_RDONLY);
-
-    */
+    
+    for(int i = 0; i < seqan::length(index.fwd.sa); ++i){
+//         cout << i << "  " << index.fwd.sa[i] << endl;
+    }
     ifstream myfile;
     myfile.open(mappability_path, std::ios::in | std::ofstream::binary);
     std::getline(myfile, mappability_str);
