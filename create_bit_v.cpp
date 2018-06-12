@@ -8,13 +8,13 @@
 using namespace std;
 using namespace seqan;
 
-std::vector<double> getDouble(std::string const& mappability_str)
+std::vector<float> getFloat(std::string const& mappability_str)
 {
   std::istringstream iss(mappability_str);
 
-  return std::vector<double>{ 
-    std::istream_iterator<double>(iss),
-    std::istream_iterator<double>()
+  return std::vector<float>{ 
+    std::istream_iterator<float>(iss),
+    std::istream_iterator<float>()
   };
 }
 
@@ -248,7 +248,7 @@ int main(int argc, char *argv[])
     ifstream myfile;
     myfile.open(mappability_path, std::ios::in | std::ofstream::binary);
     std::getline(myfile, mappability_str);
-    vector<double> mappability = getDouble(mappability_str);
+    vector<float> mappability = getFloat(mappability_str);
     myfile.close();
     cout << "mappability size:" << mappability.size() << endl;
 
