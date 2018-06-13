@@ -53,7 +53,7 @@ std::string mytime()
 
 
 // typedef Concatenator<TText>::Type TConcat;
-typedef FastFMIndexConfig<void, uint32_t, 2, 1> TMyFastConfigD;
+// typedef FastFMIndexConfig<void, uint32_t, 2, 1> TMyFastConfigD;
 typedef FastFMIndexConfigS1<void, uint32_t, 2, 1> TMyFastConfig;
 
 
