@@ -198,8 +198,6 @@ int main(int argc, char *argv[])
 
     addOption(parser, ArgParseOption("K", "length", "Length of k-mers", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "length");
-    
-    addOption(parser, ArgParseOption("a", "all", "Calculate also all the smaller needed mappability k-meres for bit vectors creation", ArgParseArgument::INTEGER, "INT"));
 
     addOption(parser, ArgParseOption("i", "indels", "Turns on indels (EditDistance). "
         "If not selected, only mismatches will be considered."));
@@ -220,7 +218,6 @@ int main(int argc, char *argv[])
         return res == ArgumentParser::PARSE_ERROR;
 
     // Retrieve input parameters
-
     Options opt;
     getOptionValue(opt.errors, parser, "errors");
     getOptionValue(opt.length, parser, "length");

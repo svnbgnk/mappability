@@ -3,7 +3,7 @@
 #include <fstream>
 #include <iterator> 
 #include <sstream>
-#include <sys/stat.h>
+#include <tgmath.h>
 #include <sdsl/bit_vectors.hpp>
 
 using namespace std;
@@ -92,11 +92,13 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("O", "output", "Path to output directory", ArgParseArgument::OUTPUT_FILE, "OUT"));
     setRequired(parser, "output");
     
-    addOption(parser, ArgParseOption("K", "length", "Longest length of k-mers in the mappability vector", ArgParseArgument::INTEGER, "INT"));
+    addOption(parser, ArgParseOption("K", "length", "Length of k-mers in the mappability vector", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "length");
     
     addOption(parser, ArgParseOption("T", "threshold", "Threshold for inverse frequency that gets accepted", ArgParseArgument::DOUBLE, "DOUBLE"));
     setRequired(parser, "threshold");
+    
+    addOption(parser, ArgParseOption("e", "errors", "Max errors allowed during mapping", ArgParseArgument::INTEGER, "INT"));
     
     addOption(parser, ArgParseOption("d", "debug", "Also create chronical bit_vectors (for debugging)"));
     
@@ -112,7 +114,7 @@ int main(int argc, char *argv[])
     //Retrieve input parameters
     CharString indexPath, _indexPath, outputPath;
     string mappability_path;
-    int len, readlength = 100, allowederrors = 2; 
+    int len, errors = 0, readlength = 100, allowederrors = 2; 
     double threshold;
     
     getOptionValue(mappability_path, parser, "map");
@@ -120,6 +122,7 @@ int main(int argc, char *argv[])
     getOptionValue(outputPath, parser, "output");
     getOptionValue(len, parser, "length");
     getOptionValue(threshold, parser, "threshold");
+    getOptionValue(errors, parser, "errors");
     bool debug = isSet(parser, "debug");
     bool mmap = isSet(parser, "mmap");
     
@@ -133,38 +136,48 @@ int main(int argc, char *argv[])
     _indexPath += ".alphabet";
     open(alphabet, toCString(_indexPath));
 
+    ifstream myfile;
+    myfile.open(mappability_path, std::ios::in | std::ofstream::binary);
+    std::getline(myfile, mappability_str);
+    vector<int> mappability_int = getInt(mappability_str);
+    vector<float> mappability(mappability_int.begin(), mappability_int.end());
+    myfile.close();
+    for(vector<float>::iterator it = mappability.begin(); mappability.end() != it; ++it)
+        *it = static_cast<float>(1) / *it;
+    cout << "mappability size:" << mappability.size() << endl;    
+    // TODO Merge both bit_vectors into for creation
+    sdsl::bit_vector righti (mappability.size() + len - 1, 1);
+    sdsl::bit_vector lefti (mappability.size() + len - 1, 1);
+        
+    for(unsigned i = 0; i < mappability.size(); ++i){
+        lefti[i + len - 1] = (mappability[i] >= threshold);
+        righti[i] = (mappability[i] >= threshold);
+    }
+    cout << "Bit Vector Length: " << righti.size() << endl;
     vector<sdsl::bit_vector> bit_vectors;
     vector<string> names;
-
-    
-    ifstream myfile;
-    for(int bit_length = 0; bit_length <= 100; ++bit_length){
-        string file_name = mappability_path + to_string(bit_length);
-        if(!file_exists(file_name))
-            continue;
-        cout << "File name:" << file_name << endl;
-        myfile.open(file_name, std::ios::in | std::ofstream::binary);
-        std::getline(myfile, mappability_str);
-        vector<int> mappability_int = getInt(mappability_str);
-        vector<float> mappability(mappability_int.begin(), mappability_int.end());
-        myfile.close();
-        for(vector<float>::iterator it = mappability.begin(); mappability.end() != it; ++it)
-            *it = static_cast<float>(1) / *it;
-        cout << "mappability size:" << mappability.size() << endl;    
-        // TODO Merge both bit_vectors into for creation
-        sdsl::bit_vector righti (mappability.size() + bit_length - 1, 1);
-        sdsl::bit_vector lefti (mappability.size() + bit_length - 1, 1);
-
-        for(unsigned i = 0; i < mappability.size(); ++i){
-            lefti[i + bit_length - 1] = (mappability[i] >= threshold);
-            righti[i] = (mappability[i] >= threshold);
+    bit_vectors.push_back(lefti);
+    bit_vectors.push_back(righti);
+    names.push_back("l_bit_vector_" + to_string(len));
+    names.push_back("r_bit_vector_" + to_string(len));
+    if(errors != 0){
+        for(int i = 1; i < (errors + 2); ++i){
+            sdsl::bit_vector newleft(mappability.size() + len - 1, 1);
+            sdsl::bit_vector newright(mappability.size() + len - 1, 1);
+            int shift = i * std::ceil(len / (errors + 2));
+            for(int j = 0; j < righti.size(); ++j){
+                if(j - shift >= 0)
+                    newright[j] = righti[j - shift];
+                if(j + shift < lefti.size() - 1)
+                    newleft[j] = lefti[j + shift];
+            }
+            bit_vectors.push_back(newleft);
+            bit_vectors.push_back(newright);
+            names.push_back("l_bit_vector_" + to_string(len) + "_shift_" + to_string(shift));
+            names.push_back("r_bit_vector_" + to_string(len) + "_shift_" + to_string(shift));
         }
-        cout << "Bit Vector Length: " << righti.size() << endl;
-        bit_vectors.push_back(lefti);
-        bit_vectors.push_back(righti);
-        names.push_back("l_bit_vector_" + to_string(bit_length));
-        names.push_back("r_bit_vector_" + to_string(bit_length));
     }
+    
     if(debug)
     {  
         for(int i = 0; i < bit_vectors.size(); ++i){
@@ -173,7 +186,6 @@ int main(int argc, char *argv[])
             outfile.close();
         }
     }
-
     //order in suffix array
     order_bit_vector(bit_vectors, indexPath, mmap, alphabet);
     for(int i = 0; i < bit_vectors.size(); ++i){
