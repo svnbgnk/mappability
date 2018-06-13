@@ -77,7 +77,7 @@ using TIndex = seqan::Index<TText, TIndexConfig>;
 
 
 // typedef Concatenator<TText>::Type TConcat;
-//typedef FastFMIndexConfig<void, uint32_t, 2, 1> TMyFastConfig;
+typedef FastFMIndexConfig<void, uint32_t, 2, 1> TMyFastConfigD;
 typedef FastFMIndexConfigS1<void, uint32_t, 2, 1> TMyFastConfig;
 
 
