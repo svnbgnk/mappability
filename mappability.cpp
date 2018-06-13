@@ -28,7 +28,7 @@ inline void save(vector<T> const & c, string const & output_path)
 
 template <unsigned errors, typename TDistance, typename TIndex, typename TText>
 inline void run(TIndex & index, TText const & text, StringSet<CharString> const & ids,
-                CharString const & outputPath, unsigned const length, unsigned const chromosomeId, bool const digit)
+                CharString const & outputPath, unsigned const length, unsigned const chromosomeId)
 {
     Iter<TIndex, VSTree<TopDown<> > > it(index);
     auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
@@ -59,29 +59,21 @@ inline void run(TIndex & index, TText const & text, StringSet<CharString> const 
     }
     cout << mytime() << "Done." << endl;
 
-    std::ofstream outfile(toCString(outputPath) + to_string(chromosomeId), std::ios::out | std::ofstream::binary);
-    if(!digit)
+    int counter = 0;
+    std::ofstream outfile(toCString(outputPath) + to_string(length), std::ios::out | std::ofstream::binary);
+    for (std::vector<uint16_t>::iterator it = c.begin() ; it != c.end(); ++it)
     {
-        int counter = 0;
-        vector<float> v(c.begin(), c.end());
-        for (std::vector<float>::iterator it = v.begin() ; it != v.end(); ++it)
-            if(*it == 0){
-                *it = 1;
-                counter++;
-            }
-            else{
-                *it = static_cast<float>(1) / *it;
-            }
-        std::copy(v.begin(), v.end(), (std::ostream_iterator<float>(outfile), std::ostream_iterator<float>(outfile, " ")));
-        cout << "Number of zeroes: " <<  counter << endl;
-        cout << mytime() << "Final size: " << v.size() << endl;
-    }else{
-        std::copy(c.begin(), c.end(), std::ostream_iterator<int>(outfile));
-    }
-    
-     
-    
-    outfile.close();
+//         *it = static_cast<float>(1) / *it;
+        if(*it == 0){
+            ++counter;
+            *it = 1;
+        }
+    }  
+    cout << "Number of zeroes: " <<  counter << endl;
+    cout << mytime() << "Final size: " << c.size() << endl;
+    std::copy(c.begin(), c.end(), (std::ostream_iterator<int>(outfile), std::ostream_iterator<int>(outfile, " ")));
+    outfile.close();   
+    cout << mytime() << "Saved to disk." << endl;
 }
 
 template <uint8_t width_t>
@@ -90,8 +82,11 @@ inline void save(sdsl::int_vector<width_t> const & c, string const & output_path
     store_to_file(c, output_path);
 }
 
+
 template <typename TDistance, typename TIndex, typename TText>
-inline void run(TIndex & index, TText const & text, Options & opt, signed chromosomeId)
+inline void run(TIndex /*const*/ & index, TText const & text, StringSet<CharString> const & ids,
+                CharString const & outputPath, unsigned const errors, unsigned const length,
+                unsigned const chromosomeId)
 {
     TVector c(seqan::length(text) - opt.length + 1, 0);
 
@@ -110,6 +105,7 @@ inline void run(TIndex & index, TText const & text, Options & opt, signed chromo
         // case 4: run<4, TDistance>(index, text);
         //        break;
         default: cerr << "E = " << opt.errors << " not yet supported.\n";
+        
                  exit(1);
     }
     cout << mytime() << "Done.\n";
@@ -135,7 +131,6 @@ inline void run(Options & opt)
 
         TIndex<TStringSet> index;
         open(index, toCString(opt.indexPath), OPEN_RDONLY);
-
         // TODO(cpockrandt): replace with a ConcatView
         auto & text = indexText(index);
         typename Concatenator<TStringSet>::Type concatText = concat(text);
@@ -155,6 +150,7 @@ inline void run(Options & opt)
         {
             std::string _indexPath = toCString(opt.indexPath);
             _indexPath += "." + to_string(i);
+
             TIndex<TString> index;
             open(index, toCString(_indexPath), OPEN_RDONLY);
             cout << mytime() << "Index of " << ids[i] << " loaded." << endl;
@@ -202,6 +198,8 @@ int main(int argc, char *argv[])
 
     addOption(parser, ArgParseOption("K", "length", "Length of k-mers", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "length");
+    
+    addOption(parser, ArgParseOption("a", "all", "Calculate also all the smaller needed mappability k-meres for bit vectors creation", ArgParseArgument::INTEGER, "INT"));
 
     addOption(parser, ArgParseOption("i", "indels", "Turns on indels (EditDistance). "
         "If not selected, only mismatches will be considered."));
@@ -214,14 +212,15 @@ int main(int argc, char *argv[])
         "This makes the algorithm only slightly slower but the index does not have to be loaded into main memory "
         "(which takes some time)."));
 
-
     addOption(parser, ArgParseOption("t", "threads", "Number of threads", ArgParseArgument::INTEGER, "INT"));
     setDefaultValue(parser, "threads", omp_get_max_threads());
+
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
     if (res != ArgumentParser::PARSE_OK)
         return res == ArgumentParser::PARSE_ERROR;
 
     // Retrieve input parameters
+
     Options opt;
     getOptionValue(opt.errors, parser, "errors");
     getOptionValue(opt.length, parser, "length");
@@ -237,7 +236,6 @@ int main(int argc, char *argv[])
         cerr << "ERROR: overlap should be <= K - E - 2\n";
         exit(1);
     }
-
     CharString _indexPath;
     _indexPath = opt.indexPath;
     _indexPath += ".singleIndex";
