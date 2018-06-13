@@ -91,7 +91,7 @@ inline void run(StringSet<CharString>  & ids, CharString const & indexPath, Char
     typedef String<TChar, TAllocConfig> TString;
     if (singleIndex)
     {
-        Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index;
+        Index<StringSet<TString, Owner<ConcatDirect<> > >, TMyFastConfigD> index;
         open(index, toCString(indexPath), OPEN_RDONLY);
 
         // TODO(cpockrandt): replace with a ConcatView
@@ -107,7 +107,7 @@ inline void run(StringSet<CharString>  & ids, CharString const & indexPath, Char
         {
             std::string _indexPath = toCString(indexPath);
             _indexPath += "." + to_string(i);
-            Index<TString, TIndexConfig> index;
+            Index<TString, TMyFastConfigD> index;
             open(index, toCString(_indexPath), OPEN_RDONLY);
             auto & text = indexText(index);
             cout << mytime() << "Index of " << ids[i] << " loaded." << endl;
