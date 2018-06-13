@@ -145,8 +145,6 @@ int main(int argc, char *argv[])
 
     addOption(parser, ArgParseOption("K", "length", "Length of k-mers", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "length");
-    
-    addOption(parser, ArgParseOption("a", "all", "Calculate also all the smaller needed mappability k-meres for bit vectors creation", ArgParseArgument::INTEGER, "INT"));
 
     addOption(parser, ArgParseOption("i", "indels", "Turns on indels (EditDistance). "
         "If not selected, only mismatches will be considered."));
@@ -167,7 +165,6 @@ int main(int argc, char *argv[])
     getOptionValue(length, parser, "length");
     getOptionValue(indexPath, parser, "index");
     getOptionValue(outputPath, parser, "output");
-    bool multi = isSet(parser, "all");
     bool indels = isSet(parser, "indels");
     bool mmap = isSet(parser, "mmap");
 
@@ -189,22 +186,11 @@ int main(int argc, char *argv[])
     _indexPath += ".ids";
     open(ids, toCString(_indexPath), OPEN_RDONLY);
 
-    if(multi)
-    {
-        for(int i = 2; i <= (errors + 2); ++i)
-        {
-            if (alphabet == "dna4")
-                run<Dna>(ids, indexPath, outputPath, errors, floor(length/(error + 2))*i, indels, singleIndex, mmap);
-            else
-                run<Dna5>(ids, indexPath, outputPath, errors, length, indels, singleIndex, mmap);
-        }
-    }
+
+    if (alphabet == "dna4")
+        run<Dna>(ids, indexPath, outputPath, errors, length, indels, singleIndex, mmap);
     else
-    {
-        if (alphabet == "dna4")
-            run<Dna>(ids, indexPath, outputPath, errors, length, indels, singleIndex, mmap);
-        else
-            run<Dna5>(ids, indexPath, outputPath, errors, length, indels, singleIndex, mmap);
-    }
+        run<Dna5>(ids, indexPath, outputPath, errors, length, indels, singleIndex, mmap);
+
 
 }
