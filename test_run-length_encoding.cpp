@@ -94,7 +94,7 @@ vector<char> encode(sdsl::bit_vector & bv, char limit){
 }
 
 
-void heatmap(sdsl::bit_vector b){
+void heatmap(sdsl::bit_vector & b, string output){
     int height = HEIGHT;
     int width = WIDTH;
     sdsl::rank_support_v<> rb(&b);
@@ -107,7 +107,7 @@ void heatmap(sdsl::bit_vector b){
     int window = floor(static_cast<float>(b.size()) / (height * width));
     int pos = 0;
         
-    ofstream img("heatmap.ppm");
+    ofstream img(output + ".ppm");
     img << "P3" << endl;
     img << width << " " << height << endl;
     img << "255" << endl;
@@ -120,7 +120,7 @@ void heatmap(sdsl::bit_vector b){
             img << r << " " << r << " " << r << endl;
         }
     }
-     system("eog heatmap.ppm");
+//      system("eog heatmap.ppm");
 }
 
 vector<int> histogram(sdsl::bit_vector b ,const int his_size, const int bucket_width){
@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
     sdsl::bit_vector b;
     load_from_file(b, argv[1]);
     cout << "Load successful" << endl;
-    heatmap(b);
+    heatmap(b, argv[2]);
     int his_size = HISTROGRAM_SIZE;
     int bucket_width = BUCKET_WIDTH;
 
