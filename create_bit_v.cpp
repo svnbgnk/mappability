@@ -83,7 +83,7 @@ bool sdsl::operator[](int idx){
 int main(int argc, char *argv[])
 {
     ArgumentParser parser("Create bit vectors");
-    addOption(parser, ArgParseOption("I", "map", "Path to the mappability file + name given to the mappability file", ArgParseArgument::INPUT_FILE, "IN"));
+    addOption(parser, ArgParseOption("I", "map", "Path to the mappability file (including the number at the end)", ArgParseArgument::INPUT_FILE, "IN"));
     setRequired(parser, "map");
     
     addOption(parser, ArgParseOption("Idx", "index", "Path to the index", ArgParseArgument::INPUT_FILE, "IN"));
@@ -136,6 +136,11 @@ int main(int argc, char *argv[])
     _indexPath += ".alphabet";
     open(alphabet, toCString(_indexPath));
 
+    if(!file_exists(mappability_path))
+    {
+        cout << "Cannot find mappability file" << endl;
+        exit(0);
+    }
     ifstream myfile;
     myfile.open(mappability_path, std::ios::in | std::ofstream::binary);
     std::getline(myfile, mappability_str);
@@ -177,7 +182,6 @@ int main(int argc, char *argv[])
             names.push_back("r_bit_vector_" + to_string(len) + "_shift_" + to_string(shift));
         }
     }
-    
     if(debug)
     {  
         for(int i = 0; i < bit_vectors.size(); ++i){
@@ -187,11 +191,13 @@ int main(int argc, char *argv[])
         }
     }
     //order in suffix array
+    cout << indexPath << endl;
     order_bit_vector(bit_vectors, indexPath, mmap, alphabet);
     for(int i = 0; i < bit_vectors.size(); ++i){
-        std::ofstream outfile((toCString(outputPath) + names[i]), std::ios::out | std::ofstream::binary);
-        std::copy(bit_vectors[i].begin(), bit_vectors[i].end(), std::ostream_iterator<bool>(outfile));
-        outfile.close();
+        sdsl::store_to_file(bit_vectors[i], toCString(outputPath) + names[i]);
+//         std::ofstream outfile((toCString(outputPath) + names[i]), std::ios::out | std::ofstream::binary);
+//         std::copy(bit_vectors[i].begin(), bit_vectors[i].end(), std::ostream_iterator<bool>(outfile));
+//         outfile.close();
     }    
     return 0;
 }
