@@ -135,7 +135,7 @@ vector<int> histogram(sdsl::bit_vector b ,const int his_size, const int bucket_w
             ++n;
         }
         if(n != 0){
-            if(n < ((his_size - 1) * bucket_width))
+            if(n < ((his_size) * bucket_width))
                 hist[floor(n / bucket_width)] += 1;
         }
         n = 0;
@@ -156,7 +156,7 @@ vector<int> histogram(sdsl::bit_vector b ,const int his_size){
             ++n;
         }
         if(n != 0){
-             if(n < static_cast<int>(pow(2, his_size - 1))){
+             if(n < static_cast<int>(pow(2, his_size))){
                 hist_lg[static_cast<int>(ceil(log2(static_cast<float>(n))))] += 1;
              }
         }
