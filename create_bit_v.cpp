@@ -37,8 +37,8 @@ vector<float> read_calculate_frequency(const string mappability_path){
 }
 
 pair<vector<string>, vector<sdsl::bit_vector>> create_bit_vectors(const vector <float> & mappability, const int len, const double threshold, const int errors){
-    sdsl::bit_vector righti (mappability.size() + len - 1, 1);
-    sdsl::bit_vector lefti (mappability.size() + len - 1, 1);
+    sdsl::bit_vector righti (mappability.size() + len - 1, 0);
+    sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
     #pragma omp parallel for schedule(static)        
     for(unsigned i = 0; i < mappability.size(); ++i){
         lefti[i + len - 1] = (mappability[i] >= threshold);
