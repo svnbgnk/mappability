@@ -183,15 +183,16 @@ int main(int argc, char *argv[])
         }
     }
     if(debug)
-    {  
+    {
+        sdsl::store_to_file(bit_vectors[0], toCString(outputPath) + names[0] + "_for_heatmap");
         for(int i = 0; i < bit_vectors.size(); ++i){
             std::ofstream outfile((toCString(outputPath) + names[i] + "_debug"), std::ios::out | std::ofstream::binary);
             std::copy(bit_vectors[i].begin(), bit_vectors[i].end(), std::ostream_iterator<bool>(outfile));
             outfile.close();
+            
         }
     }
     //order in suffix array
-    cout << indexPath << endl;
     order_bit_vector(bit_vectors, indexPath, mmap, alphabet);
     for(int i = 0; i < bit_vectors.size(); ++i){
         sdsl::store_to_file(bit_vectors[i], toCString(outputPath) + names[i]);
