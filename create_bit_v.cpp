@@ -36,15 +36,15 @@ vector<float> read_calculate_frequency(const string mappability_path){
     return(mappability); 
 }
 
-pair<vector<string>, vector<sdsl::bit_vector>> create_bit_vectors(const vector <float> & mappability, const int len, const int threshold, const int errors){
+pair<vector<string>, vector<sdsl::bit_vector>> create_bit_vectors(const vector <float> & mappability, const int len, const double threshold, const int errors){
     sdsl::bit_vector righti (mappability.size() + len - 1, 1);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 1);
-    #pragma omp for schedule(static)        
+    #pragma omp parallel for schedule(static)        
     for(unsigned i = 0; i < mappability.size(); ++i){
         lefti[i + len - 1] = (mappability[i] >= threshold);
         righti[i] = (mappability[i] >= threshold);
     }
-    cout << "Bit Vector Length: " << righti.size() << endl;
+    cout << "Finished Default Bit Vectors.  Length: " << righti.size() << endl;
     vector<sdsl::bit_vector> bit_vectors;
     vector<string> names;
     bit_vectors.push_back(lefti);
@@ -74,12 +74,12 @@ pair<vector<string>, vector<sdsl::bit_vector>> create_bit_vectors(const vector <
 
 template <typename TChar, typename TAllocConfig>
 void loadIndex(vector<sdsl::bit_vector> &bit_vectors, CharString const indexPath)
-{    
+{
+    cout << mytime() << "Loading Index" << endl;
     typedef String<TChar, TAllocConfig> TString;
     Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index;
     open(index, toCString(indexPath), OPEN_RDONLY);
-    
-    cout << "Index size:" << seqan::length(index.fwd.sa) << endl;
+    cout << mytime() << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
     vector<sdsl::bit_vector> bit_vectors_ordered (bit_vectors);    
     int number_of_indeces = seqan::length(index.fwd.sa) - bit_vectors[0].size();
     vector<int> sequenceLengths(number_of_indeces + 1, 0);
@@ -93,11 +93,12 @@ void loadIndex(vector<sdsl::bit_vector> &bit_vectors, CharString const indexPath
         sequenceLengths[i] += (sequenceLengths[i - 1]);
     // skip sentinels
 
-    #pragma omp for schedule(static)
+    #pragma omp parallel for schedule(static)
     for (unsigned j = 0; j < seqan::length(index.fwd.sa) - number_of_indeces; ++j)
     {
         uint32_t sa_j = getValueI2(index.fwd.sa[j + number_of_indeces]);
         uint16_t seq = getValueI1(index.fwd.sa[j + number_of_indeces]);
+//         cout << j << " < " << (sa_j + sequenceLengths[seq]) << endl;
         for(int i = 0; i < bit_vectors.size(); ++i){
             bit_vectors_ordered[i][sa_j + sequenceLengths[seq]] = bit_vectors[i][j];
         }
@@ -158,7 +159,7 @@ int main(int argc, char *argv[])
     //Retrieve input parameters
     CharString indexPath, _indexPath, outputPath;
     string mappability_path;
-    int len, errors = 0, readlength = 100, allowederrors = 2; 
+    int len, errors = 0; 
     double threshold;
     
     getOptionValue(mappability_path, parser, "map");
@@ -172,9 +173,6 @@ int main(int argc, char *argv[])
     
     StringSet<CharString> ids;
     CharString alphabet;
-
-//     int shift = floor(static_cast<float>(readlength)/(allowederrors + 2));
-    //ceiling for len
     
     _indexPath = indexPath;
     _indexPath += ".alphabet";
@@ -186,46 +184,17 @@ int main(int argc, char *argv[])
         exit(0);
     }
     
+    cout << mytime() << "Program start." << endl;
     vector<float> mappability = read_calculate_frequency(mappability_path);
-    cout << "mappability size:" << mappability.size() << endl;
+    cout << mytime() << "Loaded Mappability vector. Size: " << mappability.size() << endl;
     // TODO Merge both bit_vectors into for creation
 
     pair<vector<string>, vector<sdsl::bit_vector>> result = create_bit_vectors(mappability, len, threshold, errors);
     vector<string> names = result.first;
     vector<sdsl::bit_vector> bit_vectors = result.second;
-    /*
-    sdsl::bit_vector righti (mappability.size() + len - 1, 1);
-    sdsl::bit_vector lefti (mappability.size() + len - 1, 1);
-    #pragma omp for schedule(static)        
-    for(unsigned i = 0; i < mappability.size(); ++i){
-        lefti[i + len - 1] = (mappability[i] >= threshold);
-        righti[i] = (mappability[i] >= threshold);
-    }
-    cout << "Bit Vector Length: " << righti.size() << endl;
-    vector<sdsl::bit_vector> bit_vectors;
-    vector<string> names;
-    bit_vectors.push_back(lefti);
-    bit_vectors.push_back(righti);
-    names.push_back("l_bit_vector_" + to_string(len));
-    names.push_back("r_bit_vector_" + to_string(len));
-    if(errors != 0){
-        for(int i = 1; i < (errors + 2); ++i){
-            sdsl::bit_vector newleft(mappability.size() + len - 1, 1);
-            sdsl::bit_vector newright(mappability.size() + len - 1, 1);
-            int shift = i * std::ceil(len / (errors + 2));
-            for(int j = 0; j < righti.size(); ++j){
-                if(j - shift >= 0)
-                    newright[j] = righti[j - shift];
-                if(j + shift < lefti.size() - 1)
-                    newleft[j] = lefti[j + shift];
-            }
-            bit_vectors.push_back(newleft);
-            bit_vectors.push_back(newright);
-            names.push_back("l_bit_vector_" + to_string(len) + "_shift_" + to_string(shift));
-            names.push_back("r_bit_vector_" + to_string(len) + "_shift_" + to_string(shift));
-        }
-    }
-    */
+    cout << mytime() << "Finished bit vectors." << endl;
+
+
     if(debug)
     {
         sdsl::store_to_file(bit_vectors[0], toCString(outputPath) + names[0] + "_for_heatmap");
@@ -236,13 +205,16 @@ int main(int argc, char *argv[])
             
         }
     }
+    cout << "Start sorting" << endl;
     //order in suffix array
     order_bit_vector(bit_vectors, indexPath, mmap, alphabet);
+    cout << mytime() << "Ordering (Suffix array) bit vectors" << endl;
     for(int i = 0; i < bit_vectors.size(); ++i){
         sdsl::store_to_file(bit_vectors[i], toCString(outputPath) + names[i]);
 //         std::ofstream outfile((toCString(outputPath) + names[i]), std::ios::out | std::ofstream::binary);
 //         std::copy(bit_vectors[i].begin(), bit_vectors[i].end(), std::ostream_iterator<bool>(outfile));
 //         outfile.close();
-    }    
+    }   
+    cout << mytime() << "Finished saving bit vectors" << endl;
     return 0;
 }
