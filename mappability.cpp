@@ -1,6 +1,7 @@
 #include "common.h"
 #include <sdsl/bit_vectors.hpp>
 #include <iterator> 
+#include <cstdint>
 //#include <experimental/iterator>
 
 template <unsigned errors, typename TDistance, typename TIndex, typename TText>
@@ -43,7 +44,7 @@ inline void run(TIndex & index, TText const & text, StringSet<CharString> const 
 //         *it = static_cast<float>(1) / *it;
         if(*it == 0){
             ++counter;
-            *it = 1;
+            *it = UINT_LEAST16_MAX;
         }
     }
     cout << "Number of zeroes: " <<  counter << endl;
