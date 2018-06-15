@@ -43,14 +43,13 @@ void loadIndex(vector<sdsl::bit_vector> &bit_vectors, CharString const indexPath
     for(int i = 1; i < sequenceLengths.size(); ++i)
         sequenceLengths[i] += (sequenceLengths[i - 1]);
     // skip sentinels
-    for(int i = 0; i < bit_vectors.size(); ++i){
-        for (unsigned j = 0; j < seqan::length(index.fwd.sa) - number_of_indeces; ++j)
-        {
-            uint32_t sa_j = getValueI2(index.fwd.sa[j + number_of_indeces]);
-            uint16_t seq = getValueI1(index.fwd.sa[j + number_of_indeces]);
+
+    for (unsigned j = 0; j < seqan::length(index.fwd.sa) - number_of_indeces; ++j)
+    {
+        uint32_t sa_j = getValueI2(index.fwd.sa[j + number_of_indeces]);
+        uint16_t seq = getValueI1(index.fwd.sa[j + number_of_indeces]);
+        for(int i = 0; i < bit_vectors.size(); ++i){
             bit_vectors_ordered[i][sa_j + sequenceLengths[seq]] = bit_vectors[i][j];
-//             if(i == 0)
-//                 cout << j << " <" << seq << "> " << (sa_j + sequenceLengths[seq]) << endl;
         }
     }
     bit_vectors = bit_vectors_ordered;
