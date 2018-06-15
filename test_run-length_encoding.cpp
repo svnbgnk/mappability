@@ -94,7 +94,7 @@ vector<char> encode(sdsl::bit_vector & bv, char limit){
 }
 
 
-void heatmap(sdsl::bit_vector & b, string output){
+void heatmap(sdsl::bit_vector & b, string output, float min = 1){
     int height = HEIGHT;
     int width = WIDTH;
     sdsl::rank_support_v<> rb(&b);
@@ -104,6 +104,7 @@ void heatmap(sdsl::bit_vector & b, string output){
         width = round(static_cast<float> (height) * 9 / 16);
         cout << "height: " << height << " width: " << width << endl;
     }
+    cout << "Bases per pixel: "  << b.size()/(height * width) << endl;
     int window = floor(static_cast<float>(b.size()) / (height * width));
     int pos = 0;
         
@@ -114,13 +115,14 @@ void heatmap(sdsl::bit_vector & b, string output){
     for (int i = 0; i < height; ++i){
         for(int j = 0; j < width; ++j){
             float den = static_cast<float> (rb(pos + window) - rb(pos)) / window;
-            int r = round(den * 254);
+            int r = static_cast<int>(round(den * 254));
             int g = 0;
             int b = 0;
             img << r << " " << r << " " << r << endl;
+            pos += window;
         }
     }
-//      system("eog heatmap.ppm");
+//     system("eog heatmap.ppm");
 }
 
 vector<int> histogram(sdsl::bit_vector b ,const int his_size, const int bucket_width){
@@ -218,7 +220,7 @@ int main(int argc, char *argv[])
     sdsl::bit_vector b;
     load_from_file(b, argv[1]);
     cout << "Load successful" << endl;
-    heatmap(b, argv[2]);
+    heatmap(b, argv[2], 0.8);
     int his_size = HISTROGRAM_SIZE;
     int bucket_width = BUCKET_WIDTH;
 
