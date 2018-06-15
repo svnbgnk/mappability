@@ -23,6 +23,55 @@ inline bool file_exists (const std::string& name) {
   return (stat (name.c_str(), &buffer) == 0); 
 }
 
+vector<float> read_calculate_frequency(const string mappability_path){
+    string mappability_str;
+    ifstream myfile;
+    myfile.open(mappability_path, std::ios::in | std::ofstream::binary);
+    std::getline(myfile, mappability_str);
+    vector<int> mappability_int = getInt(mappability_str);
+    vector<float> mappability(mappability_int.begin(), mappability_int.end());
+    myfile.close();
+    for(vector<float>::iterator it = mappability.begin(); mappability.end() != it; ++it)
+        *it = static_cast<float>(1) / *it;
+    return(mappability); 
+}
+
+pair<vector<string>, vector<sdsl::bit_vector>> create_bit_vectors(const vector <float> & mappability, const int len, const int threshold, const int errors){
+    sdsl::bit_vector righti (mappability.size() + len - 1, 1);
+    sdsl::bit_vector lefti (mappability.size() + len - 1, 1);
+    #pragma omp for schedule(static)        
+    for(unsigned i = 0; i < mappability.size(); ++i){
+        lefti[i + len - 1] = (mappability[i] >= threshold);
+        righti[i] = (mappability[i] >= threshold);
+    }
+    cout << "Bit Vector Length: " << righti.size() << endl;
+    vector<sdsl::bit_vector> bit_vectors;
+    vector<string> names;
+    bit_vectors.push_back(lefti);
+    bit_vectors.push_back(righti);
+    names.push_back("l_bit_vector_" + to_string(len));
+    names.push_back("r_bit_vector_" + to_string(len));
+    if(errors != 0){
+        for(int i = 1; i < (errors + 2); ++i){
+            sdsl::bit_vector newleft(mappability.size() + len - 1, 1);
+            sdsl::bit_vector newright(mappability.size() + len - 1, 1);
+            int shift = i * std::ceil(len / (errors + 2));
+            for(int j = 0; j < righti.size(); ++j){
+                if(j - shift >= 0)
+                    newright[j] = righti[j - shift];
+                if(j + shift < lefti.size() - 1)
+                    newleft[j] = lefti[j + shift];
+            }
+            bit_vectors.push_back(newleft);
+            bit_vectors.push_back(newright);
+            names.push_back("l_bit_vector_" + to_string(len) + "_shift_" + to_string(shift));
+            names.push_back("r_bit_vector_" + to_string(len) + "_shift_" + to_string(shift));
+        }
+    }    
+    return(std::make_pair(names, bit_vectors));
+}
+
+
 template <typename TChar, typename TAllocConfig>
 void loadIndex(vector<sdsl::bit_vector> &bit_vectors, CharString const indexPath)
 {    
@@ -44,6 +93,7 @@ void loadIndex(vector<sdsl::bit_vector> &bit_vectors, CharString const indexPath
         sequenceLengths[i] += (sequenceLengths[i - 1]);
     // skip sentinels
 
+    #pragma omp for schedule(static)
     for (unsigned j = 0; j < seqan::length(index.fwd.sa) - number_of_indeces; ++j)
     {
         uint32_t sa_j = getValueI2(index.fwd.sa[j + number_of_indeces]);
@@ -74,11 +124,6 @@ void order_bit_vector(vector<sdsl::bit_vector> &bit_vectors, CharString const in
 }
 
 
-/*
-bool sdsl::operator[](int idx){
-    
-}
-*/
 int main(int argc, char *argv[])
 {
     ArgumentParser parser("Create bit vectors");
@@ -127,7 +172,7 @@ int main(int argc, char *argv[])
     
     StringSet<CharString> ids;
     CharString alphabet;
-    string mappability_str;
+
 //     int shift = floor(static_cast<float>(readlength)/(allowederrors + 2));
     //ceiling for len
     
@@ -140,19 +185,18 @@ int main(int argc, char *argv[])
         cout << "Cannot find mappability file" << endl;
         exit(0);
     }
-    ifstream myfile;
-    myfile.open(mappability_path, std::ios::in | std::ofstream::binary);
-    std::getline(myfile, mappability_str);
-    vector<int> mappability_int = getInt(mappability_str);
-    vector<float> mappability(mappability_int.begin(), mappability_int.end());
-    myfile.close();
-    for(vector<float>::iterator it = mappability.begin(); mappability.end() != it; ++it)
-        *it = static_cast<float>(1) / *it;
-    cout << "mappability size:" << mappability.size() << endl;    
+    
+    vector<float> mappability = read_calculate_frequency(mappability_path);
+    cout << "mappability size:" << mappability.size() << endl;
     // TODO Merge both bit_vectors into for creation
+
+    pair<vector<string>, vector<sdsl::bit_vector>> result = create_bit_vectors(mappability, len, threshold, errors);
+    vector<string> names = result.first;
+    vector<sdsl::bit_vector> bit_vectors = result.second;
+    /*
     sdsl::bit_vector righti (mappability.size() + len - 1, 1);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 1);
-        
+    #pragma omp for schedule(static)        
     for(unsigned i = 0; i < mappability.size(); ++i){
         lefti[i + len - 1] = (mappability[i] >= threshold);
         righti[i] = (mappability[i] >= threshold);
@@ -181,6 +225,7 @@ int main(int argc, char *argv[])
             names.push_back("r_bit_vector_" + to_string(len) + "_shift_" + to_string(shift));
         }
     }
+    */
     if(debug)
     {
         sdsl::store_to_file(bit_vectors[0], toCString(outputPath) + names[0] + "_for_heatmap");
