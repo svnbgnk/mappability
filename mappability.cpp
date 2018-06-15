@@ -1,125 +1,131 @@
-#include "common.h"
+#include <vector>
+#include <cstdint>
+
+#include <seqan/arg_parse.h>
+#include <seqan/seq_io.h>
+#include <seqan/index.h>
 
 #include <sdsl/int_vector.hpp>
 
-template <unsigned errors, typename TDistance, typename TIndex, typename TText>
-inline void run(TIndex & index, TText const & text, StringSet<CharString> const & ids,
-                CharString const & outputPath, unsigned const length, unsigned const chromosomeId)
+// You can switch between different vector implementations. Consider that they have different thread safetyness!
+// typedef sdsl::int_vector<8> TVector;
+typedef std::vector<uint8_t> TVector;
+// constexpr uint64_t max_val = (1 << 8) - 1;
+
+#include "common.h"
+
+#include "algo1.hpp"
+#include "algo2.hpp"
+
+using namespace std;
+using namespace seqan;
+
+template <typename T>
+inline void save(vector<T> const & c, string const & output_path)
 {
-    auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
-    _optimalSearchSchemeComputeFixedBlocklength(scheme, length);
+    std::ofstream outfile(output_path, std::ios::out | std::ofstream::binary);
+    std::copy(c.begin(), c.end(), std::ostream_iterator<uint8_t>(outfile));
+    outfile.close();
+}
 
-    uint64_t textLength = seqan::length(text);
-    // TODO: is there an upper bound? are we interested whether a k-mer has 60.000 or 70.000 hits?
-    sdsl::int_vector<16> c(textLength - length + 1);
-    cout << mytime() << "Vector initialized (size: " << c.size() << ")." << endl;
-
-    // TODO(cpockrandt): think about scheduling strategy
-    #pragma omp parallel for schedule(dynamic, 1000000)
-    for (uint64_t i = 0; i < textLength - length + 1; ++i)
-    {
-
-        unsigned hits = 0;
-        // TODO(cpockrandt): for more than 2 errors we need to filter duplicates when counting or
-        // choose disjunct search schemes. also we need to do this for EditDistance!
-        auto delegate = [&hits](auto const &it, auto const & /*read*/, unsigned const /*errors*/) {
-            if (hits + countOccurrences(it) < (1 << 16))
-                hits += countOccurrences(it);
-            else
-                hits = (1 << 16) - 1;
-        };
-
-        auto const & needle = infix(text, i, i + length);
-        // goRoot(it); // TODO: does not interfere?
-        Iter<TIndex, VSTree<TopDown<> > > it(index);
-        _optimalSearchScheme(delegate, it, needle, scheme, TDistance());
-        c[i] = hits;
-    }
-    cout << mytime() << "Done." << endl;
-
-    for (unsigned i = 0; i < c.size(); ++i)
-        cout << c[i] << " ";
-    cout << endl;
-
-    std::string output_path = toCString(outputPath);
-    output_path += std::to_string(chromosomeId);
+template <uint8_t width_t>
+inline void save(sdsl::int_vector<width_t> const & c, string const & output_path)
+{
     store_to_file(c, output_path);
-    cout << mytime() << "Saved to disk: " << output_path << endl;
 }
 
 template <typename TDistance, typename TIndex, typename TText>
-inline void run(TIndex /*const*/ & index, TText const & text, StringSet<CharString> const & ids,
-                CharString const & outputPath, unsigned const errors, unsigned const length,
-                unsigned const chromosomeId)
+inline void run(TIndex & index, TText const & text, Options & opt, signed chromosomeId)
 {
-    switch (errors)
+    TVector c(seqan::length(text) - opt.length + 1, 0);
+
+    // TODO: is there an upper bound? are we interested whether a k-mer has 60.000 or 70.000 hits?
+    cout << mytime() << "Vector initialized (size: " << c.size() << ")." << endl;
+    switch (opt.errors)
     {
-        case 0: run<0, TDistance>(index, text, ids, outputPath, length, chromosomeId);
+        case 0: runAlgo2<0/*, TDistance*/>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
                 break;
-        case 1: run<1, TDistance>(index, text, ids, outputPath, length, chromosomeId);
+        case 1: runAlgo2<1/*, TDistance*/>(index, text, opt.length, c, opt.length - opt. overlap, opt.threads);
                 break;
-        case 2: run<2, TDistance>(index, text, ids, outputPath, length, chromosomeId);
+        case 2: runAlgo2<2/*, TDistance*/>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
                 break;
-        case 3: run<3, TDistance>(index, text, ids, outputPath, length, chromosomeId);
-               break;
-        case 4: run<4, TDistance>(index, text, ids, outputPath, length, chromosomeId);
-               break;
-        default: cout << "E = " << errors << " not yet supported." << endl;
+        // case 3: run<3, TDistance>(index, text);
+        //        break;
+        // case 4: run<4, TDistance>(index, text);
+        //        break;
+        default: cerr << "E = " << opt.errors << " not yet supported.\n";
                  exit(1);
     }
+    cout << mytime() << "Done.\n";
+
+    std::string output_path = toCString(opt.outputPath);
+    output_path += "_" + to_string(opt.errors) + "_" + to_string(opt.length) + "_" + to_string(opt.overlap);
+    if (chromosomeId >= 0)
+        output_path += "-" + to_string(chromosomeId);
+
+    save(c, output_path);
+
+    cout << mytime() << "Saved to disk: " << output_path << '\n';
 }
 
 template <typename TChar, typename TAllocConfig, typename TDistance>
-inline void run(StringSet<CharString>  & ids, CharString const & indexPath, CharString const & outputPath,
-                unsigned const errors, unsigned const length, bool const singleIndex)
+inline void run(Options & opt)
 {
     typedef String<TChar, TAllocConfig> TString;
-    if (singleIndex)
+    if (opt.singleIndex)
     {
-        Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index;
-        open(index, toCString(indexPath), OPEN_RDONLY);
+        typedef StringSet<TString, Owner<ConcatDirect<> > > TStringSet;
+
+        TIndex<TStringSet> index;
+        open(index, toCString(opt.indexPath), OPEN_RDONLY);
 
         // TODO(cpockrandt): replace with a ConcatView
         auto & text = indexText(index);
-        typename Concatenator<StringSet<TString, Owner<ConcatDirect<> > >>::Type concatText = concat(text);
+        typename Concatenator<TStringSet>::Type concatText = concat(text);
 
         cout << mytime() << "Index loaded." << endl;
-        run<TDistance>(index, concatText, ids, outputPath, errors, length, 0);
+        run<TDistance>(index, concatText, opt, -1 /*no chromosomeId*/);
     }
     else
     {
+        // load chromosome ids
+        StringSet<CharString> ids;
+        CharString _indexPath = opt.indexPath;
+        _indexPath += ".ids";
+        open(ids, toCString(_indexPath), OPEN_RDONLY);
+
         for (unsigned i = 0; i < seqan::length(ids); ++i)
         {
-            std::string _indexPath = toCString(indexPath);
+            std::string _indexPath = toCString(opt.indexPath);
             _indexPath += "." + to_string(i);
-            Index<TString, TIndexConfig> index;
+            TIndex<TString> index;
             open(index, toCString(_indexPath), OPEN_RDONLY);
-            auto & text = indexText(index);
             cout << mytime() << "Index of " << ids[i] << " loaded." << endl;
-            run<TDistance>(index, text, ids, outputPath, errors, length, i);
+            auto & text = indexText(index);
+            run<TDistance>(index, text, opt, i);
         }
     }
 }
 
 template <typename TChar, typename TAllocConfig>
-inline void run(StringSet<CharString> & ids, CharString const & indexPath, CharString const & outputPath,
-                unsigned const errors, unsigned const length, bool const indels, bool const singleIndex)
+inline void run(Options & opt)
 {
-    if (indels)
-        run<TChar, TAllocConfig, EditDistance>(ids, indexPath, outputPath, errors, length, singleIndex);
+    if (opt.indels) {
+        cerr << "TODO: Indels are not yet supported.\n";
+        exit(1);
+        // run<TChar, TAllocConfig, EditDistance>(opt);
+    }
     else
-        run<TChar, TAllocConfig, HammingDistance>(ids, indexPath, outputPath, errors, length, singleIndex);
+        run<TChar, TAllocConfig, HammingDistance>(opt);
 }
 
 template <typename TChar>
-inline void run(StringSet<CharString> & ids, CharString const & indexPath, CharString const & outputPath,
-                unsigned const errors, unsigned const length, bool const indels, bool const singleIndex,
-                bool const mmap)
+inline void run(Options & opt)
 {
-    if (mmap)
-        run<TChar, MMap<> >(ids, indexPath, outputPath, errors, length, indels, singleIndex);
+    if (opt.mmap)
+        run<TChar, MMap<> >(opt);
     else
-        run<TChar, Alloc<> >(ids, indexPath, outputPath, errors, length, indels, singleIndex);
+        run<TChar, Alloc<> >(opt);
 }
 
 int main(int argc, char *argv[])
@@ -132,7 +138,7 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("I", "index", "Path to the index", ArgParseArgument::INPUT_FILE, "IN"));
 	setRequired(parser, "index");
 
-    addOption(parser, ArgParseOption("O", "output", "Path to output directory", ArgParseArgument::OUTPUT_FILE, "OUT"));
+    addOption(parser, ArgParseOption("O", "output", "Path to output directory (error number, length and overlap will be appended to the output file)", ArgParseArgument::OUTPUT_FILE, "OUT"));
     setRequired(parser, "output");
 
     addOption(parser, ArgParseOption("E", "errors", "Number of errors", ArgParseArgument::INTEGER, "INT"));
@@ -143,45 +149,55 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("i", "indels", "Turns on indels (EditDistance). "
         "If not selected, only mismatches will be considered."));
 
+    addOption(parser, ArgParseOption("o", "overlap", "Length of overlap region (usually: the bigger, the faster)", ArgParseArgument::INTEGER, "INT"));
+    setRequired(parser, "overlap");
+
     addOption(parser, ArgParseOption("m", "mmap",
         "Turns memory-mapping on, i.e. the index is not loaded into RAM but accessed directly in secondary-memory. "
         "This makes the algorithm only slightly slower but the index does not have to be loaded into main memory "
         "(which takes some time)."));
+
+    addOption(parser, ArgParseOption("t", "threads", "Number of threads", ArgParseArgument::INTEGER, "INT"));
+    setDefaultValue(parser, "threads", omp_get_max_threads());
 
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
     if (res != ArgumentParser::PARSE_OK)
         return res == ArgumentParser::PARSE_ERROR;
 
     // Retrieve input parameters
-    CharString indexPath, outputPath, _indexPath;
-    unsigned errors, length;
-    getOptionValue(errors, parser, "errors");
-    getOptionValue(length, parser, "length");
-    getOptionValue(indexPath, parser, "index");
-    getOptionValue(outputPath, parser, "output");
-    bool indels = isSet(parser, "indels");
-    bool mmap = isSet(parser, "mmap");
+    Options opt;
+    getOptionValue(opt.errors, parser, "errors");
+    getOptionValue(opt.length, parser, "length");
+    getOptionValue(opt.overlap, parser, "overlap");
+    getOptionValue(opt.threads, parser, "threads");
+    getOptionValue(opt.indexPath, parser, "index");
+    getOptionValue(opt.outputPath, parser, "output");
+    opt.mmap = isSet(parser, "mmap");
+    opt.indels = isSet(parser, "indels");
 
-    cout << mytime() << "Program started." << endl;
+    if (opt.overlap > opt.length - opt.errors - 2)
+    {
+        cerr << "ERROR: overlap should be <= K - E - 2\n";
+        exit(1);
+    }
 
-    bool singleIndex;
-    CharString alphabet;
-    StringSet<CharString> ids;
-
-    _indexPath = indexPath;
+    CharString _indexPath;
+    _indexPath = opt.indexPath;
     _indexPath += ".singleIndex";
-    open(singleIndex, toCString(_indexPath));
+    open(opt.singleIndex, toCString(_indexPath));
 
-    _indexPath = indexPath;
+    _indexPath = opt.indexPath;
     _indexPath += ".alphabet";
-    open(alphabet, toCString(_indexPath));
+    open(opt.alphabet, toCString(_indexPath));
 
-    _indexPath = indexPath;
-    _indexPath += ".ids";
-    open(ids, toCString(_indexPath), OPEN_RDONLY);
-
-    if (alphabet == "dna4")
-        run<Dna>(ids, indexPath, outputPath, errors, length, indels, singleIndex, mmap);
+    if (opt.alphabet == "dna4")
+    {
+        run<Dna>(opt);
+    }
     else
-        run<Dna5>(ids, indexPath, outputPath, errors, length, indels, singleIndex, mmap);
+    {
+        // run<Dna5>(opt);
+        cerr << "TODO: Dna5 alphabet has not been tested yet. Please do and remove this error message afterwards.\n";
+        exit(1);
+    }
 }
