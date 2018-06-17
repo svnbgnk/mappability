@@ -54,18 +54,18 @@ pair<vector<string>, vector<sdsl::bit_vector>> create_bit_vectors(const vector <
     if(errors != 0){
         for(int i = 1; i < (errors + 2); ++i){
             sdsl::bit_vector newleft(mappability.size() + len - 1, 1);
-            sdsl::bit_vector newright(mappability.size() + len - 1, 1);
+//             sdsl::bit_vector newright(mappability.size() + len - 1, 1);
             int shift = i * std::ceil(len / (errors + 2));
             for(int j = 0; j < righti.size(); ++j){
-                if(j - shift >= 0)
-                    newright[j] = righti[j - shift];
+//                 if(j - shift >= 0)
+//                     newright[j] = righti[j - shift];
                 if(j + shift < lefti.size() - 1)
                     newleft[j] = lefti[j + shift];
             }
             bit_vectors.push_back(newleft);
-            bit_vectors.push_back(newright);
-            names.push_back("l_bit_vector_" + to_string(len) + "_shift_" + to_string(shift));
-            names.push_back("r_bit_vector_" + to_string(len) + "_shift_" + to_string(shift));
+//             bit_vectors.push_back(newright);
+            names.push_back("l_bit_vector_" + to_string(len) + "_shift_" + to_string(i));
+//             names.push_back("r_bit_vector_" + to_string(len) + "_shift_" + to_string(shift));
         }
     }    
     return(std::make_pair(names, bit_vectors));

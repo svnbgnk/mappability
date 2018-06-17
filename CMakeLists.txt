@@ -48,3 +48,6 @@ target_link_libraries (create_bit_v ${SEQAN_LIBRARIES})
 
 add_executable (test_run-length_encoding test_run-length_encoding.cpp)
 target_link_libraries (test_run-length_encoding ${SEQAN_LIBRARIES})
+
+add_executable (search search.cpp)
+target_link_libraries (search ${SEQAN_LIBRARIES})

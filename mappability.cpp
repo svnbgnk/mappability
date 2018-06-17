@@ -39,12 +39,12 @@ inline void run(TIndex & index, TText const & text, StringSet<CharString> const 
 
     int counter = 0;
     std::ofstream outfile(toCString(outputPath) + to_string(length), std::ios::out | std::ofstream::binary);
-    for (std::vector<uint16_t>::iterator it = c.begin() ; it != c.end(); ++it)
+    for (std::vector<uint16_t>::iterator iter = c.begin() ; iter != c.end(); ++iter)
     {
-//         *it = static_cast<float>(1) / *it;
-        if(*it == 0){
+//         *iter = static_cast<float>(1) / *iter;
+        if(*iter == 0){
             ++counter;
-            *it = UINT_LEAST16_MAX;
+            *iter = UINT_LEAST16_MAX;
         }
     }
     cout << "Number of zeroes: " <<  counter << endl;
