@@ -10,6 +10,25 @@
 
 namespace seqan{
 
+template< size_t N>
+uint8_t mymin(std::array <uint8_t, N> v, uint8_t end){
+    uint8_t min = 255u;
+    for(uint8_t i = 0; i < end; ++i){
+        if(v[i] < min)
+            min = v[i];
+    }
+    return min;
+}
+
+template< size_t N>
+uint8_t mymax(std::array <uint8_t, N> v, uint8_t end){
+    uint8_t max = 0u;
+    for(uint8_t i = 0; i < end; ++i){
+        if(v[i] > max)
+            max = v[i];
+    }
+    return max;
+}
 
 template <typename TDelegate,
           typename TText, typename TIndex, typename TIndexSpec,
@@ -36,7 +55,6 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
         {
             bool delta = !ordEqual(parentEdgeLabel(iter, TDir()),
                                    needle[goToRight ? needleRightPos - 1 : needleLeftPos - 1]);
-            
             if (minErrorsLeftInBlock > 0 && charsLeft + delta < minErrorsLeftInBlock + 1u) // charsLeft - 1 < minErrorsLeftInBlock - delta
             {
                 continue;
@@ -95,6 +113,19 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
         if (!goDown(iter, infix(needle, infixPosLeft, infixPosRight + 1), TDir()))
             return;
 
+        cout << "Range: " << range(iter.fwdIter) << endl;
+        auto r = range(iter.fwdIter);
+        uint8_t min = mymin(s.pi, blockIndex + 1);
+        cout << "Min Element: " << (int)min << endl;
+        for(int i = r.i1; i < r.i2; ++i){
+            cout << bitvectors.at(min - 1)[i] << endl;
+        }
+        cout << "shift" << (int)min - 1 << "bitvector" << endl;/*
+        for(int i = 0; i < bitvectors.at(1).size(); ++i){
+            cout << i << ": " << bitvectors.at(1)[i] << endl;
+        }*/
+//         cout << iter.fwdIter.i1 << endl;
+//         cout << iter.fwdIter.index->sa[1] << endl;
         if (goToRight2)
         {
             _optimalSearchScheme(delegate, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s,
@@ -118,6 +149,21 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
                 return;
             --infixPosRight;
         }
+       
+        cout << "Range: " << range(iter.revIter) << endl;
+        auto r2 = range(iter.revIter);
+        uint8_t max = mymax(s.pi, blockIndex + 1);
+        cout << "Max Element: " << (int)max << endl;
+        
+        for(int i = r2.i1; i < r2.i2; ++i){
+            cout << bitvectors.at(max)[i] << endl;
+        }
+        
+        cout << "shift" << (int)max << "bitvector" << endl;/*
+        for(int i = 0; i < bitvectors.at(1).size(); ++i){
+            cout << i << ": " << bitvectors.at(1)[i] << endl;
+        }*/
+        
         if (goToRight2)
         {
             _optimalSearchScheme(delegate, iter, needle, bitvectors, infixPosLeft, needleRightPos, errors, s,
@@ -151,6 +197,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
     uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
 
+    cout << "Step: " << needleRightPos - needleLeftPos - 1 << "    ss: "; printv(s.pi); cout << endl;
     // Done.
     if (minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1)
     {

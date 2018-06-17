@@ -54,12 +54,11 @@ int main(int argc, char *argv[])
      // load bitvectors
     vector<sdsl::bit_vector> bit_vectors;
     sdsl::bit_vector b1, b2;
-    load_from_file(b1, "/home/sven/devel/Data/mappability_ref.fa/l_bit_vector_100");
+    load_from_file(b1, "/home/sven/devel/Data/mappability_ref.fa/r_bit_vector_100");
     load_from_file(b2, "/home/sven/devel/Data/mappability_ref.fa/l_bit_vector_100");
     bit_vectors.push_back(b1);
-    bit_vectors.push_back(b2);
     for(int i = 0; i < 10; ++i){
-         string file_name = toCString("/home/sven/devel/Data/mappability_ref.fa/l_bit_vector_100_shift_") + to_string(i);
+         string file_name = toCString("/home/sven/devel/Data/mappability_ref.fa/r_bit_vector_100_shift_") + to_string(i);
          if(file_exists(file_name)){
              sdsl::bit_vector b;
              cout << "Filename: " << file_name << endl;
@@ -67,12 +66,15 @@ int main(int argc, char *argv[])
              bit_vectors.push_back(b);
          }
     }
+    bit_vectors.push_back(b2);
     cout << "Bit vectors loaded. Size: " << bit_vectors.size() << endl;
      
 //     String<Dna> read = "TATGGTGCTTAAATGCTCTTGGCTTTCTCCTGCCCACTTAAGGCCTGCCTGCAATTACAAGAGAAACCATTCATACTGGAAATGGTTGCTCTTTGCTGCT";
     
     StringSet<DnaString> reads;
 //     String<Dna> read = "TGAGCGTAATTGTGTCGCGCGCACTGCCTGATGTCCGTGATGGGCTTAAGCCTGTCCATCGGCGCATTCTTCATGCGATGAATGAAATGGGACTTTTGTT";
+    //                  12345678901234567890123456789012345678901234567890
+//     appendValue(reads, "TGAGCGTAATTGTGTCGCGCGCACTGCCTGATGTCCGTGATGGGCTTAAGCGTGTCCATCGGCGCATTCTTCATGCGATGAATGAAATGGGACTTTTGTT");
     appendValue(reads, "TGAGCGTAATTGTGTCGCGCGCACTGCCTGATGTCCGTGATGGGCTTAAGCCTGTCCATCGGCGCATTCTTCATGCGATGAATGAAATGGGACTTTTGTT");
 //     appendValue(reads, "TGAGCGTAATTGTGTCGCGCGCACTGCCTGATGTCCGTGATGGGCTTAAGCCTGTCCATCGGCGCATTCTTCATGCGATGAATGAAATGGGACTTTTGTG");
 //     appendValue(reads, "TGAGCGTAATTGTGTCGCGCGCACTG");
