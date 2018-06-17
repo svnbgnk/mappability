@@ -1,3 +1,21 @@
+#ifndef COMMON_H_
+#define COMMON_H_
+
+#include <seqan/arg_parse.h>
+#include <seqan/seq_io.h>
+#include <seqan/index.h>
+
+using namespace std;
+using namespace seqan;
+
+
+template <typename T> 
+void printv(T a);
+
+inline bool file_exists (const std::string& name);
+
+template <size_t nbrBlocks, size_t N>
+void print_search_scheme(std::array<OptimalSearch<nbrBlocks>, N> & searchsscheme);
 // reduce space consumption.
 // requires genome not to have more than ~ 4 gigabases
 // multi-sequence fasta file must contain less than ~64k sequences of at most ~ 4 gigabases in total
@@ -87,3 +105,4 @@ typedef BidirectionalIndex<FMIndex<void, TMyFastConfig> > TIndexConfig;
 // typedef Index<DnaString, TIndexConfig> TIndex;
 // typedef Iter<TIndex, VSTree<TopDown<> > > TIter;
 
+#endif
