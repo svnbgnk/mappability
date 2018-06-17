@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
         cout << reps[i] << endl;
     }
     
-    cout << "Hello" << endl;
+    cout << "Hello!" << endl;
     return 0;
     
 }
