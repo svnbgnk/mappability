@@ -94,14 +94,14 @@ vector<char> encode(sdsl::bit_vector & bv, char limit){
 }
 
 
-void heatmap(sdsl::bit_vector & b, string output, float min = 1){
+void heatmap(sdsl::bit_vector & b, string output){
     int height = HEIGHT;
     int width = WIDTH;
     sdsl::rank_support_v<> rb(&b);
     if(b.size() < height * width - 1){
         cout << "changed image dimension to" << endl;
-        height = round(pow(static_cast<float>(b.size()) / 8 * 16 / 9, 0.5));
-        width = round(static_cast<float> (height) * 9 / 16);
+        height = round(pow(static_cast<float>(b.size()) / (8 * 16 / 9), 0.5));
+        width = round(static_cast<float> (height) * (9 / 16));
         cout << "height: " << height << " width: " << width << endl;
     }
     cout << "Bases per pixel: "  << b.size()/(height * width) << endl;
