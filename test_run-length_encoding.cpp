@@ -112,16 +112,17 @@ void heatmap(sdsl::bit_vector & b, string output){
     img << "P3" << endl;
     img << width << " " << height << endl;
     img << "255" << endl;
-    for (int i = 0; i < height; ++i){
-        for(int j = 0; j < width; ++j){
+    for(int i = 0; i < height; ++i)
+    {
+        for(int j = 0; j < width; ++j)
+        {
             float den = static_cast<float> (rb(pos + window) - rb(pos)) / window;
-            int r = static_cast<int>(round(den * 254));
-            int g = 0;
-            int b = 0;
-            img << r << " " << r << " " << r << endl;
+            int grey = static_cast<int>(round(den * 254));
+            img << grey  << " " << grey << " " << grey << endl;
             pos += window;
         }
     }
+    img.close();
 //     system("eog heatmap.ppm");
 }
 
@@ -220,7 +221,7 @@ int main(int argc, char *argv[])
     sdsl::bit_vector b;
     load_from_file(b, argv[1]);
     cout << "Load successful" << endl;
-    heatmap(b, argv[2], 0.8);
+    heatmap(b, argv[2]);
     int his_size = HISTROGRAM_SIZE;
     int bucket_width = BUCKET_WIDTH;
 
