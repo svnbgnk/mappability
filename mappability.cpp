@@ -24,57 +24,10 @@ inline void save(vector<T> const & c, string const & output_path)
 {
     std::ofstream outfile(output_path, std::ios::out | std::ofstream::binary);
     std::copy(c.begin(), c.end(), std::ostream_iterator<uint8_t>(outfile));
+    outfile.close();
 }
 
-template <unsigned errors, typename TDistance, typename TIndex, typename TText>
-inline void run(TIndex & index, TText const & text, StringSet<CharString> const & ids,
-                CharString const & outputPath, unsigned const length, unsigned const chromosomeId)
-{
-    Iter<TIndex, VSTree<TopDown<> > > it(index);
-    auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
-    // fill sheme with block length (according to permutation (+ cumulative)) and start position 
-    _optimalSearchSchemeComputeFixedBlocklength(scheme, length);
 
-    uint64_t textLength = seqan::length(text);
-    // TODO: is there an upper bound? are we interested whether a k-mer has 60.000 or 70.000 hits?
-    std::vector<uint16_t> c; // TODO(cpockrandt): check whether this is space efficient. also memory mapping would be better?
-    c.resize(textLength - length + 1);
-    cout << mytime() << "Vector initialized (size: " << (textLength - length + 1) << ")." << endl;
-
-    // TODO(cpockrandt): think about scheduling strategy
-    #pragma omp parallel for schedule(dynamic, 1000000)
-    for (uint64_t i = 0; i < textLength - length + 1; ++i)
-    {
-        unsigned hits = 0;
-        // TODO(cpockrandt): for more than 2 errors we need to filter duplicates when counting or
-        // choose disjunct search schemes. also we need to do this for EditDistance!
-        auto delegate = [&hits](auto const &it, auto const & /*read*/, unsigned const /*errors*/) {
-            hits += countOccurrences(it);
-        };
-
-        auto const & needle = infix(text, i, i + length);
-        goRoot(it);
-        _optimalSearchScheme(delegate, it, needle, scheme, TDistance());
-        c[i] = hits;
-    }
-    cout << mytime() << "Done." << endl;
-
-    int counter = 0;
-    std::ofstream outfile(toCString(outputPath) + to_string(length), std::ios::out | std::ofstream::binary);
-    for (std::vector<uint16_t>::iterator iter = c.begin() ; iter != c.end(); ++iter)
-    {
-//         *iter = static_cast<float>(1) / *iter;
-        if(*iter == 0){
-            ++counter;
-            *iter = UINT_LEAST16_MAX;
-        }
-    }  
-    cout << "Number of zeroes: " <<  counter << endl;
-    cout << mytime() << "Final size: " << c.size() << endl;
-    std::copy(c.begin(), c.end(), (std::ostream_iterator<int>(outfile), std::ostream_iterator<int>(outfile, " ")));
-    outfile.close();   
-    cout << mytime() << "Saved to disk." << endl;
-}
 
 template <uint8_t width_t>
 inline void save(sdsl::int_vector<width_t> const & c, string const & output_path)
@@ -84,9 +37,7 @@ inline void save(sdsl::int_vector<width_t> const & c, string const & output_path
 
 
 template <typename TDistance, typename TIndex, typename TText>
-inline void run(TIndex /*const*/ & index, TText const & text, StringSet<CharString> const & ids,
-                CharString const & outputPath, unsigned const errors, unsigned const length,
-                unsigned const chromosomeId)
+inline void run(TIndex & index, TText const & text, Options & opt, signed chromosomeId)
 {
     TVector c(seqan::length(text) - opt.length + 1, 0);
 
@@ -115,6 +66,17 @@ inline void run(TIndex /*const*/ & index, TText const & text, StringSet<CharStri
     if (chromosomeId >= 0)
         output_path += "-" + to_string(chromosomeId);
 
+    //Sven count number of 0 events
+    int counter = 0;
+    for (TVector::iterator iter = c.begin() ; iter != c.end(); ++iter)
+    {
+        if(*iter == 0){
+            ++counter;
+            *iter = UINT_LEAST8_MAX;
+        }
+
+    }  
+    cout << "Number of zeroes: " <<  counter << endl;
     save(c, output_path);
 
     cout << mytime() << "Saved to disk: " << output_path << '\n';
@@ -131,6 +93,7 @@ inline void run(Options & opt)
 
         TIndex<TStringSet> index;
         open(index, toCString(opt.indexPath), OPEN_RDONLY);
+        
         // TODO(cpockrandt): replace with a ConcatView
         auto & text = indexText(index);
         typename Concatenator<TStringSet>::Type concatText = concat(text);
@@ -204,7 +167,6 @@ int main(int argc, char *argv[])
 
     addOption(parser, ArgParseOption("o", "overlap", "Length of overlap region (usually: the bigger, the faster)", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "overlap");
-
     addOption(parser, ArgParseOption("m", "mmap",
         "Turns memory-mapping on, i.e. the index is not loaded into RAM but accessed directly in secondary-memory. "
         "This makes the algorithm only slightly slower but the index does not have to be loaded into main memory "
@@ -242,10 +204,9 @@ int main(int argc, char *argv[])
     _indexPath += ".alphabet";
     open(opt.alphabet, toCString(_indexPath));
 
+
     if (opt.alphabet == "dna4")
-    {
         run<Dna>(opt);
-    }
     else
     {
         // run<Dna5>(opt);

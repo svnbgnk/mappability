@@ -3,7 +3,6 @@
 #include <seqan/index.h>
 
 #include "common.h"
-#include <iterator> 
 
 using namespace seqan;
 
@@ -14,7 +13,6 @@ void buildIndex(StringSet<TString, TStringSetConfig> const & chromosomes, CharSt
     StringSet<TString, Owner<ConcatDirect<> > > chromosomesConcat(chromosomes);
     Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index(chromosomesConcat);
     indexCreate(index, FibreSALF());
-    
     save(index, toCString(indexPath));
 }
 

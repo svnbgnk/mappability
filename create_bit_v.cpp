@@ -7,7 +7,7 @@
 #include <sdsl/bit_vectors.hpp>
 
 using namespace std;
-using namespace seqan;
+// using namespace seqan;
 
 std::vector<int> getInt(std::string const& mappability_str)
 {

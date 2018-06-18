@@ -39,9 +39,9 @@ struct FastFMIndexConfigS1
      typedef TLengthSum                                                                         LengthSum;
      typedef Levels<void, LevelsPrefixRDConfig<LengthSum, Alloc<>, LEVELS, WORDS_PER_BLOCK> >   Bwt;
      typedef Levels<void, LevelsRDConfig<LengthSum, Alloc<>, LEVELS, WORDS_PER_BLOCK> >         Sentinels;
-
      static const unsigned SAMPLING = 1;
 };
+
 };
 
 struct Options
@@ -58,6 +58,8 @@ struct Options
     seqan::CharString alphabet;
 };
 
+
+
 std::string mytime()
 {
     auto r = time(nullptr);
@@ -69,8 +71,18 @@ std::string mytime()
     return buf;
 }
 
+
+
 using TMyFastConfig = seqan::FastFMIndexConfig<void, uint32_t, 2, 1>;
 using TIndexConfig = seqan::BidirectionalIndex<seqan::FMIndex<void, TMyFastConfig> >;
+/*
+using TMyFastConfig = seqan::FastFMIndexConfigS1<void, uint32_t, 2, 1>;
+using TIndexConfig = seqan::BidirectionalIndex<seqan::FMIndex<void, TMyFastConfig> >;*/
+
+/*
+typedef FastFMIndexConfigS1<void, uint32_t, 2, 1> TMyFastConfig;
+typedef BidirectionalIndex<FMIndex<void, TMyFastConfig> > TIndexConfig;*/
+
 
 template <typename TText>
 using TIndex = seqan::Index<TText, TIndexConfig>;
@@ -92,17 +104,5 @@ using TIndex = seqan::Index<TText, TIndexConfig>;
 //
 // template <uint8_t width_t>
 // constexpr bool is_int_vector<sdsl::int_vector<width_t> >::value;
-
-
-// typedef Concatenator<TText>::Type TConcat;
-// typedef FastFMIndexConfig<void, uint32_t, 2, 1> TMyFastConfigD;
-typedef FastFMIndexConfigS1<void, uint32_t, 2, 1> TMyFastConfig;
-
-
-typedef BidirectionalIndex<FMIndex<void, TMyFastConfig> > TIndexConfig;
-// typedef Index<TText, TIndexConfig> TIndex;
-// typedef Index<TTextMMap, TIndexConfig> TIndexMMap;
-// typedef Index<DnaString, TIndexConfig> TIndex;
-// typedef Iter<TIndex, VSTree<TopDown<> > > TIter;
-
 #endif
+
