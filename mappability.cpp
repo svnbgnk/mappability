@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("i", "indels", "Turns on indels (EditDistance). "
         "If not selected, only mismatches will be considered."));
 
-    addOption(parser, ArgParseOption("o", "overlap", "Length of overlap region (usually: the bigger, the faster)", ArgParseArgument::INTEGER, "INT"));
+    addOption(parser, ArgParseOption("o", "overlap", "Length of overlap region (o + 1 Strings will be searched at once beginning with their overlap region)", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "overlap");
 
     addOption(parser, ArgParseOption("m", "mmap",
