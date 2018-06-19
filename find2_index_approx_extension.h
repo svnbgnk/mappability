@@ -11,9 +11,10 @@
 namespace seqan{
 
 template< size_t N>
-uint8_t mymin(std::array <uint8_t, N> v, uint8_t end){
-    uint8_t min = 255u;
-    for(uint8_t i = 0; i < end; ++i){
+uint8_t mymin(std::array <uint8_t, N> v, uint8_t end)
+{
+    uint8_t min = v[0];
+    for(uint8_t i = 1; i < end; ++i){
         if(v[i] < min)
             min = v[i];
     }
@@ -22,12 +23,84 @@ uint8_t mymin(std::array <uint8_t, N> v, uint8_t end){
 
 template< size_t N>
 uint8_t mymax(std::array <uint8_t, N> v, uint8_t end){
-    uint8_t max = 0u;
-    for(uint8_t i = 0; i < end; ++i){
+    uint8_t max = v[0];
+    for(uint8_t i = 1; i < end; ++i)
+    {
         if(v[i] > max)
             max = v[i];
     }
     return max;
+}
+
+template <typename TText, typename TIndex, typename TIndexSpec>
+void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+              Pair<uint32_t, uint32_t>  const & range)
+{
+    int number_of_indeces = countSequences(iter.fwdIter.index);
+    vector<int> sequenceLengths(number_of_indeces + 1, 0);
+    for(int i = 0; i < number_of_indeces; ++i)
+        sequenceLengths[iter.fwdIter.index->sa[i].i1 + 1] = iter.fwdIter.index->sa[i].i2;
+        // cumulative sum seq
+    for(int i = 1; i < sequenceLengths.size(); ++i)
+        sequenceLengths[i] += (sequenceLengths[i - 1]);
+    for(uint32_t i = range.i1; i < range.i2; ++i){
+        int seq = iter.fwdIter.index->sa[i].i1;
+        int sa = iter.fwdIter.index->sa[i].i2;
+        cout << i << ": " << sa + sequenceLengths[seq] << endl;
+    }
+}
+
+template <typename TText, typename TIndex, typename TIndexSpec, size_t nbrBlocks, typename TDir>
+sdsl::bit_vector get_bitvector_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+                                        vector<sdsl::bit_vector> const & bitvectors,
+                                        OptimalSearch<nbrBlocks> const & s,
+                                        uint8_t const blockIndex,
+                                        Pair<uint32_t, uint32_t>  const & range,
+                                        TDir const & /**/) 
+{
+    uint8_t needed_bitvector;
+    sdsl::bit_vector b(range.i2 - range.i1, 0);
+    if (std::is_same<TDir, Rev>::value)
+        needed_bitvector = mymin(s.pi, blockIndex + 1) - 1;
+    else
+        needed_bitvector = mymax(s.pi, blockIndex + 1);
+    int number_of_indeces = countSequences(iter.fwdIter.index);
+//     cout << "Min Element: " << (int)min << endl;
+    cout << "shift_" << (int)needed_bitvector << "_bitvector" << endl;
+    for(int i = range.i1; i < range.i2; ++i)
+        b[i - range.i1] = bitvectors.at(needed_bitvector)[i + number_of_indeces];
+    return b;
+}
+
+void printb(sdsl::bit_vector b){
+    for(int i = 0; i < b.size(); ++i)
+        cout << i << " Bit: " << b[i] << endl;
+}
+
+template<typename TText, typename TIndex, typename TIndexSpec>
+uint8_t squash_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > & iter,
+                     sdsl::bit_vector const & bi)
+{
+    iter.fwdIter.vDesc.range.i1 = iter.fwdIter.vDesc.range.i1 + 0; 
+    iter.fwdIter.vDesc.range.i2 = iter.fwdIter.vDesc.range.i1 + 0;
+    cout << "Range after squash in Function: " << range(iter.fwdIter) << endl;
+    //TODO later directly a access correct range in rank_support_v
+    sdsl::rank_support_v<> rbi(& bi);
+    if(rbi(bi.size() == 0))
+        return 0;
+    if(rbi(bi.size()) == bi.size())
+        return 1; 
+    
+    uint32_t startPos = 0, endPos = bi.size();
+    for(uint32_t i = 0; i < bi.size(); ++i){
+        if(bi[i] == 0)
+            ++startPos;
+        if(bi[bi.size() - 1 - i] == 0)
+            --endPos;
+    }
+    iter.fwdIter.vDesc.range.i1 = iter.fwdIter.vDesc.range.i1 + startPos; 
+    iter.fwdIter.vDesc.range.i2 = iter.fwdIter.vDesc.range.i1 + endPos;
+    return 2;
 }
 
 template <typename TDelegate,
@@ -114,18 +187,19 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
             return;
 
         cout << "Range: " << range(iter.fwdIter) << endl;
-        auto r = range(iter.fwdIter);
-        uint8_t min = mymin(s.pi, blockIndex + 1);
-        cout << "Min Element: " << (int)min << endl;
-        for(int i = r.i1; i < r.i2; ++i){
-            cout << bitvectors.at(min - 1)[i] << endl;
-        }
-        cout << "shift" << (int)min - 1 << "bitvector" << endl;/*
-        for(int i = 0; i < bitvectors.at(1).size(); ++i){
-            cout << i << ": " << bitvectors.at(1)[i] << endl;
-        }*/
-//         cout << iter.fwdIter.i1 << endl;
-//         cout << iter.fwdIter.index->sa[1] << endl;
+        cout << "Range2: " << range(iter.revIter) << endl;
+        seqan::Pair<uint16_t, uint32_t> r = range(iter.fwdIter);
+        cout << "Suffices at from that interval" << endl;
+        print_sa(iter, r);
+        sdsl::bit_vector bit_interval = get_bitvector_interval(iter, bitvectors, s, blockIndex, r, TDir());
+        cout << "Mappability of this suffix interval: " << endl;
+        printb(bit_interval);
+        uint8_t rcode = squash_interval(iter, bit_interval);
+        cout << "Return code: " << (int)rcode << endl;
+        cout << "Range after squash: " << iter.fwdIter.vDesc.range << endl;
+        cout << "Range2 after squash: " << iter.revIter.vDesc.range << endl;
+        if(rcode == 0)
+            return;
         if (goToRight2)
         {
             _optimalSearchScheme(delegate, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s,
@@ -149,7 +223,7 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
                 return;
             --infixPosRight;
         }
-       
+/*       
         cout << "Range: " << range(iter.revIter) << endl;
         auto r2 = range(iter.revIter);
         uint8_t max = mymax(s.pi, blockIndex + 1);
@@ -159,7 +233,7 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
             cout << bitvectors.at(max)[i] << endl;
         }
         
-        cout << "shift" << (int)max << "bitvector" << endl;/*
+        cout << "shift" << (int)max << "bitvector" << endl;
         for(int i = 0; i < bitvectors.at(1).size(); ++i){
             cout << i << ": " << bitvectors.at(1)[i] << endl;
         }*/

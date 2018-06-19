@@ -112,15 +112,13 @@ void heatmap(sdsl::bit_vector & b, string output){
     img << "P3" << endl;
     img << width << " " << height << endl;
     img << "255" << endl;
-    for(int i = 0; i < height; ++i)
+    for(int i = 0; i < height * width; ++i)
     {
-        for(int j = 0; j < width; ++j)
-        {
-            float den = static_cast<float> (rb(pos + window) - rb(pos)) / window;
-            int grey = static_cast<int>(round(den * 254));
-            img << grey  << " " << grey << " " << grey << endl;
-            pos += window;
-        }
+        float den = static_cast<float> (rb(pos + window) - rb(pos)) / window;
+        int grey = static_cast<int>(round(den * 254));
+        img << grey  << " " << grey << " " << grey << endl;
+        pos += window;
+
     }
     img.close();
 //     system("eog heatmap.ppm");

@@ -41,8 +41,6 @@ void print_search_scheme(std::array<OptimalSearch<nbrBlocks>, N> & searchsscheme
 
 int main(int argc, char *argv[])
 {
-  
-    
     //load index
     typedef String<Dna, Alloc<>> TString;
     typedef Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> MyIndex;
@@ -61,7 +59,7 @@ int main(int argc, char *argv[])
          string file_name = toCString("/home/sven/devel/Data/mappability_ref.fa/r_bit_vector_100_shift_") + to_string(i);
          if(file_exists(file_name)){
              sdsl::bit_vector b;
-             cout << "Filename: " << file_name << endl;
+//              cout << "Filename: " << file_name << endl;
              load_from_file(b, file_name);
              bit_vectors.push_back(b);
          }
