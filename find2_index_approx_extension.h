@@ -9,7 +9,56 @@
 
 
 namespace seqan{
+/*    
+template <size_t N>
+struct OptimalSearch
+{
+    std::array<uint8_t, N> pi; // order of the blocks. permutation of [1..n]
+    std::array<uint8_t, N> l; // minimum number of errors at the end of the corresponding block
+    std::array<uint8_t, N> u; // maximum number of errors at the end of the corresponding block
 
+    std::array<uint32_t, N> blocklength; // cumulated values / prefix sums
+    std::array<uint32_t, N> min;
+    std::array<uint32_t, N> max;
+    uint8_t startUniDir;
+    uint32_t startPos;
+};
+    */
+enum class ReturnCodes {
+	BLACK, RED, BLUE, WHITE
+};
+
+template <size_t nbrBlocks, size_t N>
+constexpr inline void _optimalSearchSchemeSetMapParams(std::array<OptimalSearch<nbrBlocks>, N> & ss)
+{
+    for (OptimalSearch<nbrBlocks> & s : ss){
+        uint8_t min = s.pi[0];
+        uint8_t max = s.pi[0];
+        // maybe < N?
+        for(int i = 0; i < s.pi.size(); ++i){
+            if(min > s.pi[i])
+                min = s.pi[i];
+            if(max < s.pi[i])
+                max = s.pi[i];
+            s.min[i] = min;
+            s.max[i] = max;
+        }
+        uint8_t lastValue = s.pi[s.pi.size() - 1];
+        int k = s.pi.size() - 2;
+        while(k >= 0){
+            if(s.pi[k] == lastValue - 1 || s.pi[k] == lastValue + 1)
+            {
+                lastValue = s.pi[k];
+                --k;
+            }else{
+                s.startUniDir = k + 1;
+                break;
+            }
+        }
+    }
+}
+
+    
 template< size_t N>
 uint8_t mymin(std::array <uint8_t, N> v, uint8_t end)
 {
@@ -188,6 +237,10 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
         if (!goDown(iter, infix(needle, infixPosLeft, infixPosRight + 1), TDir()))
             return;
 
+        cout << "Lets print genome" << endl;
+//         auto & genome = indexText(index(iter.fwdIter));
+//         cout << "First pos " << genome[0][0] << endl;
+//         cout << "Second pos " << genome[0][0] << endl;
         cout << "Range: " << range(iter.fwdIter) << endl;
         cout << "Range2: " << range(iter.revIter) << endl;
         seqan::Pair<uint16_t, uint32_t> r = range(iter.fwdIter);
@@ -205,8 +258,9 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
             for(int i = 0; i < bit_interval.size(); ++i){
                 if(bit_interval[i] == 1){
                     // in this case (fwd index) 
-                    int pos = iter.fwdIter.vDesc.range.i1 + i;
-                    sa = iter.fwdIter.index->sa[pos];
+                    uint32_t pos = iter.fwdIter.vDesc.range.i1 + i;
+                    uint16_t seq = iter.fwdIter.vDesc.range.i2 + i;
+                    uint32_t sa = iter.fwdIter.index->sa[pos].i2;                    
                     //get correct sa pos muliple sequences
                     // compare full thing again later split into left and right part
                     //genome(seq,sa -needlePosLeft, sa + length(needle))
@@ -289,7 +343,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
     uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
 
-    cout << "Step: " << needleRightPos - needleLeftPos - 1 << "    ss: "; printv(s.pi); cout << endl;
+//     cout << "Step: " << needleRightPos - needleLeftPos - 1 << "    ss: "; printv(s.pi); cout << endl;
     // Done.
     if (minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1)
     {
@@ -346,12 +400,25 @@ find(TDelegate & delegate,
      vector<sdsl::bit_vector> const & bitvectors)
 {
     auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
+//     print_search_scheme(scheme);
     _optimalSearchSchemeComputeFixedBlocklength(scheme, length(needle));
     Iter<Index<TText, BidirectionalIndex<TIndexSpec> >, VSTree<TopDown<> > > it(index);
-    print_search_scheme(scheme);
+    cout << "Print Genome: " << endl;
+    auto & genome = indexText(index);
+
+//     auto & testIndex = it.index;
+//     auto & testIndex = index(it)
+
+//     auto & genome2 = indexText(index(it.fwdIter));
+//     auto & genome2 = indexText(it.fwdIter.index);
+    cout << genome[0][0] << endl;
+
     _optimalSearchScheme(delegate, it, needle, bitvectors, scheme);
 }
   
+  
+  
+
 template <size_t minErrors, size_t maxErrors,
           typename TDelegate,
           typename TText, typename TIndexSpec,

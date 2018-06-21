@@ -35,6 +35,11 @@ void print_search_scheme(std::array<OptimalSearch<nbrBlocks>, N> & searchsscheme
         printv(searchsscheme[i].blocklength);
         cout << "start Pos: " << endl;
         cout << searchsscheme[i].startPos << endl;
+        cout << "minMax: " << endl;
+        printv(searchsscheme[i].min);
+        printv(searchsscheme[i].max);
+        cout << "OneDirection" << endl << (int)searchsscheme[i].startUniDir << endl;
+        
         cout << endl;
     }
 }
@@ -46,7 +51,7 @@ int main(int argc, char *argv[])
     typedef Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> MyIndex;
      MyIndex index;
 //      open(index, toCString("/home/sven/devel/Data/hg38_test_index/index"), OPEN_RDONLY);
-     open(index, toCString("/home/sven/devel/Data/ref_index/index"), OPEN_RDONLY);
+     open(index, toCString("/home/sven/devel/Data/ref_m_index/index"), OPEN_RDONLY);
      cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
 
      // load bitvectors
@@ -82,6 +87,14 @@ int main(int argc, char *argv[])
     std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hits;
     std::vector<uint8_t> errors_v;
     std::vector<DnaString> reps;
+    
+    auto scheme = OptimalSearchSchemes<0, 2>::VALUE;
+//     print_search_scheme(scheme);
+    _optimalSearchSchemeSetMapParams(scheme);
+    cout << "Scheme used in the moment: " << endl;
+    print_search_scheme(scheme);
+    
+  
     auto delegate = [&hits, &errors_v, &reps](auto & iter, DnaString const & needle, uint8_t errors)
     {
         for (auto occ : getOccurrences(iter)){
