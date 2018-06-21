@@ -81,8 +81,6 @@ template<typename TText, typename TIndex, typename TIndexSpec>
 uint8_t squash_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > & iter,
                      sdsl::bit_vector const & bi)
 {
-    iter.fwdIter.vDesc.range.i1 = iter.fwdIter.vDesc.range.i1 + 0; 
-    iter.fwdIter.vDesc.range.i2 = iter.fwdIter.vDesc.range.i1 + 0;
     cout << "Range after squash in Function: " << range(iter.fwdIter) << endl;
     //TODO later directly a access correct range in rank_support_v
     sdsl::rank_support_v<> rbi(& bi);
@@ -90,7 +88,11 @@ uint8_t squash_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<T
         return 0;
     if(rbi(bi.size()) == bi.size())
         return 1; 
-    
+    if(rbi(bi.size()) <= 3){
+        return 2;
+    }
+    return 99;
+    /*
     uint32_t startPos = 0, endPos = bi.size();
     for(uint32_t i = 0; i < bi.size(); ++i){
         if(bi[i] == 0)
@@ -100,7 +102,7 @@ uint8_t squash_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<T
     }
     iter.fwdIter.vDesc.range.i1 = iter.fwdIter.vDesc.range.i1 + startPos; 
     iter.fwdIter.vDesc.range.i2 = iter.fwdIter.vDesc.range.i1 + endPos;
-    return 2;
+    return 2;*/
 }
 
 template <typename TDelegate,
@@ -198,6 +200,22 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
         cout << "Return code: " << (int)rcode << endl;
         cout << "Range after squash: " << iter.fwdIter.vDesc.range << endl;
         cout << "Range2 after squash: " << iter.revIter.vDesc.range << endl;
+        if(rcode == 2){
+            //search directly in Genome
+            for(int i = 0; i < bit_interval.size(); ++i){
+                if(bit_interval[i] == 1){
+                    // in this case (fwd index) 
+                    int pos = iter.fwdIter.vDesc.range.i1 + i;
+                    sa = iter.fwdIter.index->sa[pos];
+                    //get correct sa pos muliple sequences
+                    // compare full thing again later split into left and right part
+                    //genome(seq,sa -needlePosLeft, sa + length(needle))
+//                     iter.fwdIter.text;
+                }
+            }
+            
+            return;
+        }
         if(rcode == 0)
             return;
         if (goToRight2)
