@@ -275,7 +275,6 @@ void directSearch(TDelegateD & delegateDirect,
             uint8_t errors2 = 0;//errors;
             bool valid = true;
             if (reverse) {
-                cout << "short Test: " << iter.fwdIter.vDesc.range.i1 << endl;
                 // iter.fwdIter.vDesc.range.i1 is not the same brange.i2.i1 since sentinels are at the beginning!!!
                 Pair<uint16_t, uint32_t> sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
                 cout <<  "Sa info" <<  sa_info <<  endl;
@@ -284,8 +283,10 @@ void directSearch(TDelegateD & delegateDirect,
 //                         ++errors2;
 //                 }
                 uint32_t startPos = sa_info.i2 - needleLeftPos;
+                //search remaining blocks
                 for(int j = blockIndex + 1; j < s.pi.size(); ++j){
-                    cout << "searching Parts:" << startPos + bl[s.pi[j] - 1] << " - " << startPos +bl[s.pi[j]] - 1 << "; ";
+                    cout << "searching Parts:" << startPos + bl[s.pi[j] - 1] << " - " << startPos + bl[s.pi[j]] << "; ";
+                    // compare bases to needle
                     for(int k = bl[s.pi[j] - 1]; k <  bl[s.pi[j]]; ++k){
                         if(needle[k] != genome[sa_info.i1][startPos + k])
                             ++errors2;
@@ -301,13 +302,15 @@ void directSearch(TDelegateD & delegateDirect,
                     cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
                     cout << (int)errors2 << endl;
                     hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, sa_info.i2 - needleLeftPos));
+                    cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
                     errorsv.push_back(errors2);
                 }
 
             }else{
                 Pair<uint16_t, uint32_t> sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
-                /*
+              
                 cout <<  "Sa info" <<  sa_info <<  endl;
+                /*
                 for(int j = 0; j < length(needle); ++j)
                     cout <<  needle[j];
                 cout <<  endl;
@@ -316,15 +319,33 @@ void directSearch(TDelegateD & delegateDirect,
                 cout <<  endl;*/
                 int startPos = sa_info.i2 + needleRightPos - 1;
                 cout <<  "startPos: " << startPos<<  endl;
-                for(int j = 0; j < length(needle); ++j){
-                    if(needle[j] != genome[sa_info.i1][startPos - j])
-                        ++errors2;
+                
+//                 for(int j = 0; j < length(needle); ++j){
+//                     if(needle[j] != genome[sa_info.i1][startPos - j])
+//                         ++errors2;
+//                 }
+                for(int j = blockIndex + 1; j < s.pi.size(); ++j){
+                    cout << "searching Parts:" << startPos - bl[s.pi[j] - 1] << " - " << startPos - bl[s.pi[j]] << "; ";
+                    for(int k = bl[s.pi[j] - 1]; k <  bl[s.pi[j]]; ++k){
+                        if(needle[k] != genome[sa_info.i1][startPos - k])
+                            ++errors2;
+                    }
+                    if(errors2 < s.l[j] || errors2 > s.u[j]){
+                        cout << "Triggered" << endl;
+                        valid = false;
+                        break;
+                    }
                 }
-                //TODO search single parts to avoid duplicate hits 
-                if(errors2 + 1 > s.l[s.l.size() - 1]){ //TODE replace with some bool and go one bracket level lower
+                //TODO maybe merge with previous case ??
+                if(valid){ //TODE replace with some bool and go one bracket level lower
                     cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
                     cout << (int)errors2 << endl;
-                    hitsv.push_back(Pair<uint16_t, uint32_t>(sa_info.i1, length(genome[sa_info.i1]) - (sa_info.i2 + needleRightPos - 1)));
+                    cout << seqan::length(genome[0]) << "fssafd" << sa_info.i2 << endl;
+                    
+//                     uint32_t calc = seqan::length(genome[sa_info.i1]) - (sa_info.i2 + needleRightPos - 1);
+//                     cout << "calc: " << calc << endl;
+                    hitsv.push_back(Pair<uint16_t, uint32_t> (sa_info.i1, seqan::length(genome[sa_info.i1]) - sa_info.i2 - needleRightPos));
+                    cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
                     errorsv.push_back(errors2);
                 }
             }
@@ -430,7 +451,7 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
             return;
         if(rcode == ReturnCode::DIRECTSEARCH){
             //search directly in Genome
-            directSearch(delegateDirect, iter, needle, bitvectors, infixPosLeft, infixPosRight + 1, errors, s, blockIndex, bit_interval, Rev());
+            directSearch(delegateDirect, iter, needle, bitvectors, infixPosLeft, infixPosRight + 1, errors, s, blockIndex, bit_interval, Fwd());
             return;
         }
 
