@@ -125,7 +125,7 @@ inline void extend(TIter it, unsigned * hits, unsigned errors_left, auto & text,
 )
 {
     constexpr uint64_t max_val = (1 << 8) - 1;
-    
+
     if (errors_left == 0)
     {
         extendExact(it, hits, text, length, a, b, ab, bb);

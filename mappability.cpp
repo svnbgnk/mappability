@@ -24,7 +24,7 @@ template <typename T>
 inline void save(vector<T> const & c, string const & output_path)
 {
     std::ofstream outfile(output_path, std::ios::out | std::ofstream::binary);
-    std::copy(c.begin(), c.end(), std::ostream_iterator<uint8_t>(outfile));
+    std::copy(c.begin(), c.end(), (std::ostream_iterator<uint8_t>(outfile), std::ostream_iterator<int>(outfile, " ")));
     outfile.close();
 }
 
