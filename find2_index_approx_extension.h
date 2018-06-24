@@ -275,20 +275,26 @@ void directSearch(TDelegateD & delegateDirect,
             uint8_t errors2 = 0;//errors;
             bool valid = true;
             if (reverse) {
+                Pair<uint16_t, uint32_t> sa_info;
+                uint32_t startPos;
+                if(reverse){
+                    sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
+                    startPos = sa_info.i2 - needleLeftPos;
+                }else{
+                    sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
+                    startPos = sa_info.i2 + needleRightPos - 1;
+                }
                 // iter.fwdIter.vDesc.range.i1 is not the same brange.i2.i1 since sentinels are at the beginning!!!
-                Pair<uint16_t, uint32_t> sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
                 cout <<  "Sa info" <<  sa_info <<  endl;
-//                 for(int j = 0; j < length(needle); ++j){
-//                     if(needle[j] != genome[sa_info.i1][sa_info.i2 - needleLeftPos + j])
-//                         ++errors2;
-//                 }
-                uint32_t startPos = sa_info.i2 - needleLeftPos;
                 //search remaining blocks
                 for(int j = blockIndex + 1; j < s.pi.size(); ++j){
-                    cout << "searching Parts:" << startPos + bl[s.pi[j] - 1] << " - " << startPos + bl[s.pi[j]] << "; ";
+                    if(reverse)
+                        cout << "searching Parts:" << startPos + bl[s.pi[j] - 1] << " - " << startPos + bl[s.pi[j]] << "; ";
+                    else
+                        cout << "searching Parts:" << startPos - bl[s.pi[j] - 1] << " - " << startPos - bl[s.pi[j]] << "; ";
                     // compare bases to needle
                     for(int k = bl[s.pi[j] - 1]; k <  bl[s.pi[j]]; ++k){
-                        if(needle[k] != genome[sa_info.i1][startPos + k])
+                        if(needle[k] != genome[sa_info.i1][startPos + (reverse) ? k : -k])
                             ++errors2;
                     }
                     if(errors2 < s.l[j] || errors2 > s.u[j]){
@@ -301,29 +307,17 @@ void directSearch(TDelegateD & delegateDirect,
                 if(valid){
                     cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
                     cout << (int)errors2 << endl;
-                    hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, sa_info.i2 - needleLeftPos));
+                    uint32_t occ = (reverse) ? startPos : seqan::length(genome[sa_info.i1]) - startPos -1;
+                    hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, startPos));
                     cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
                     errorsv.push_back(errors2);
                 }
 
             }else{
                 Pair<uint16_t, uint32_t> sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
-              
                 cout <<  "Sa info" <<  sa_info <<  endl;
-                /*
-                for(int j = 0; j < length(needle); ++j)
-                    cout <<  needle[j];
-                cout <<  endl;
-                for(int j = 0; j < length(needle); ++j)
-                    cout <<  genome[sa_info.i1][sa_info.i2 + needleRightPos - j - 1];
-                cout <<  endl;*/
                 int startPos = sa_info.i2 + needleRightPos - 1;
                 cout <<  "startPos: " << startPos<<  endl;
-                
-//                 for(int j = 0; j < length(needle); ++j){
-//                     if(needle[j] != genome[sa_info.i1][startPos - j])
-//                         ++errors2;
-//                 }
                 for(int j = blockIndex + 1; j < s.pi.size(); ++j){
                     cout << "searching Parts:" << startPos - bl[s.pi[j] - 1] << " - " << startPos - bl[s.pi[j]] << "; ";
                     for(int k = bl[s.pi[j] - 1]; k <  bl[s.pi[j]]; ++k){
@@ -348,7 +342,7 @@ void directSearch(TDelegateD & delegateDirect,
                     cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
                     errorsv.push_back(errors2);
                 }
-            }
+            }*/
         }
     }
     //TODO call delegate function
