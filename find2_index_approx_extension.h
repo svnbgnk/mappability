@@ -342,7 +342,7 @@ void directSearch(TDelegateD & delegateDirect,
                     cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
                     errorsv.push_back(errors2);
                 }
-            }*/
+            }
         }
     }
     //TODO call delegate function
