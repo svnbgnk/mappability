@@ -274,79 +274,50 @@ void directSearch(TDelegateD & delegateDirect,
         if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
             uint8_t errors2 = 0;//errors;
             bool valid = true;
-            if (reverse) {
-                Pair<uint16_t, uint32_t> sa_info;
-                uint32_t startPos;
-                if(reverse){
-                    sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
-                    startPos = sa_info.i2 - needleLeftPos;
-                }else{
-                    sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
-                    startPos = sa_info.i2 + needleRightPos - 1;
-                }
-                // iter.fwdIter.vDesc.range.i1 is not the same brange.i2.i1 since sentinels are at the beginning!!!
-                cout <<  "Sa info" <<  sa_info <<  endl;
-                //search remaining blocks
-                for(int j = blockIndex + 1; j < s.pi.size(); ++j){
-                    if(reverse)
-                        cout << "searching Parts:" << startPos + bl[s.pi[j] - 1] << " - " << startPos + bl[s.pi[j]] << "; ";
-                    else
-                        cout << "searching Parts:" << startPos - bl[s.pi[j] - 1] << " - " << startPos - bl[s.pi[j]] << "; ";
-                    // compare bases to needle
-                    for(int k = bl[s.pi[j] - 1]; k <  bl[s.pi[j]]; ++k){
-                        if(needle[k] != genome[sa_info.i1][startPos + (reverse) ? k : -k])
-                            ++errors2;
-                    }
-                    if(errors2 < s.l[j] || errors2 > s.u[j]){
-                        cout << "Triggered" << endl;
-                        valid = false;
-                        break;
-                    }
-                }
-                //TODO maybe put outside of if clause
-                if(valid){
-                    cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
-                    cout << (int)errors2 << endl;
-                    uint32_t occ = (reverse) ? startPos : seqan::length(genome[sa_info.i1]) - startPos -1;
-                    hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, startPos));
-                    cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
-                    errorsv.push_back(errors2);
-                }
-
-            }else{
-                Pair<uint16_t, uint32_t> sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
-                cout <<  "Sa info" <<  sa_info <<  endl;
-                int startPos = sa_info.i2 + needleRightPos - 1;
-                cout <<  "startPos: " << startPos<<  endl;
-                for(int j = blockIndex + 1; j < s.pi.size(); ++j){
+            Pair<uint16_t, uint32_t> sa_info;
+            uint32_t startPos;
+            if(reverse){
+                sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
+                startPos = sa_info.i2 - needleLeftPos;
+            }
+            else
+            {
+                sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
+                startPos = sa_info.i2 + needleRightPos - 1;
+            }
+            // iter.fwdIter.vDesc.range.i1 is not the same brange.i2.i1 since sentinels are at the beginning!!!
+            cout <<  "Sa info" <<  sa_info <<  endl;
+            cout << "StartPos " << startPos << endl;
+            //search remaining blocks
+            for(int j = blockIndex + 1; j < s.pi.size(); ++j){
+                if(reverse)
+                    cout << "searching Parts:" << startPos + bl[s.pi[j] - 1] << " - " << startPos + bl[s.pi[j]] << "; ";
+                else
                     cout << "searching Parts:" << startPos - bl[s.pi[j] - 1] << " - " << startPos - bl[s.pi[j]] << "; ";
-                    for(int k = bl[s.pi[j] - 1]; k <  bl[s.pi[j]]; ++k){
-                        if(needle[k] != genome[sa_info.i1][startPos - k])
-                            ++errors2;
-                    }
-                    if(errors2 < s.l[j] || errors2 > s.u[j]){
-                        cout << "Triggered" << endl;
-                        valid = false;
-                        break;
-                    }
+                // compare bases to needle
+                for(int k = bl[s.pi[j] - 1]; k <  bl[s.pi[j]]; ++k){
+                    int sign = (reverse) ? 1 : -1;
+                    if(needle[k] != genome[sa_info.i1][startPos + sign * k])
+                        ++errors2;
                 }
-                //TODO maybe merge with previous case ??
-                if(valid){ //TODE replace with some bool and go one bracket level lower
-                    cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
-                    cout << (int)errors2 << endl;
-                    cout << seqan::length(genome[0]) << "fssafd" << sa_info.i2 << endl;
-                    
-//                     uint32_t calc = seqan::length(genome[sa_info.i1]) - (sa_info.i2 + needleRightPos - 1);
-//                     cout << "calc: " << calc << endl;
-                    hitsv.push_back(Pair<uint16_t, uint32_t> (sa_info.i1, seqan::length(genome[sa_info.i1]) - sa_info.i2 - needleRightPos));
-                    cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
-                    errorsv.push_back(errors2);
+                if(errors2 < s.l[j] || errors2 > s.u[j]){
+                    cout << "Triggered: " << (int)errors2 << endl;
+                    valid = false;
+                    break;
                 }
+            }
+            if(valid){
+                cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
+                cout << (int)errors2 << endl;
+                uint32_t occ = (reverse) ? startPos : seqan::length(genome[sa_info.i1]) - startPos - 1;
+                hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
+                cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
+                errorsv.push_back(errors2);
             }
         }
     }
     //TODO call delegate function
-//     delegateDirect(hitsv, needle, errorsv);
+    delegateDirect(hitsv, needle, errorsv);
 }
 
 template <typename TDelegate, typename TDelegateD,
@@ -445,7 +416,7 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
             return;
         if(rcode == ReturnCode::DIRECTSEARCH){
             //search directly in Genome
-            directSearch(delegateDirect, iter, needle, bitvectors, infixPosLeft, infixPosRight + 1, errors, s, blockIndex, bit_interval, Fwd());
+            directSearch(delegateDirect, iter, needle, bitvectors, infixPosLeft, infixPosRight + 1, errors, s, blockIndex, bit_interval, Rev());
             return;
         }
 

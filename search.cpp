@@ -128,10 +128,17 @@ int main(int argc, char *argv[])
     find<0, 2>(delegate, delegateDirect, index, reads, bit_vectors);
     
 //     find<0, 2>(delegate, index, reads, HammingDistance());
+    cout << "Hits:" << endl;
     for (int i = 0; i < hits.size(); ++i){
         cout << hits[i] << endl;
         cout << "Errors: " << static_cast<int> (errors_v[i]) << endl;
     }
+    cout << "Direct Hits:" << endl;
+    for (int i = 0; i < hitsD.size(); ++i){
+        cout << hitsD[i] << endl;
+        cout << "Errors: " << static_cast<int> (errors_vD[i]) << endl;
+    }
+    
     // what i searched for
     cout << "Representatives: " << endl;
     for(int i = 0; i < reps.size(); ++i){
