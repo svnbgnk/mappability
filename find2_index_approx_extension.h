@@ -25,7 +25,7 @@ struct OptimalSearch
 };
     */
 enum class ReturnCode {
-	NOMAPPABILITY, DIRECTSEARCH, MAPPABLE, ERROR
+	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, MAPPABLE, ERROR
 };
 
 template <size_t nbrBlocks, size_t N>
@@ -100,46 +100,63 @@ void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIn
 }
 
 template <typename TText, typename TIndex, typename TIndexSpec, size_t nbrBlocks, typename TDir>
-sdsl::bit_vector get_bitvector_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                         vector<sdsl::rank_support_v<>> const & bitvectors,
                                         OptimalSearch<nbrBlocks> const & s,
                                         uint8_t const blockIndex,
                                         TDir const & /**/) 
 {
-    auto dirrange = (std::is_same<TDir, Rev>::value) ? range(iter.fwdIter) : range(iter.revIter);
+    Pair<uint32_t, uint32_t> dirrange = (std::is_same<TDir, Rev>::value) ? range(iter.fwdIter) : range(iter.revIter);
     uint8_t needed_bitvector;
-    sdsl::bit_vector b(dirrange.i2 - dirrange.i1, 0);
+//     sdsl::bit_vector b(dirrange.i2 - dirrange.i1, 0);
     if (std::is_same<TDir, Rev>::value)
         needed_bitvector = s.min[blockIndex];//mymin(s.pi, blockIndex) - 1;
     else
         needed_bitvector = s.max[blockIndex];//mymax(s.pi, blockIndex);
-    int number_of_indeces = countSequences(iter.fwdIter.index);
+    uint32_t number_of_indeces = countSequences(iter.fwdIter.index);
 //     cout << "Min Element: " << (int)min << endl;
     cout << "shift_" << (int)needed_bitvector << "_bitvector" << endl;
-    for(int i = dirrange.i1; i < dirrange.i2; ++i)
-        b[i - dirrange.i1] = bitvectors.at(needed_bitvector)[i + number_of_indeces];
-    return b;
+    
+//     for(int i = dirrange.i1; i < dirrange.i2; ++i)
+//         b[i - dirrange.i1] = bitvectors.at(needed_bitvector)[i + number_of_indeces];
+    dirrange.i1 = dirrange.i1 + number_of_indeces;
+    dirrange.i2 = dirrange.i2 + number_of_indeces;
+    Pair<uint8_t, Pair<uint32_t, uint32_t>> brange(needed_bitvector, dirrange); 
+    return brange;
 }
 
-void printb(sdsl::bit_vector b){
-    for(int i = 0; i < b.size(); ++i)
-        cout << i << " Bit: " << b[i] << endl;
+inline bool bvalue(sdsl::rank_support_v<> const & rb, uint32_t pos){
+    return(rb(pos + 1) - rb(pos));
+}
+
+void printb(vector<sdsl::rank_support_v<>> const & bitvectors, Pair<uint8_t, Pair<uint32_t, uint32_t>> brange){
+    sdsl::rank_support_v<> const & rb = bitvectors[static_cast<int>(brange.i1)];
+    cout << "Ranksupport vector size " << rb.size() << endl;
+    cout << "bitv " << (int)brange.i1 << "brange 1 " << brange.i2.i1 << "brange 2 " << brange.i2.i2 << endl;
+    for(int i = brange.i2.i1; i < brange.i2.i2; ++i)
+        cout << i << " Bit: " << rb(i)/*bvalue(rb, i)*/ << endl;
 }
 
 template<typename TText, typename TIndex, typename TIndexSpec>
 ReturnCode squash_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > & iter,
-                     sdsl::bit_vector const & bi)
+                           vector<sdsl::rank_support_v<>> const & bitvectors,
+                           Pair<uint8_t, Pair<uint32_t, uint32_t>> brange)
 {
     //TODO later directly a access correct range in rank_support_v
-    sdsl::rank_support_v<> rbi(& bi);
-    if(rbi(bi.size() == 0))
+    bitvectors[brange.i1](brange.i2.i1);
+//     bitvectors.at(brange.i1)[brange.i2.i2];
+    sdsl::rank_support_v<> const & rb = bitvectors.at(brange.i1);
+    uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
+//     sdsl::rank_support_v<> rbi(& bi);
+    if(ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
-    if(rbi(bi.size()) <= 3){
+    if(ivalOne <= 3){
         return ReturnCode::DIRECTSEARCH;
     }
-    if(rbi(bi.size()) == bi.size())
-        return ReturnCode::MAPPABLE; 
-    return ReturnCode::ERROR;
+    if(ivalOne == (brange.i2.i2 - brange.i2.i1))
+        return ReturnCode::COMPMAPPABLE; 
+    
+    return ReturnCode::MAPPABLE;
     /*
     uint32_t startPos = 0, endPos = bi.size();
     for(uint32_t i = 0; i < bi.size(); ++i){
@@ -161,23 +178,25 @@ template <typename TDelegateD,
 void directSearch(TDelegateD & delegateDirect,
                   Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                   TNeedle const & needle,
+                  vector<sdsl::rank_support_v<>> const & bitvectors, 
                   uint32_t const needleLeftPos,
                   uint32_t const needleRightPos,
                   OptimalSearch<nbrBlocks> const & s,
                   uint8_t const blockIndex,
-                  sdsl::bit_vector const & bit_interval,
+                  Pair<uint8_t, Pair<uint32_t, uint32_t>> brange,
                   TDir const & /**/)
 {
+    sdsl::rank_support_v<> const & rb = bitvectors.at(brange.i1);
     //  stop using both needle pos
     bool reverse = std::is_same<TDir, Rev>::value;
     StringSet<DnaString> const & genome = (reverse) ? indexText(*iter.fwdIter.index) : indexText(*iter.revIter.index);
     vector<Pair<uint16_t, uint32_t>> hitsv;
     vector<uint8_t> errorsv;
-    for(int i = 0; i < bit_interval.size(); ++i){
+    for(int i = brange.i2.i1; i < brange.i2.i2; ++i){
         cout << "Direct Search" << endl;
         cout << "NLP" << needleLeftPos <<  endl;
         cout << "NRP" <<  needleRightPos <<  endl;
-        if(bit_interval[i] == 1){
+        if(bvalue(rb, i) == 1){
             uint8_t errors2 = 0;
             if (reverse) {
                 // in this case (fwd index)
@@ -309,17 +328,19 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
 //          seqan::Pair<uint16_t, uint32_t> r = range(iter.fwdIter);
 //         cout << "Suffices at from that interval" << endl;
 //         print_sa(iter, r);
-        sdsl::bit_vector bit_interval = get_bitvector_interval(iter, bitvectors, s, blockIndex, TDir());
-//         cout << "Mappability of this suffix interval: " << endl;
-        printb(bit_interval);
-        ReturnCode rcode = squash_interval(iter, bit_interval);
+        Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval(iter, bitvectors, s, blockIndex, TDir());
+        cout << "Mappability of this suffix interval: " << endl;
+//         cout << "bitv " << brange.i1 << "brange 1 " << brange.i2.i1 << "brange 2 " << brange.i2.i2 << endl;
+        printb(bitvectors, bit_interval);
+        cout << "Mappability of this suffix interval: " << endl;
+        ReturnCode rcode = squash_interval(iter, bitvectors, bit_interval);
 //         cout << "Return code: " << (int)rcode << endl;
 
         if(rcode == ReturnCode::NOMAPPABILITY)
             return;
         if(rcode == ReturnCode::DIRECTSEARCH){
             //search directly in Genome
-            directSearch(delegateDirect, iter, needle, infixPosLeft, infixPosRight + 1, s, blockIndex, bit_interval, Rev());
+            directSearch(delegateDirect, iter, needle, bitvectors, infixPosLeft, infixPosRight + 1, s, blockIndex, bit_interval, Rev());
             return;
         }
 
@@ -363,12 +384,12 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
         
         if (goToRight2)
         {
-            _optimalSearchScheme(delegate, iter, needle, bitvectors, infixPosLeft, needleRightPos, errors, s,
+            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, infixPosLeft, needleRightPos, errors, s,
                                  std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), Rev());
         }
         else
         {
-            _optimalSearchScheme(delegate, iter, needle, bitvectors, infixPosLeft, needleRightPos, errors, s,
+            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, infixPosLeft, needleRightPos, errors, s,
                                  std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), Fwd());
         }
     }

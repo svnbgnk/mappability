@@ -76,7 +76,8 @@ int main(int argc, char *argv[])
     }
     bit_vectors.push_back(rb2);
     cout << "Bit vectors loaded. Size: " << bit_vectors.size() << endl;
-    
+//     sdsl::rank_support_v<> & rbu = bit_vectors[1];
+    cout << "Ranksupport Test " << bit_vectors[1](500) << endl;
      
 //     String<Dna> read = "TATGGTGCTTAAATGCTCTTGGCTTTCTCCTGCCCACTTAAGGCCTGCCTGCAATTACAAGAGAAACCATTCATACTGGAAATGGTTGCTCTTTGCTGCT";
     
@@ -119,7 +120,7 @@ int main(int argc, char *argv[])
             errors_vD.push_back(errors[i]);
         }
     };
-    
+ /*   
     find<0, 2>(delegate, delegateDirect, index, reads, bit_vectors);
     
 //     find<0, 2>(delegate, index, reads, HammingDistance());
@@ -133,7 +134,7 @@ int main(int argc, char *argv[])
         cout << reps[i] << endl;
     }
 
-    cout << "Hello!" << endl;
+    cout << "Hello!" << endl;*/
     
     return 0;
     
