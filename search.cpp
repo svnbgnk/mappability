@@ -55,22 +55,28 @@ int main(int argc, char *argv[])
      cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
 
      // load bitvectors
-    vector<sdsl::bit_vector> bit_vectors;
+    vector<sdsl::rank_support_v<>> bit_vectors;
+    
     sdsl::bit_vector b1, b2;
     load_from_file(b1, "/home/sven/devel/Data/mappability_ref.fa/r_bit_vector_100");
     load_from_file(b2, "/home/sven/devel/Data/mappability_ref.fa/l_bit_vector_100");
-    bit_vectors.push_back(b1);
+    sdsl::rank_support_v<> rb1 (& b1);
+    sdsl::rank_support_v<> rb2 (& b2);
+    bit_vectors.push_back(rb1);
+    
     for(int i = 0; i < 10; ++i){
          string file_name = toCString("/home/sven/devel/Data/mappability_ref.fa/r_bit_vector_100_shift_") + to_string(i);
          if(file_exists(file_name)){
              sdsl::bit_vector b;
 //              cout << "Filename: " << file_name << endl;
              load_from_file(b, file_name);
-             bit_vectors.push_back(b);
+             sdsl::rank_support_v<> rb(& b);
+             bit_vectors.push_back(rb);
          }
     }
-    bit_vectors.push_back(b2);
+    bit_vectors.push_back(rb2);
     cout << "Bit vectors loaded. Size: " << bit_vectors.size() << endl;
+    
      
 //     String<Dna> read = "TATGGTGCTTAAATGCTCTTGGCTTTCTCCTGCCCACTTAAGGCCTGCCTGCAATTACAAGAGAAACCATTCATACTGGAAATGGTTGCTCTTTGCTGCT";
     
@@ -95,18 +101,26 @@ int main(int argc, char *argv[])
     print_search_scheme(scheme);
     
   
-    auto delegate = [&hits, &errors_v, &reps](auto & iter, DnaString const & needle, uint8_t errors)
+    auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors)
     {
         for (auto occ : getOccurrences(iter)){
             hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
             errors_v.push_back(errors);
-//             cout << occ << endl;
-//             occ_v.push_back(occ);
         }
-        reps.push_back(representative(iter));
+//         reps.push_back(representative(iter));
     };
     
-    find<0, 2>(delegate, index, reads, bit_vectors);
+    std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hitsD;
+    std::vector<uint8_t> errors_vD;
+    auto delegateDirect = [&hitsD, &errors_vD](vector<Pair<uint16_t, uint32_t>> poss, DnaString const & needle, vector<uint8_t> errors)
+    {
+        for (int i = 0; i < poss.size(); ++i){
+            hitsD.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, poss[i]));
+            errors_vD.push_back(errors[i]);
+        }
+    };
+    
+    find<0, 2>(delegate, delegateDirect, index, reads, bit_vectors);
     
 //     find<0, 2>(delegate, index, reads, HammingDistance());
     for (int i = 0; i < hits.size(); ++i){
@@ -118,8 +132,9 @@ int main(int argc, char *argv[])
     for(int i = 0; i < reps.size(); ++i){
         cout << reps[i] << endl;
     }
-    
+
     cout << "Hello!" << endl;
+    
     return 0;
     
 }
