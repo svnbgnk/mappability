@@ -25,7 +25,7 @@ struct OptimalSearch
 };
     */
 enum class ReturnCode {
-	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, ONEDIRECTION, MAPPABLE, ERROR
+	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, ONEDIRECTION, MAPPABLE, FINISHED, ERROR
 };
 
 template <size_t nbrBlocks, size_t N>
@@ -344,6 +344,91 @@ template <typename TDelegate, typename TDelegateD,
           typename TNeedle,
           size_t nbrBlocks,
           typename TDir>
+ReturnCode checkMappability(TDelegate & delegate,
+                            TDelegateD & delegateDirect,
+                            Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+                            TNeedle const & needle,
+                            vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,    
+                            uint32_t const needleLeftPos,
+                            uint32_t const needleRightPos,
+                            uint8_t const errors,
+                            OptimalSearch<nbrBlocks> const & s,
+                            uint8_t const blockIndex,
+                            bool const newBlock,
+                            TDir const & /**/)
+{
+    if (std::is_same<TDir, Rev>::value)
+    {
+        //search take rest of the block and search it reverse
+        uint32_t infixPosLeft = needleRightPos - 1;
+        uint32_t infixPosRight = needleLeftPos + s.blocklength[blockIndex] - 1;
+        //TODO maybe this one is the same as in the fwd case?
+        bool finished = infixPosLeft != 0 || infixPosRight + 2 != length(needle) + 1;
+    }
+    else{
+        // has to be signed, otherwise we run into troubles when checking for -1 >= 0u
+        int32_t infixPosLeft = needleRightPos - s.blocklength[blockIndex] - 1;
+        int32_t infixPosRight = needleLeftPos - 1;
+        bool finished = infixPosLeft != 0 || needleRightPos != length(needle) + 1;
+    }
+   
+    //check if I am finished!!
+    if(finished){
+        Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval(iter, s, blockIndex, TDir());
+        ReturnCode rcode = squash_interval(iter, bitvectors, bit_interval);
+//      cout << "Return code: " << (int)rcode << endl;
+        
+        if(rcode == ReturnCode::NOMAPPABILITY)
+            return ReturnCode::FINISHED;        
+        if(rcode == ReturnCode::DIRECTSEARCH){
+            //search directly in Genome
+            //TODO can remove std::min since i already checked if we were finished
+            //TODO I only need left value for rev and right value for fwd so delte one input?
+            directSearch(delegateDirect, iter, needle, bitvectors, needleRightPos - 1 , needleRightPos - 1, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), bit_interval, TDir());
+            return ReturnCode::FINISHED;
+        }
+        //this is should be only executed if we are in a new Block
+        if(newBlock){
+            if(rcode == ReturnCode::COMPMAPPABLE){
+                if(std::is_same<TDir, Rev>::value){
+                    if (goToRight2)
+                    {
+                        _optimalSearchScheme(delegate, iter, needle, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), Rev(), HammingDistance());
+                    }
+                    else
+                    {
+                        _optimalSearchScheme(delegate, iter, needle, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), Fwd(), HammingDistance());
+                    }
+                }
+                else
+                { 
+                    if (goToRight2)
+                    {
+                        _optimalSearchScheme(delegate, iter, needle, infixPosLeft, needleRightPos, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), Rev());
+                    }
+                    else
+                    {
+                        _optimalSearchScheme(delegate, iter, needle, infixPosLeft, needleRightPos, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), Fwd());
+                    }
+                }
+                return ReturnCode::FINISHED;
+            }
+            if(rcode == ReturnCode::MAPPABLE && s.startUniDir == blockIndex + 1){ 
+                bool did_filter = filter_interval(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), bit_interval, goToRight2);
+                //TODO iter changes from iter -> iter.revIter now has the Type: ??? or do it in the function filter_interval
+                if(did_filter)
+                    return ReturnCode::FINISHED;
+            }
+        }
+    }
+    return ReturnCode::MAPPABLE;
+}
+
+template <typename TDelegate, typename TDelegateD,
+          typename TText, typename TIndex, typename TIndexSpec,
+          typename TNeedle,
+          size_t nbrBlocks,
+          typename TDir>
 inline void _optimalSearchSchemeChildren(TDelegate & delegate,
                                          TDelegateD & delegateDirect,
                                          Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
@@ -414,6 +499,8 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
 {
     // not in last block and next Block is larger then current block
     bool goToRight2 = (blockIndex < s.pi.size() - 1) && s.pi[blockIndex + 1] > s.pi[blockIndex];
+
+    
     if (std::is_same<TDir, Rev>::value)
     {
         //search take rest of the block and search it reverse
@@ -424,6 +511,10 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
             return;
 
         //TODO put this part in a function? bool for new block check? + after goToRight2
+    //NPL needleLeftPos
+    //NPR needleRightPos
+        
+        
         //check if I am finished!!
         if(infixPosLeft != 0 || infixPosRight + 2 != length(needle) + 1){
 //           seqan::Pair<uint16_t, uint32_t> r = range(iter.fwdIter);
@@ -431,10 +522,10 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
 //         print_sa(iter, r);
             //start of new block
             Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval(iter, s, blockIndex, TDir());
-/*            
-            cout << "Mappability of this suffix interval: " << endl;
-//            cout << "bitv " << brange.i1 << "brange 1 " << brange.i2.i1 << "brange 2 " << brange.i2.i2 << endl;
-            printb(bitvectors, bit_interval);*/
+           
+//             cout << "Mappability of this suffix interval: " << endl;
+// //            cout << "bitv " << brange.i1 << "brange 1 " << brange.i2.i1 << "brange 2 " << brange.i2.i2 << endl;
+//             printb(bitvectors, bit_interval)
             ReturnCode rcode = squash_interval(iter, bitvectors, bit_interval);
 //            cout << "Return code: " << (int)rcode << endl;
 
@@ -466,8 +557,6 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
             }
             
         }
-
-
         if (goToRight2)
         {
             _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), Rev());
@@ -490,20 +579,6 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
             --infixPosRight;
         }
         //TODO check one direction here
-/*       
-        cout << "Range: " << range(iter.revIter) << endl;
-        auto r2 = range(iter.revIter);
-        uint8_t max = mymax(s.pi, blockIndex + 1);
-        cout << "Max Element: " << (int)max << endl;
-        
-        for(int i = r2.i1; i < r2.i2; ++i){
-            cout << bitvectors.at(max)[i] << endl;
-        }
-        
-        cout << "shift" << (int)max << "bitvector" << endl;
-        for(int i = 0; i < bitvectors.at(1).size(); ++i){
-            cout << i << ": " << bitvectors.at(1)[i] << endl;
-        }*/
         
         if (goToRight2)
         {
