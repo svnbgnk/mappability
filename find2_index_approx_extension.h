@@ -233,7 +233,7 @@ ReturnCode squash_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTre
 //     sdsl::rank_support_v<> rbi(& bi);
     if(ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
-    if(ivalOne <= 3){
+    if(ivalOne <= 3){ //TODO add additional constrains from chris
         return ReturnCode::DIRECTSEARCH;
     }
     if(ivalOne == (brange.i2.i2 - brange.i2.i1))
@@ -374,10 +374,10 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
 
             if (needleRightPos - needleLeftPos == s.blocklength[blockIndex])
             {
-                //Start of new block
-                //TODO check one direction here!
                 uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
                 bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
+                //Start of new block
+                //TODO check one direction here!
                 if (goToRight2)
                 {
                     _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, Rev());
@@ -423,16 +423,18 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
         if (!goDown(iter, infix(needle, infixPosLeft, infixPosRight + 1), TDir()))
             return;
 
-        //TODO check if a am finished!!
+        //TODO put this part in a function? bool for new block check? + after goToRight2
+        //check if I am finished!!
         if(infixPosLeft != 0 || infixPosRight + 2 != length(needle) + 1){
 //           seqan::Pair<uint16_t, uint32_t> r = range(iter.fwdIter);
 //           cout << "Suffices at from that interval" << endl;
 //         print_sa(iter, r);
             //start of new block
             Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval(iter, s, blockIndex, TDir());
+/*            
             cout << "Mappability of this suffix interval: " << endl;
 //            cout << "bitv " << brange.i1 << "brange 1 " << brange.i2.i1 << "brange 2 " << brange.i2.i2 << endl;
-            printb(bitvectors, bit_interval);
+            printb(bitvectors, bit_interval);*/
             ReturnCode rcode = squash_interval(iter, bitvectors, bit_interval);
 //            cout << "Return code: " << (int)rcode << endl;
 
@@ -441,17 +443,28 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
             if(rcode == ReturnCode::DIRECTSEARCH){
                 //search directly in Genome
                 //TODO can remove std::min since i already checked if we were finished
-                directSearch(delegateDirect, iter, needle, bitvectors, infixPosLeft, infixPosRight + 1, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), bit_interval, Rev());
+                directSearch(delegateDirect, iter, needle, bitvectors, infixPosLeft, infixPosRight + 1, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), bit_interval, TDir());
                 return;
             }
             //TODO call old function if COMPMAPPABLE be careful with if we are in UniDir case
             //this is should be only executed if we are in a new Block
-            if(rcode == ReturnCode::MAPPABLE && s.startUniDir == blockIndex + 1){ // >=
+            if(rcode == ReturnCode::COMPMAPPABLE){
+                if (goToRight2)
+                {
+                    _optimalSearchScheme(delegate, iter, needle, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), Rev(), HammingDistance());
+                }
+                else
+                {
+                    _optimalSearchScheme(delegate, iter, needle, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), Fwd(), HammingDistance());
+                }
+            }
+            if(rcode == ReturnCode::MAPPABLE && s.startUniDir == blockIndex + 1){ 
                 bool stop = filter_interval(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), bit_interval, goToRight2);
                 //TODO iter changes from iter -> iter.revIter now has the Type: ??? or do it in the function filter_interval
                 if(stop)
                     return;
             }
+            
         }
 
 
