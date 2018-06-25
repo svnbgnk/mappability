@@ -394,26 +394,27 @@ ReturnCode checkMappability(TDelegate & delegate,
         }
         if(newBlock){
             //TODO this can also happen if we are not in a newBlock
+            //TODO no const on blockIndex ?
             if(rcode == ReturnCode::COMPMAPPABLE){
                 if(std::is_same<TDir, Rev>::value){
                     if (goToRight2)
                     {
-                        _optimalSearchScheme(delegate, iter, needle, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex, static_cast<uint8_t>(s.u.size()) - 1), Rev(), HammingDistance());
+                        _optimalSearchScheme(delegate, iter, needle, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex + 0, static_cast<uint8_t>(s.u.size()) - 1), Rev(), HammingDistance());
                     }
                     else
                     {
-                        _optimalSearchScheme(delegate, iter, needle, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex, static_cast<uint8_t>(s.u.size()) - 1), Fwd(), HammingDistance());
+                        _optimalSearchScheme(delegate, iter, needle, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex + 0, static_cast<uint8_t>(s.u.size()) - 1), Fwd(), HammingDistance());
                     }
                 }
                 else
                 { 
                     if (goToRight2)
                     {
-                        _optimalSearchScheme(delegate, iter, needle, infixPosLeft, needleRightPos, errors, s, std::min(blockIndex, static_cast<uint8_t>(s.u.size()) - 1), Rev(), HammingDistance());
+                        _optimalSearchScheme(delegate, iter, needle, infixPosLeft, needleRightPos, errors, s, std::min(blockIndex + 0, static_cast<uint8_t>(s.u.size()) - 1), Rev(), HammingDistance());
                     }
                     else
                     {
-                        _optimalSearchScheme(delegate, iter, needle, infixPosLeft, needleRightPos, errors, s, std::min(blockIndex, static_cast<uint8_t>(s.u.size()) - 1), Fwd(), HammingDistance());
+                        _optimalSearchScheme(delegate, iter, needle, infixPosLeft, needleRightPos, errors, s, std::min(blockIndex + 0, static_cast<uint8_t>(s.u.size()) - 1), Fwd(), HammingDistance());
                     }
                 }
                 return ReturnCode::FINISHED;
@@ -606,16 +607,16 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     // Approximate search in current block.
     else
     {
-      
+   /*   
         if((needleRightPos - needleLeftPos - 1) % 4 == 0){
             //TODO Check if we are Done here?
             //TODO stop doing on loop to much (enter checkMappability a second time)
-            // bool goToRight2 = std::is_same<TDir, Rev>::value;
+            bool goToRight2 = std::is_same<TDir, Rev>::value;
             ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, goToRight2, false, TDir());
             // blockIndex is different here!!! goToRight2 is missing
             if(rcode == ReturnCode::FINISHED)
                 return;
-        }
+        }*/
         
         _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir());
     }
