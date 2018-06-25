@@ -204,7 +204,7 @@ void directSearch(TDelegateD & delegateDirect,
         cout << "NLP " << needleLeftPos <<  endl;
         cout << "NRP " <<  needleRightPos <<  endl;
         if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
-            uint8_t errors2 = 0;//errors;
+            uint8_t errors2 = errors;
             bool valid = true;
             Pair<uint16_t, uint32_t> sa_info;
             uint32_t startPos;
