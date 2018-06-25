@@ -25,7 +25,7 @@ struct OptimalSearch
 };
     */
 enum class ReturnCode {
-	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, MAPPABLE, ONEDIRECTION, ERROR
+	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, ONEDIRECTION, MAPPABLE, ERROR
 };
 
 template <size_t nbrBlocks, size_t N>
@@ -124,6 +124,9 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval(Iter<Index<TText,
     return brange;
 }
 
+void printPair(pair<uint32_t, uint32_t> p){
+    cout << "<" << p.first << ", " << p.second << ">";
+}
 
 void printb(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors, Pair<uint8_t, Pair<uint32_t, uint32_t>> brange){
     sdsl::bit_vector const & rb = bitvectors[brange.i1].first;
@@ -132,6 +135,95 @@ void printb(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
     for(int i = brange.i2.i1; i < brange.i2.i2; ++i)
         cout << i << " Bit: " << rb[i] << endl;
 }
+
+/*
+
+TDelegateD & delegateDirect,
+                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+                  TNeedle const & needle,
+                  vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors, 
+                  uint32_t const needleLeftPos,
+                  uint32_t const needleRightPos,
+                  uint8_t const errors,
+                  OptimalSearch<nbrBlocks> const & s,
+                  uint8_t const blockIndex,
+                  Pair<uint8_t, Pair<uint32_t, uint32_t>> brange,
+                  TDir const & 
+*/
+
+template <typename TDelegate, typename TDelegateD,
+          typename TText, typename TIndex, typename TIndexSpec,
+          typename TNeedle,
+          size_t nbrBlocks,
+          typename TDir>
+bool filter_interval(TDelegate & delegate,
+                     TDelegateD & delegateDirect,
+                     Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > & iter,
+                     TNeedle const & needle,
+                     vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
+                     uint32_t const needleLeftPos,
+                     uint32_t const needleRightPos,
+                     uint8_t const errors,
+                     OptimalSearch<nbrBlocks> const & s,
+                     uint8_t const blockIndex,
+                     Pair<uint8_t, Pair<uint32_t, uint32_t>> brange,
+                     bool const goToRight,
+                     TDir const &)
+{
+    uint32_t intervalfilter_size = 3;
+    float threshold = 0.5;  //equal or more than half zeroes     
+    sdsl::bit_vector & b = bitvectors[brange.i1].first;
+    sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second;
+    rb.set_vector(&b);
+    
+    if(rb(rb.size()) / static_cast<float>(rb.size() - 1) <= threshold){
+        uint32_t startPos = 0, endPos = b.size();
+        for(uint32_t i = 0; i < b.size(); ++i){
+            if(b[i] != 0)
+                break; 
+            ++startPos;
+        }
+        for(uint32_t i = 0; i < b.size(); ++i){
+            if(b[b.size() - 1 - i] != 0)
+                break;
+            --endPos;
+        }
+        if(startPos > endPos)
+            cout << "Error bit vector has only zeroes this should have been checked by squash_interval" << endl; 
+        cout << "Size: " << b.size() << endl;
+        cout << "startPos: " << startPos << " endPos: " << endPos << endl;
+        vector<pair<uint32_t, uint32_t>> consZeroes;
+        uint32_t k = startPos;
+        while(k < endPos){
+            uint32_t interval = 0;
+            //TODO delete second condition it should end with 1
+            while(b[k + interval] == 0 && (k + interval) < endPos){
+                ++interval;
+            }
+            if(interval >= intervalfilter_size){
+                consZeroes.push_back(make_pair(k, k + interval));
+            }
+            k += interval;
+            interval = 0;
+            ++k;
+        }
+        for(int i = 0; i < consZeroes.size(); ++i){
+            
+            printPair(consZeroes[i]);
+        }
+        cout << endl;
+        
+        
+        return(true);
+    }else
+    {
+        return(false);
+    }
+//         iter.fwdIter.vDesc.range.i1 = iter.fwdIter.vDesc.range.i1 + startPos; 
+//     iter.fwdIter.vDesc.range.i2 = iter.fwdIter.vDesc.range.i1 + endPos;
+    
+}
+
 
 template<typename TText, typename TIndex, typename TIndexSpec>
 ReturnCode squash_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > & iter,
@@ -149,7 +241,6 @@ ReturnCode squash_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTre
     }
     if(ivalOne == (brange.i2.i2 - brange.i2.i1))
         return ReturnCode::COMPMAPPABLE; 
-    //TODO check one direction maybe outside of this function
     return ReturnCode::MAPPABLE;
     /*
     uint32_t startPos = 0, endPos = bi.size();
@@ -181,13 +272,13 @@ void directSearch(TDelegateD & delegateDirect,
                   Pair<uint8_t, Pair<uint32_t, uint32_t>> brange,
                   TDir const & /**/)
 {
-    //  stop using both needle pos
+    //TODO  stop using both needle pos ?
     bool reverse = std::is_same<TDir, Rev>::value;
     StringSet<DnaString> const & genome = (reverse) ? indexText(*iter.fwdIter.index) : indexText(*iter.revIter.index);
     vector<Pair<uint16_t, uint32_t>> hitsv;
     vector<uint8_t> errorsv;
     
-    //TODO export to _optimalSearchSchemeSetMapParams set OptimalSearch Struct for values??
+    //TODO export to _optimalSearchSchemeSetMapParams and/or set OptimalSearch Struct for values??
     std::vector<int> bl (s.pi.size() + 1,0);
     cout << "Print blocklengths" << endl;
     bl[s.pi[0]]  = s.blocklength[0];
@@ -340,10 +431,6 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
 //      print_sa(iter, r);
         //start of new block
         Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval(iter, s, blockIndex, TDir());
-        //TODO check one direction here
-        if(s.startUniDir == blockIndex){
-            //TODO call function which starts the filtering and call function on subintervals iter.revIter
-        }
         cout << "Mappability of this suffix interval: " << endl;
 //         cout << "bitv " << brange.i1 << "brange 1 " << brange.i2.i1 << "brange 2 " << brange.i2.i2 << endl;
         printb(bitvectors, bit_interval);
@@ -351,24 +438,29 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
 //         cout << "Return code: " << (int)rcode << endl;
 
         if(rcode == ReturnCode::NOMAPPABILITY)
-            return;
-        //TODO check for ReturnCode::MAPPABLE then call functions and return.
-        
+            return;        
         if(rcode == ReturnCode::DIRECTSEARCH){
             //search directly in Genome
             directSearch(delegateDirect, iter, needle, bitvectors, infixPosLeft, infixPosRight + 1, errors, s, blockIndex + 1, bit_interval, Rev());
             return;
         }
+        //TODO call old function if COMPMAPPABLE be careful with if we are in UniDir case
+        //this is should be only executed if we are in a new Block
+        if(rcode == ReturnCode::MAPPABLE && s.startUniDir == blockIndex){ // >=
+            bool stop = filter_interval(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), bit_interval, goToRight2, TDir);
+            //TODO iter changes from iter -> iter.revIter now has the Type: 
+            
+            if(stop)
+                return;
+        }
 
         if (goToRight2)
         {
-            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s,
-                                 std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), Rev());
+            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), Rev());
         }
         else
         {
-            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s,
-                                 std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), Fwd());
+            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), Fwd());
         }
     }
     else
