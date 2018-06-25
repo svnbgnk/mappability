@@ -116,12 +116,13 @@ template <typename TText, typename TIndex, typename TIndexSpec, size_t nbrBlocks
 Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                         OptimalSearch<nbrBlocks> const & s,
                                         uint8_t const blockIndex,
+                                        bool const goToRight2,
                                         TDir const & /**/) 
 {
-    Pair<uint32_t, uint32_t> dirrange = (std::is_same<TDir, Rev>::value) ? range(iter.fwdIter) : range(iter.revIter);
+    Pair<uint32_t, uint32_t> dirrange = (goToRight2) ? range(iter.fwdIter) : range(iter.revIter);
     uint8_t needed_bitvector;
 //     sdsl::bit_vector b(dirrange.i2 - dirrange.i1, 0);
-    if (std::is_same<TDir, Rev>::value)
+    if (goToRight2)
         needed_bitvector = s.min[blockIndex];//mymin(s.pi, blockIndex) - 1;
     else
         needed_bitvector = s.max[blockIndex];//mymax(s.pi, blockIndex);
@@ -359,31 +360,32 @@ ReturnCode checkMappability(TDelegate & delegate,
 {
     uint32_t infixPosLeft, infixPosRight;
     bool finished;
+    //TODO Does something go wrong if blockIndex == 0 (in case we come from _optimalSearchScheme doing approxiamte search -> check inf blockIndex == 0 skip first condition (only need these values for newBlock condition))
     if (std::is_same<TDir, Rev>::value)
     {
         //search take rest of the block and search it reverse
         infixPosLeft = needleRightPos - 1;
-        infixPosRight = needleLeftPos + s.blocklength[blockIndex] - 1;
+        infixPosRight = needleLeftPos + s.blocklength[blockIndex - 1] - 1;
         //TODO maybe this one is the same as in the fwd case?
         finished = infixPosLeft != 0 || infixPosRight + 2 != length(needle) + 1;
     }
     else{
         // has to be signed, otherwise we run into troubles when checking for -1 >= 0u
-        infixPosLeft = needleRightPos - s.blocklength[blockIndex] - 1;
+        infixPosLeft = needleRightPos - s.blocklength[blockIndex - 1] - 1;
         infixPosRight = needleLeftPos - 1;
         finished = infixPosLeft != 0 || needleRightPos != length(needle) + 1;
     }
    
     //check if we are done with the needle
+    // new check mappability of the next block
     if(finished){
-        Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval(iter, s, blockIndex, TDir());
+        Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval(iter, s, blockIndex, goToRight2, TDir());
         ReturnCode rcode = check_interval(bitvectors, bit_interval);
 //      cout << "Return code: " << (int)rcode << endl;
         
         if(rcode == ReturnCode::NOMAPPABILITY)
             return ReturnCode::FINISHED;        
         
-        //TODO this is different if we are in a newBlock or not!!!
         if(rcode == ReturnCode::DIRECTSEARCH){
             //search directly in Genome
             //TODO can remove std::min since i already checked if we were finished
@@ -391,34 +393,33 @@ ReturnCode checkMappability(TDelegate & delegate,
             directSearch(delegateDirect, iter, needle, bitvectors, needleRightPos - 1 , needleRightPos - 1, errors, s, blockIndex, bit_interval, TDir());
             return ReturnCode::FINISHED;
         }
-        //this is should be only executed if we are in a new Block
         if(newBlock){
             if(rcode == ReturnCode::COMPMAPPABLE){
                 if(std::is_same<TDir, Rev>::value){
                     if (goToRight2)
                     {
-                        _optimalSearchScheme(delegate, iter, needle, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), Rev(), HammingDistance());
+                        _optimalSearchScheme(delegate, iter, needle, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex, static_cast<uint8_t>(s.u.size()) - 1), Rev(), HammingDistance());
                     }
                     else
                     {
-                        _optimalSearchScheme(delegate, iter, needle, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), Fwd(), HammingDistance());
+                        _optimalSearchScheme(delegate, iter, needle, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex, static_cast<uint8_t>(s.u.size()) - 1), Fwd(), HammingDistance());
                     }
                 }
                 else
                 { 
                     if (goToRight2)
                     {
-                        _optimalSearchScheme(delegate, iter, needle, infixPosLeft, needleRightPos, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), Rev(), HammingDistance());
+                        _optimalSearchScheme(delegate, iter, needle, infixPosLeft, needleRightPos, errors, s, std::min(blockIndex, static_cast<uint8_t>(s.u.size()) - 1), Rev(), HammingDistance());
                     }
                     else
                     {
-                        _optimalSearchScheme(delegate, iter, needle, infixPosLeft, needleRightPos, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), Fwd(), HammingDistance());
+                        _optimalSearchScheme(delegate, iter, needle, infixPosLeft, needleRightPos, errors, s, std::min(blockIndex, static_cast<uint8_t>(s.u.size()) - 1), Fwd(), HammingDistance());
                     }
                 }
                 return ReturnCode::FINISHED;
             }
-            if(rcode == ReturnCode::MAPPABLE && s.startUniDir >= blockIndex + 1){ 
-                bool did_filter = filter_interval(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), bit_interval, goToRight2);
+            if(rcode == ReturnCode::MAPPABLE && s.startUniDir >= blockIndex){ 
+                bool did_filter = filter_interval(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s,blockIndex, bit_interval, goToRight2);
                 //TODO iter changes from iter -> iter.revIter now has the Type: ??? or do it in the function filter_interval
                 if(did_filter)
                     return ReturnCode::FINISHED;
@@ -467,6 +468,7 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
                 bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
 /*                
                 //TODO Check if we are Done here?
+                //TODO does something go wrong in checkMappability if blockIndex is not increased by one? then do Todo before
                 //TODO check all Input parameters again!!
                 ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, goToRight2, true, TDir());
                 //TDir() is in this case Rev() ...
@@ -522,6 +524,7 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
             return;
 
         //TODO Check if we are Done here?
+        //TODO does something go wrong in checkMappability if blockIndex is not increased by one? then do Todo before
         ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), goToRight2, true, TDir());
         //TDir() is in this case Rev() ...
         if(rcode == ReturnCode::FINISHED)
@@ -609,7 +612,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
             //TODO stop doing on loop to much (enter checkMappability a second time)
             ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, goToRight2, false, TDir());
             //TDir() is in this case  ...
-            // blockIndex is different here!!!
+            // blockIndex is different here!!! goToRight2 is missing
             if(rcode == ReturnCode::FINISHED)
                 return;
         }
