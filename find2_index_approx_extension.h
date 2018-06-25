@@ -18,14 +18,14 @@ struct OptimalSearch
     std::array<uint8_t, N> u; // maximum number of errors at the end of the corresponding block
 
     std::array<uint32_t, N> blocklength; // cumulated values / prefix sums
-    std::array<uint32_t, N> min;
-    std::array<uint32_t, N> max;
+    std::array<uint8_t, N> min;
+    std::array<uint8_t, N> max;
     uint8_t startUniDir;
     uint32_t startPos;
 };
     */
 enum class ReturnCode {
-	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, MAPPABLE, ERROR
+	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, MAPPABLE, ONEDIRECTION, ERROR
 };
 
 template <size_t nbrBlocks, size_t N>
@@ -58,7 +58,7 @@ constexpr inline void _optimalSearchSchemeSetMapParams(std::array<OptimalSearch<
     }
 }
 
-    
+/*    
 template< size_t N>
 uint8_t mymin(std::array <uint8_t, N> v, uint8_t end)
 {
@@ -79,7 +79,7 @@ uint8_t mymax(std::array <uint8_t, N> v, uint8_t end){
             max = v[i];
     }
     return max;
-}
+}*/
 
 template <typename TText, typename TIndex, typename TIndexSpec>
 void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
@@ -149,7 +149,7 @@ ReturnCode squash_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTre
     }
     if(ivalOne == (brange.i2.i2 - brange.i2.i1))
         return ReturnCode::COMPMAPPABLE; 
-    
+    //TODO check one direction maybe outside of this function
     return ReturnCode::MAPPABLE;
     /*
     uint32_t startPos = 0, endPos = bi.size();
@@ -221,7 +221,7 @@ void directSearch(TDelegateD & delegateDirect,
             cout <<  "Sa info" <<  sa_info <<  endl;
             cout << "StartPos " << startPos << endl;
             //search remaining blocks
-            for(int j = blockIndex + 1; j < s.pi.size(); ++j){
+            for(int j = blockIndex; j < s.pi.size(); ++j){
                 if(reverse)
                     cout << "searching Parts:" << startPos + bl[s.pi[j] - 1] << " - " << startPos + bl[s.pi[j]] << "; ";
                 else
@@ -248,7 +248,6 @@ void directSearch(TDelegateD & delegateDirect,
             }
         }
     }
-    //TODO call delegate function
     delegateDirect(hitsv, needle, errorsv);
 }
 
@@ -287,6 +286,8 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
 
             if (needleRightPos - needleLeftPos == s.blocklength[blockIndex])
             {
+                //Start of new block
+                //TODO check one direction here!
                 uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
                 bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
                 if (goToRight2)
@@ -334,10 +335,15 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
         if (!goDown(iter, infix(needle, infixPosLeft, infixPosRight + 1), TDir()))
             return;
 
-//          seqan::Pair<uint16_t, uint32_t> r = range(iter.fwdIter);
-//         cout << "Suffices at from that interval" << endl;
-//         print_sa(iter, r);
+//      seqan::Pair<uint16_t, uint32_t> r = range(iter.fwdIter);
+//      cout << "Suffices at from that interval" << endl;
+//      print_sa(iter, r);
+        //start of new block
         Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval(iter, s, blockIndex, TDir());
+        //TODO check one direction here
+        if(s.startUniDir == blockIndex){
+            //TODO call function which starts the filtering and call function on subintervals iter.revIter
+        }
         cout << "Mappability of this suffix interval: " << endl;
 //         cout << "bitv " << brange.i1 << "brange 1 " << brange.i2.i1 << "brange 2 " << brange.i2.i2 << endl;
         printb(bitvectors, bit_interval);
@@ -346,9 +352,11 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
 
         if(rcode == ReturnCode::NOMAPPABILITY)
             return;
+        //TODO check for ReturnCode::MAPPABLE then call functions and return.
+        
         if(rcode == ReturnCode::DIRECTSEARCH){
             //search directly in Genome
-            directSearch(delegateDirect, iter, needle, bitvectors, infixPosLeft, infixPosRight + 1, errors, s, blockIndex, bit_interval, Rev());
+            directSearch(delegateDirect, iter, needle, bitvectors, infixPosLeft, infixPosRight + 1, errors, s, blockIndex + 1, bit_interval, Rev());
             return;
         }
 
@@ -375,6 +383,7 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
                 return;
             --infixPosRight;
         }
+        //TODO check one direction here
 /*       
         cout << "Range: " << range(iter.revIter) << endl;
         auto r2 = range(iter.revIter);
@@ -425,7 +434,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
 
     cout << "Step: " << needleRightPos - needleLeftPos - 1 << "    ss: "; printv(s.pi); cout << endl;
-    // Done.
+    // Done. (Last step)
     if (minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1)
     {
         delegate(iter, needle, errors);
@@ -438,6 +447,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     // Approximate search in current block.
     else
     {
+        //TODO check Step here if % 4 == 0 then do mappability check!
         _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir());
     }
 }
