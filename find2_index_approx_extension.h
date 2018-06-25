@@ -112,12 +112,11 @@ void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIn
     }
 }
 
-template <typename TText, typename TIndex, typename TIndexSpec, size_t nbrBlocks, typename TDir>
+template <typename TText, typename TIndex, typename TIndexSpec, size_t nbrBlocks>
 Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                         OptimalSearch<nbrBlocks> const & s,
                                         uint8_t const blockIndex,
-                                        bool const goToRight2,
-                                        TDir const & /**/) 
+                                        bool const goToRight2) 
 {
     Pair<uint32_t, uint32_t> dirrange = (goToRight2) ? range(iter.fwdIter) : range(iter.revIter);
     uint8_t needed_bitvector;
@@ -255,8 +254,7 @@ ReturnCode check_interval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>>
 template <typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
-          size_t nbrBlocks,
-          typename TDir>
+          size_t nbrBlocks>
 void directSearch(TDelegateD & delegateDirect,
                   Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                   TNeedle const & needle,
@@ -267,10 +265,10 @@ void directSearch(TDelegateD & delegateDirect,
                   OptimalSearch<nbrBlocks> const & s,
                   uint8_t const blockIndex,
                   Pair<uint8_t, Pair<uint32_t, uint32_t>> brange,
-                  TDir const & /**/)
+                  bool const goToRight2)
 {
     //TODO  stop using both needle pos ?
-    bool reverse = std::is_same<TDir, Rev>::value;
+    bool reverse = goToRight2;
     StringSet<DnaString> const & genome = (reverse) ? indexText(*iter.fwdIter.index) : indexText(*iter.revIter.index);
     vector<Pair<uint16_t, uint32_t>> hitsv;
     vector<uint8_t> errorsv;
@@ -359,8 +357,9 @@ ReturnCode checkMappability(TDelegate & delegate,
                             TDir const & /**/)
 {
     uint32_t infixPosLeft, infixPosRight;
-    bool finished;
-    //TODO Does something go wrong if blockIndex == 0 (in case we come from _optimalSearchScheme doing approxiamte search -> check inf blockIndex == 0 skip first condition (only need these values for newBlock condition))
+    bool finished = false;
+    //TODO Does something go wrong if blockIndex == 0 (in case we come from _optimalSearchScheme doing approxiamte search -> check inf blockIndex == 0 or newBlock skip first condition (only need these values for newBlock condition))
+//     if(newBlock){
     if (std::is_same<TDir, Rev>::value)
     {
         //search take rest of the block and search it reverse
@@ -375,11 +374,11 @@ ReturnCode checkMappability(TDelegate & delegate,
         infixPosRight = needleLeftPos - 1;
         finished = infixPosLeft != 0 || needleRightPos != length(needle) + 1;
     }
-   
+//     }
     //check if we are done with the needle
     // new check mappability of the next block
-    if(finished){
-        Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval(iter, s, blockIndex, goToRight2, TDir());
+    if(!finished){
+        Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval(iter, s, blockIndex, goToRight2);
         ReturnCode rcode = check_interval(bitvectors, bit_interval);
 //      cout << "Return code: " << (int)rcode << endl;
         
@@ -390,10 +389,11 @@ ReturnCode checkMappability(TDelegate & delegate,
             //search directly in Genome
             //TODO can remove std::min since i already checked if we were finished
             //TODO I only need left value for rev and right value for fwd so delte one input?
-            directSearch(delegateDirect, iter, needle, bitvectors, needleRightPos - 1 , needleRightPos - 1, errors, s, blockIndex, bit_interval, TDir());
+            directSearch(delegateDirect, iter, needle, bitvectors, needleRightPos - 1 , needleRightPos - 1, errors, s, blockIndex, bit_interval, goToRight2);
             return ReturnCode::FINISHED;
         }
         if(newBlock){
+            //TODO this can also happen if we are not in a newBlock
             if(rcode == ReturnCode::COMPMAPPABLE){
                 if(std::is_same<TDir, Rev>::value){
                     if (goToRight2)
@@ -606,17 +606,17 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     // Approximate search in current block.
     else
     {
- /*      
+      
         if((needleRightPos - needleLeftPos - 1) % 4 == 0){
             //TODO Check if we are Done here?
             //TODO stop doing on loop to much (enter checkMappability a second time)
+            // bool goToRight2 = std::is_same<TDir, Rev>::value;
             ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, goToRight2, false, TDir());
-            //TDir() is in this case  ...
             // blockIndex is different here!!! goToRight2 is missing
             if(rcode == ReturnCode::FINISHED)
                 return;
         }
-        */
+        
         _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir());
     }
 }
