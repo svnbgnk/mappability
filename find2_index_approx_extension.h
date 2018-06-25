@@ -23,6 +23,19 @@ struct OptimalSearch
     uint8_t startUniDir;
     uint32_t startPos;
 };
+
+
+
+template <typename TVoidType>
+struct OptimalSearchSchemes<0, 2, TVoidType>
+{
+    static constexpr std::array<OptimalSearch<4>, 3> VALUE
+    {{
+        { {{2, 1, 3, 4}}, {{0, 0, 1, 1}}, {{0, 0, 2, 2}}, {{0, 0, 0, 0}}, {{2, 1, 1, 1}}, {{2, 2, 3, 4}}, 0, 2 },
+        { {{3, 2, 1, 4}}, {{0, 0, 0, 0}}, {{0, 1, 1, 2}}, {{0, 0, 0, 0}}, {{3, 2, 1, 1}}, {{3, 3, 3, 4}}, 0, 3 },
+        { {{4, 3, 2, 1}}, {{0, 0, 0, 2}}, {{0, 1, 2, 2}}, {{0, 0, 0, 0}}, {{4, 3, 2, 1}}, {{4, 4, 4, 4}}, 0, 0 }
+    }};
+};
     */
 enum class ReturnCode {
 	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, ONEDIRECTION, MAPPABLE, FINISHED, ERROR
