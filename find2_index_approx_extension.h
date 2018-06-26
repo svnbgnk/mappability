@@ -342,6 +342,51 @@ template <typename TDelegate, typename TDelegateD,
           typename TNeedle,
           size_t nbrBlocks,
           typename TDir>
+ReturnCode checkCurrentMappability(TDelegate & delegate,
+                            TDelegateD & delegateDirect,
+                            Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+                            TNeedle const & needle,
+                            vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,    
+                            uint32_t const needleLeftPos,
+                            uint32_t const needleRightPos,
+                            uint8_t const errors,
+                            OptimalSearch<nbrBlocks> const & s,
+                            uint8_t const blockIndex,
+                            TDir const & /**/)
+{
+    //Are sure we can not be finished
+    //TODO transform goToRight2 to TDir in functions
+    bool goToRight2 = (std::is_same<TDir, Rev>::value);
+    Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval(iter, s, blockIndex, goToRight2);
+    ReturnCode rcode = check_interval(bitvectors, bit_interval);
+//   cout << "Return code: " << (int)rcode << endl;
+        
+    if(rcode == ReturnCode::NOMAPPABILITY)
+        return ReturnCode::FINISHED;        
+        
+    if(rcode == ReturnCode::DIRECTSEARCH){
+        //search directly in Genome
+        //TODO can remove std::min since i already checked if we were finished
+        //TODO I only need left value for rev and right value for fwd so delte one input?
+        directSearch(delegateDirect, iter, needle, bitvectors, needleRightPos - 1 , needleRightPos - 1, errors, s, blockIndex, bit_interval, goToRight2);
+        return ReturnCode::FINISHED;
+    }
+    
+    //TODO check if we are in unidirection case in this case COMPMAPPABLE should no be used
+    if(rcode == ReturnCode::COMPMAPPABLE){
+        uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
+        _optimalSearchSchemeChildren(delegate, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), HammingDistance());
+        return ReturnCode::FINISHED;
+    }
+    //TODO check if we are in one direction case  and apply filter interval
+    return ReturnCode::MAPPABLE;
+}
+
+template <typename TDelegate, typename TDelegateD,
+          typename TText, typename TIndex, typename TIndexSpec,
+          typename TNeedle,
+          size_t nbrBlocks,
+          typename TDir>
 ReturnCode checkMappability(TDelegate & delegate,
                             TDelegateD & delegateDirect,
                             Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
@@ -395,6 +440,7 @@ ReturnCode checkMappability(TDelegate & delegate,
         if(newBlock){
             //TODO this can also happen if we are not in a newBlock
             //TODO no const on blockIndex ?
+            //TODO remove newBlock condition
             if(rcode == ReturnCode::COMPMAPPABLE){
                 if(std::is_same<TDir, Rev>::value){
                     if (goToRight2)
