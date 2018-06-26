@@ -342,12 +342,12 @@ ReturnCode check_interval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>>
 }
 
 template <typename TDelegateD,
-          typename TText, typename TIndex, typename TIndexSpec,
+          typename TText, typename TConfig, typename TIndexSpec,
           typename TNeedle,
           size_t nbrBlocks,
           typename TDir>
 void directSearchDummy(TDelegateD & delegateDirect,
-                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+                  Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
                   TNeedle const & needle,
                   vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors, 
                   uint32_t const needleLeftPos,
@@ -561,7 +561,7 @@ ReturnCode checkMappability(TDelegate & delegate,
             //TODO I only need left value for rev and right value for fwd so delte one input?
             if(goToRight2){
                 directSearch(delegateDirect, iter, needle, bitvectors, needleRightPos - 1 , needleRightPos - 1, errors, s, blockIndex, bit_interval, Rev());
-                directSearchDummy(delegateDirect, iter, needle, bitvectors, needleRightPos - 1 , needleRightPos - 1, errors, s, blockIndex, bit_interval, Rev());
+                directSearchDummy(delegateDirect, iter.revIter, needle, bitvectors, needleRightPos - 1 , needleRightPos - 1, errors, s, blockIndex, bit_interval, Rev());
             }else{
                 directSearch(delegateDirect, iter, needle, bitvectors, needleRightPos - 1 , needleRightPos - 1, errors, s, blockIndex, bit_interval, Fwd());
             }
