@@ -54,19 +54,31 @@ int main(int argc, char *argv[])
      open(index, toCString("/home/sven/devel/Data/ref_m_index/index"), OPEN_RDONLY);
      cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
 
+     typedef String<Dna, Alloc<>> TString;        
+    Iter<Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig>, VSTree<TopDown<> > > it(index);
+    cout << "; countSequences: " << seqan::countSequences(it.fwdIter.index) << endl;
+    for(int i = 0; i < 4; ++i)
+        cout << it.fwdIter.index->sa[i] << endl;
+//     countSequences: 1
+//     < 2 , 149 >
+//     < 1 , 300 >
+//     < 0 , 550 >
+//     < 2 , 91 >
+
+    
     // load bitvectors
     vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bit_vectors;
     
     sdsl::bit_vector b1, b2;
-    load_from_file(b1, "/home/sven/devel/Data/mappability_ref.fa/r_bit_vector_100");
-    load_from_file(b2, "/home/sven/devel/Data/mappability_ref.fa/l_bit_vector_100");
+    load_from_file(b1, "/home/sven/devel/Data/mappability_ref_m.fa/r_bit_vector_100");
+    load_from_file(b2, "/home/sven/devel/Data/mappability_ref_m.fa/l_bit_vector_100");
     sdsl::rank_support_v<> rb1 (& b1);
     sdsl::rank_support_v<> rb2 (& b2);
     bit_vectors.push_back(make_pair(b1, rb1));
 //     bit_vectors[0].second.set_vector(&bit_vectors[0].first);
     
     for(int i = 0; i < 10; ++i){
-         string file_name = toCString("/home/sven/devel/Data/mappability_ref.fa/r_bit_vector_100_shift_") + to_string(i);
+         string file_name = toCString("/home/sven/devel/Data/mappability_ref_m.fa/r_bit_vector_100_shift_") + to_string(i);
          if(file_exists(file_name)){
              sdsl::bit_vector b;
 //              cout << "Filename: " << file_name << endl;

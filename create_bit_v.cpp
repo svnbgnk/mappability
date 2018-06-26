@@ -211,9 +211,11 @@ int main(int argc, char *argv[])
     cout << mytime() << "Ordering (Suffix array) bit vectors" << endl;
     for(int i = 0; i < bit_vectors.size(); ++i){
         sdsl::store_to_file(bit_vectors[i], toCString(outputPath) + names[i]);
-//         std::ofstream outfile((toCString(outputPath) + names[i]), std::ios::out | std::ofstream::binary);
-//         std::copy(bit_vectors[i].begin(), bit_vectors[i].end(), std::ostream_iterator<bool>(outfile));
-//         outfile.close();
+        if(debug){
+            std::ofstream outfile((toCString(outputPath) + names[i] + "_osa_debug"), std::ios::out | std::ofstream::binary);
+            std::copy(bit_vectors[i].begin(), bit_vectors[i].end(), std::ostream_iterator<bool>(outfile));
+            outfile.close();
+        }
     }   
     cout << mytime() << "Finished saving bit vectors" << endl;
     return 0;
