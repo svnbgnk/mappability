@@ -33,6 +33,8 @@ void print_search_scheme(std::array<OptimalSearch<nbrBlocks>, N> & searchsscheme
         printv(searchsscheme[i].u);
         cout << "blockLengths: " << endl;
         printv(searchsscheme[i].blocklength);
+        cout << "chronblockLengths: " << endl;
+        printv(searchsscheme[i].chronblocklength);
         cout << "start Pos: " << endl;
         cout << searchsscheme[i].startPos << endl;
         cout << "minMax: " << endl;
@@ -54,11 +56,11 @@ int main(int argc, char *argv[])
      open(index, toCString("/home/sven/devel/Data/ref_m_index/index"), OPEN_RDONLY);
      cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
 
-     typedef String<Dna, Alloc<>> TString;        
-    Iter<Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig>, VSTree<TopDown<> > > it(index);
-    cout << "; countSequences: " << seqan::countSequences(it.fwdIter.index) << endl;
-    for(int i = 0; i < 4; ++i)
-        cout << it.fwdIter.index->sa[i] << endl;
+//       typedef String<Dna, Alloc<>> TString;        
+//      Iter<Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig>, VSTree<TopDown<> > > it(index);
+//      cout << "; countSequences: " << seqan::countSequences(it.fwdIter.index) << endl;
+//      for(int i = 0; i < 4; ++i)
+//          cout << it.fwdIter.index->sa[i] << endl;
 //     countSequences: 1
 //     < 2 , 149 >
 //     < 1 , 300 >
@@ -111,11 +113,11 @@ int main(int argc, char *argv[])
     std::vector<uint8_t> errors_v;
     std::vector<DnaString> reps;
     
-    auto scheme = OptimalSearchSchemes<0, 2>::VALUE;
+//     auto scheme = OptimalSearchSchemes<0, 2>::VALUE;
 //     print_search_scheme(scheme);
-    _optimalSearchSchemeSetMapParams(scheme);
-    cout << "Scheme used in the moment: " << endl;
-    print_search_scheme(scheme);
+//     _optimalSearchSchemeSetMapParams(scheme);
+//     cout << "Scheme used in the moment: " << endl;
+//     print_search_scheme(scheme);
     
   
     auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors)
