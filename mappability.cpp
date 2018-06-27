@@ -14,17 +14,47 @@ typedef std::vector<uint8_t> TVector;
 
 #include "common.h"
 
+struct Options
+{
+    unsigned errors;
+    unsigned length;
+    unsigned overlap = 0;
+    unsigned threshold = 0;
+    unsigned threads;
+    bool mmap;
+    bool indels;
+    bool singleIndex;
+    seqan::CharString indexPath;
+    seqan::CharString outputPath;
+    seqan::CharString alphabet;
+};
+
 #include "algo1.hpp"
+#include "algo1_approx.hpp"
 #include "algo2.hpp"
 
 using namespace std;
 using namespace seqan;
 
+string get_output_path(Options const & opt, signed const chromosomeId)
+{
+    string output_path = toCString(opt.outputPath);
+    output_path += "_" + to_string(opt.errors) + "_" + to_string(opt.length) + "_" + to_string(opt.overlap);
+    if (chromosomeId >= 0)
+        output_path += "-" + to_string(chromosomeId);
+
+    // for (unsigned i = 0; i < min(c.size(), 64ul); ++i)
+    //     cout << (unsigned) c[i] << ' ';
+    // cout << '\n';
+
+    return output_path;
+}
+
 template <typename T>
 inline void save(vector<T> const & c, string const & output_path)
 {
-    std::ofstream outfile(output_path, std::ios::out | std::ofstream::binary);
-    std::copy(c.begin(), c.end(), (std::ostream_iterator<uint8_t>(outfile), std::ostream_iterator<int>(outfile, " ")));
+    ofstream outfile(output_path, ios::out | ios::binary);
+    outfile.write((const char*) &c[0], c.size());
     outfile.close();
 }
 
@@ -35,47 +65,62 @@ inline void save(sdsl::int_vector<width_t> const & c, string const & output_path
 }
 
 template <typename TDistance, typename TIndex, typename TText>
-inline void run(TIndex & index, TText const & text, Options & opt, signed chromosomeId)
+inline void run(TIndex & index, TText const & text, Options const & opt, signed const chromosomeId)
 {
     TVector c(seqan::length(text) - opt.length + 1, 0);
 
     // TODO: is there an upper bound? are we interested whether a k-mer has 60.000 or 70.000 hits?
     cout << mytime() << "Vector initialized (size: " << c.size() << ")." << endl;
-    switch (opt.errors)
+
+    if (opt.overlap == 0 && opt.threshold > 0)
     {
-        case 0: runAlgo2<0/*, TDistance*/>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
-                break;
-        case 1: runAlgo2<1/*, TDistance*/>(index, text, opt.length, c, opt.length - opt. overlap, opt.threads);
-                break;
-        case 2: runAlgo2<2/*, TDistance*/>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
-                break;
-        // case 3: run<3, TDistance>(index, text);
-        //        break;
-        // case 4: run<4, TDistance>(index, text);
-        //        break;
-        default: cerr << "E = " << opt.errors << " not yet supported.\n";
-                 exit(1);
+        switch (opt.errors)
+        {
+            case 0: runAlgo1_approx<0>(index, text, opt.length, c, opt.threads, opt.threshold);
+                    break;
+            case 1: runAlgo1_approx<1>(index, text, opt.length, c, opt.threads, opt.threshold);
+                    break;
+            case 2: runAlgo1_approx<2>(index, text, opt.length, c, opt.threads, opt.threshold);
+                    break;
+            default: cerr << "E = " << opt.errors << " not yet supported.\n";
+                     exit(1);
+        }
     }
+    else if (opt.overlap > 0 && opt.threshold == 0)
+    {
+        switch (opt.errors)
+        {
+            case 0: runAlgo2<0>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
+                    break;
+            case 1: runAlgo2<1>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
+                    break;
+            case 2: runAlgo2<2>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
+                    break;
+            default: cerr << "E = " << opt.errors << " not yet supported.\n";
+                     exit(1);
+        }
+    }
+    else
+    {
+        cerr << "Overlap and Threshold are currently mutually exclusive.\n";
+        exit(1);
+    }
+
     cout << mytime() << "Done.\n";
 
-    std::string output_path = toCString(opt.outputPath);
-    output_path += "_" + to_string(opt.errors) + "_" + to_string(opt.length) + "_" + to_string(opt.overlap);
-    if (chromosomeId >= 0)
-        output_path += "-" + to_string(chromosomeId);
-
+    string output_path = get_output_path(opt, chromosomeId);
     save(c, output_path);
 
     cout << mytime() << "Saved to disk: " << output_path << '\n';
 }
 
 template <typename TChar, typename TAllocConfig, typename TDistance>
-inline void run(Options & opt)
+inline void run(Options const & opt)
 {
     typedef String<TChar, TAllocConfig> TString;
     if (opt.singleIndex)
     {
         typedef StringSet<TString, Owner<ConcatDirect<> > > TStringSet;
-
         TIndex<TStringSet> index;
         open(index, toCString(opt.indexPath), OPEN_RDONLY);
 
@@ -101,14 +146,14 @@ inline void run(Options & opt)
             TIndex<TString> index;
             open(index, toCString(_indexPath), OPEN_RDONLY);
             cout << mytime() << "Index of " << ids[i] << " loaded." << endl;
-            auto & text = indexText(index);
+            auto const & text = indexText(index);
             run<TDistance>(index, text, opt, i);
         }
     }
 }
 
 template <typename TChar, typename TAllocConfig>
-inline void run(Options & opt)
+inline void run(Options const & opt)
 {
     if (opt.indels) {
         cerr << "TODO: Indels are not yet supported.\n";
@@ -120,7 +165,7 @@ inline void run(Options & opt)
 }
 
 template <typename TChar>
-inline void run(Options & opt)
+inline void run(Options const & opt)
 {
     if (opt.mmap)
         run<TChar, MMap<> >(opt);
@@ -150,7 +195,7 @@ int main(int argc, char *argv[])
         "If not selected, only mismatches will be considered."));
 
     addOption(parser, ArgParseOption("o", "overlap", "Length of overlap region (o + 1 Strings will be searched at once beginning with their overlap region)", ArgParseArgument::INTEGER, "INT"));
-    setRequired(parser, "overlap");
+    // setRequired(parser, "overlap");
 
     addOption(parser, ArgParseOption("m", "mmap",
         "Turns memory-mapping on, i.e. the index is not loaded into RAM but accessed directly in secondary-memory. "
@@ -160,6 +205,9 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("t", "threads", "Number of threads", ArgParseArgument::INTEGER, "INT"));
     setDefaultValue(parser, "threads", omp_get_max_threads());
 
+    addOption(parser, ArgParseOption("x", "threshold", "Threshold for approximate calculation", ArgParseArgument::INTEGER, "INT"));
+    // setDefaultValue(parser, "threshold", "7");
+
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
     if (res != ArgumentParser::PARSE_OK)
         return res == ArgumentParser::PARSE_ERROR;
@@ -168,12 +216,16 @@ int main(int argc, char *argv[])
     Options opt;
     getOptionValue(opt.errors, parser, "errors");
     getOptionValue(opt.length, parser, "length");
-    getOptionValue(opt.overlap, parser, "overlap");
     getOptionValue(opt.threads, parser, "threads");
     getOptionValue(opt.indexPath, parser, "index");
     getOptionValue(opt.outputPath, parser, "output");
     opt.mmap = isSet(parser, "mmap");
     opt.indels = isSet(parser, "indels");
+
+    if (isSet(parser, "overlap"))
+        getOptionValue(opt.overlap, parser, "overlap");
+    if (isSet(parser, "threshold"))
+        getOptionValue(opt.threshold, parser, "threshold");
 
     if (opt.overlap > opt.length - opt.errors - 2)
     {
