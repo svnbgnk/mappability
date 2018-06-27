@@ -170,7 +170,7 @@ inline void runAlgo2(TIndex & index, auto const & text, unsigned const length, T
     auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
     _optimalSearchSchemeComputeFixedBlocklength(scheme, overlap);
 
-    uint64_t textLength = seqan::length(text);
+    uint64_t const textLength = seqan::length(text); // lengthSum() forwards to length() for a single string
 
     const uint64_t max_i = textLength - length + 1;
     const uint64_t step_size = length - overlap + 1;
@@ -181,7 +181,7 @@ inline void runAlgo2(TIndex & index, auto const & text, unsigned const length, T
     {
         unsigned hits[length - overlap + 1] = {};
         auto delegate = [&hits, i, length, textLength, overlap, &text](auto it, auto const & /*read*/, unsigned const errors_spent) {
-            uint64_t bb = std::min(textLength - 1, i + length - 1 + length - overlap);
+            uint64_t const bb = std::min(textLength - 1, i + length - 1 + length - overlap);
             extend(it, hits, errors - errors_spent, text, length,
                 i + length - overlap, i + length - 1, // searched interval
                 i, bb // entire interval

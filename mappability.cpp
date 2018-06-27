@@ -54,8 +54,11 @@ template <typename T>
 inline void save(vector<T> const & c, string const & output_path)
 {
     ofstream outfile(output_path, ios::out | ios::binary);
-    outfile.write((const char*) &c[0], c.size());
+    outfile.write((const char*) &c[0], c.size() * sizeof(TVector::value_type));
     outfile.close();
+
+    // ofstream outfile(output_path, std::ios::out | std::ofstream::binary);
+    // copy(c.begin(), c.end(), (std::ostream_iterator<uint8_t>(outfile), std::ostream_iterator<int>(outfile, " ")));
 }
 
 template <uint8_t width_t>
@@ -124,12 +127,10 @@ inline void run(Options const & opt)
         TIndex<TStringSet> index;
         open(index, toCString(opt.indexPath), OPEN_RDONLY);
 
-        // TODO(cpockrandt): replace with a ConcatView
-        auto & text = indexText(index);
-        typename Concatenator<TStringSet>::Type concatText = concat(text);
+        auto const & text = indexText(index);
 
         cout << mytime() << "Index loaded." << endl;
-        run<TDistance>(index, concatText, opt, -1 /*no chromosomeId*/);
+        run<TDistance>(index, text.concat, opt, -1 /*no chromosomeId*/);
     }
     else
     {
