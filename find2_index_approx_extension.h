@@ -821,6 +821,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
                                  vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
                                  OptimalSearch<nbrBlocks> const & s)
 {
+    //TODO fix direction
     _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Rev());
 }
 
