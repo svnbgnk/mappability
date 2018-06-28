@@ -32,6 +32,7 @@ struct Options
 #include "algo1.hpp"
 #include "algo1_approx.hpp"
 #include "algo2.hpp"
+#include "algo2_approx.hpp"
 
 using namespace std;
 using namespace seqan;
@@ -42,10 +43,6 @@ string get_output_path(Options const & opt, signed const chromosomeId)
     output_path += "_" + to_string(opt.errors) + "_" + to_string(opt.length) + "_" + to_string(opt.overlap);
     if (chromosomeId >= 0)
         output_path += "-" + to_string(chromosomeId);
-
-    // for (unsigned i = 0; i < min(c.size(), 64ul); ++i)
-    //     cout << (unsigned) c[i] << ' ';
-    // cout << '\n';
 
     return output_path;
 }
@@ -75,6 +72,7 @@ inline void run(TIndex & index, TText const & text, Options const & opt, signed 
     // TODO: is there an upper bound? are we interested whether a k-mer has 60.000 or 70.000 hits?
     cout << mytime() << "Vector initialized (size: " << c.size() << ")." << endl;
 
+    // TODO: won't be necessary in the future
     if (opt.overlap == 0 && opt.threshold > 0)
     {
         switch (opt.errors)
@@ -103,6 +101,20 @@ inline void run(TIndex & index, TText const & text, Options const & opt, signed 
                      exit(1);
         }
     }
+    else if (opt.overlap > 0 && opt.threshold > 0)
+    {
+        switch (opt.errors)
+        {
+            case 0: runAlgo2_approx<0>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads, opt.threshold);
+                    break;
+            case 1: runAlgo2_approx<1>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads, opt.threshold);
+                    break;
+            case 2: runAlgo2_approx<2>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads, opt.threshold);
+                    break;
+            default: cerr << "E = " << opt.errors << " not yet supported.\n";
+                     exit(1);
+        }
+    }
     else
     {
         cerr << "Overlap and Threshold are currently mutually exclusive.\n";
@@ -113,6 +125,10 @@ inline void run(TIndex & index, TText const & text, Options const & opt, signed 
 
     string output_path = get_output_path(opt, chromosomeId);
     save(c, output_path);
+
+    for (unsigned i = 0; i < min(c.size(), 64ul); ++i)
+        cout << (unsigned) c[i] << ' ';
+    cout << '\n';
 
     cout << mytime() << "Saved to disk: " << output_path << '\n';
 }
