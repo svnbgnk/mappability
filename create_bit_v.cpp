@@ -204,6 +204,91 @@ int main(int argc, char *argv[])
             outfile.close();
             
         }
+        {
+        std::ofstream outfile((toCString(outputPath) + names[0] + "_SA_array_debug"), std::ios::out | std::ofstream::binary);
+        typedef String<Dna, Alloc<>> TString;
+        Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index;
+        open(index, toCString(indexPath), OPEN_RDONLY);
+        
+        int number_of_indeces = seqan::length(index.fwd.sa) - bit_vectors[0].size();
+        vector<int> sequenceLengths(number_of_indeces + 1, 0);
+        cout << "Number of Indeces: " << number_of_indeces << endl;
+    
+        //sequenceLengths first value is 0
+        for(int i = 0; i < number_of_indeces; ++i)
+            sequenceLengths[getValueI1(index.fwd.sa[i]) + 1] = getValueI2(index.fwd.sa[i]);
+        // cumulative sum seq
+        for(int i = 1; i < sequenceLengths.size(); ++i)
+            sequenceLengths[i] += (sequenceLengths[i - 1]);
+        // skip sentinels
+
+
+        for (unsigned j = 0; j < seqan::length(index.fwd.sa); ++j)
+        {
+            uint32_t sa_j = getValueI2(index.fwd.sa[j]);
+            uint16_t seq = getValueI1(index.fwd.sa[j]);
+//          cout << j << " < " << (sa_j + sequenceLengths[seq]) << endl;
+                outfile << j << " " << "(" << seq << "): " << sa_j + sequenceLengths[seq] << endl;
+        }
+        outfile.close();
+        }
+        {
+        std::ofstream outfile((toCString(outputPath) + names[0] + "_SA_array_rev_debug"), std::ios::out | std::ofstream::binary);
+        typedef String<Dna, Alloc<>> TString;
+        Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index;
+        open(index, toCString(indexPath), OPEN_RDONLY);
+        
+        int number_of_indeces = seqan::length(index.fwd.sa) - bit_vectors[0].size();
+        vector<int> sequenceLengths(number_of_indeces + 1, 0);
+        cout << "Number of Indeces: " << number_of_indeces << endl;
+    
+        //sequenceLengths first value is 0
+        for(int i = 0; i < number_of_indeces; ++i)
+            sequenceLengths[getValueI1(index.fwd.sa[i]) + 1] = getValueI2(index.fwd.sa[i]);
+        // cumulative sum seq
+        for(int i = 1; i < sequenceLengths.size(); ++i)
+            sequenceLengths[i] += (sequenceLengths[i - 1]);
+        // skip sentinels
+
+
+        for (unsigned j = 0; j < seqan::length(index.fwd.sa); ++j)
+        {
+            uint32_t sa_j = getValueI2(index.rev.sa[j]);
+            uint16_t seq = getValueI1(index.rev.sa[j]);
+//          cout << j << " < " << (sa_j + sequenceLengths[seq]) << endl;
+                outfile << j << " " << "(" << seq << "): " << sa_j + sequenceLengths[seq] << endl;
+        }
+        outfile.close();
+        }
+        
+        {
+        std::ofstream outfile((toCString(outputPath) + names[0] + "_SA_array_rev_split_debug"), std::ios::out | std::ofstream::binary);
+        typedef String<Dna, Alloc<>> TString;
+        Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index;
+        open(index, toCString(indexPath), OPEN_RDONLY);
+        
+        int number_of_indeces = seqan::length(index.fwd.sa) - bit_vectors[0].size();
+        vector<int> sequenceLengths(number_of_indeces + 1, 0);
+        cout << "Number of Indeces: " << number_of_indeces << endl;
+    
+        //sequenceLengths first value is 0
+        for(int i = 0; i < number_of_indeces; ++i)
+            sequenceLengths[getValueI1(index.fwd.sa[i]) + 1] = getValueI2(index.fwd.sa[i]);
+        // cumulative sum seq
+        for(int i = 1; i < sequenceLengths.size(); ++i)
+            sequenceLengths[i] += (sequenceLengths[i - 1]);
+        // skip sentinels
+
+
+        for (unsigned j = 0; j < seqan::length(index.fwd.sa); ++j)
+        {
+            uint32_t sa_j = getValueI2(index.rev.sa[j]);
+            uint16_t seq = getValueI1(index.rev.sa[j]);
+//          cout << j << " < " << (sa_j + sequenceLengths[seq]) << endl;
+                outfile << j << " " << "(" << seq << "): " << sa_j << endl;
+        }
+        outfile.close();
+        }
     }
     cout << "Start sorting" << endl;
     //order in suffix array

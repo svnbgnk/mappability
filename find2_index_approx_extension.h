@@ -106,20 +106,62 @@ uint8_t mymax(std::array <uint8_t, N> v, uint8_t end){
 }*/
 
 template <typename TText, typename TIndex, typename TIndexSpec>
-void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-              Pair<uint32_t, uint32_t>  const & range)
+void print_fullsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+              vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
+              bool const fwd)
 {
-    int number_of_indeces = countSequences(iter.fwdIter.index);
+    int size = seqan::length(iter.fwdIter.index->sa);
+    uint32_t number_of_indeces = size - bitvectors[0].first.size();
+    int noi = number_of_indeces;
     vector<int> sequenceLengths(number_of_indeces + 1, 0);
     for(int i = 0; i < number_of_indeces; ++i)
         sequenceLengths[iter.fwdIter.index->sa[i].i1 + 1] = iter.fwdIter.index->sa[i].i2;
         // cumulative sum seq
     for(int i = 1; i < sequenceLengths.size(); ++i)
         sequenceLengths[i] += (sequenceLengths[i - 1]);
-    for(uint32_t i = range.i1; i < range.i2; ++i){
-        int seq = iter.fwdIter.index->sa[i].i1;
-        int sa = iter.fwdIter.index->sa[i].i2;
-        cout << i << ": " << sa + sequenceLengths[seq] << endl;
+    if(!fwd){
+        for(uint32_t i = 0; i < size; ++i){
+            int seq = iter.revIter.index->sa[i].i1;
+            int sa = iter.revIter.index->sa[i].i2;
+            cout << i << "(" << seq << ")" << ": " << sa + sequenceLengths[seq] << endl;
+        }
+    }else{
+        for(uint32_t i = 0; i < size; ++i){
+            int seq = iter.fwdIter.index->sa[i].i1;
+            int sa = iter.fwdIter.index->sa[i].i2;
+            cout << i << "(" << seq << ")" << ": " << sa + sequenceLengths[seq] << endl;
+        }
+    }
+}
+
+
+
+template <typename TText, typename TIndex, typename TIndexSpec>
+void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+              vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
+              bool const fwd)
+{
+    int size = seqan::length(iter.fwdIter.index->sa);
+    Pair<uint32_t, uint32_t> dirrange = (fwd) ? range(iter.fwdIter) : range(iter.revIter);
+    uint32_t number_of_indeces = size - bitvectors[0].first.size();
+    vector<int> sequenceLengths(number_of_indeces + 1, 0);
+    for(int i = 0; i < number_of_indeces; ++i)
+        sequenceLengths[iter.fwdIter.index->sa[i].i1 + 1] = iter.fwdIter.index->sa[i].i2;
+        // cumulative sum seq
+    for(int i = 1; i < sequenceLengths.size(); ++i)
+        sequenceLengths[i] += (sequenceLengths[i - 1]);
+    if(!fwd){
+        for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
+            int seq = iter.revIter.index->sa[i].i1;
+            int sa = iter.revIter.index->sa[i].i2;
+            cout << i << ": " << iter.revIter.index->sa[i] << endl;
+        }
+    }else{
+        for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
+            int seq = iter.fwdIter.index->sa[i].i1;
+            int sa = iter.fwdIter.index->sa[i].i2;
+            cout << i << ": " << sa + sequenceLengths[seq] << endl;
+        }
     }
 }
 
@@ -130,6 +172,8 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval(Iter<Index<TText,
                                         uint8_t const blockIndex,
                                         TDir const & /**/) 
 {
+//     printv(s.pi);
+    
     Pair<uint32_t, uint32_t> dirrange = (std::is_same<TDir, Rev>::value) ? range(iter.fwdIter) : range(iter.revIter);
     uint8_t needed_bitvector;
     if (std::is_same<TDir, Rev>::value)
@@ -142,10 +186,11 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval(Iter<Index<TText,
     
     uint32_t number_of_indeces = seqan::length(iter.fwdIter.index->sa) - bitvectors[needed_bitvector].first.size();
     cout << "shift_" << (int)needed_bitvector << "_bitvector" << endl;
-    
-    dirrange.i1 = dirrange.i1 + number_of_indeces;
-    dirrange.i2 = dirrange.i2 + number_of_indeces;
-    Pair<uint8_t, Pair<uint32_t, uint32_t>> brange(needed_bitvector, dirrange); 
+    cout << "Sa Range: " << dirrange << endl;
+    dirrange.i1 = dirrange.i1 - number_of_indeces;
+    dirrange.i2 = dirrange.i2 - number_of_indeces;
+    cout << "Bit Range: " << dirrange << endl;
+    Pair<uint8_t, Pair<uint32_t, uint32_t>> brange(needed_bitvector, dirrange);
     return brange;
 }
 
@@ -341,7 +386,6 @@ ReturnCode check_interval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>>
                            Pair<uint8_t, Pair<uint32_t, uint32_t>> brange,
                            OptimalSearch<nbrBlocks> const & s)
 {
-    printb(bitvectors, brange);
     sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second;
     rb.set_vector(&bitvectors[brange.i1].first);
     uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
@@ -633,7 +677,7 @@ ReturnCode checkMappability(TDelegate & delegate,
         infixPosRight = needleLeftPos - 1;
         finished = infixPosLeft == 0 && needleRightPos == length(needle) + 1;
     }
-    
+
     //check if we are done with the needle    
     if(!finished){
         Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
@@ -641,6 +685,16 @@ ReturnCode checkMappability(TDelegate & delegate,
             bit_interval = get_bitvector_interval(iter, bitvectors, s, blockIndex, Rev());
         else
             bit_interval = get_bitvector_interval(iter, bitvectors, s, blockIndex, Fwd());
+        
+        cout << "Printttt" << endl;
+        if(goToRight2)
+            print_sa(iter, bitvectors, true);
+        else
+            print_sa(iter, bitvectors, false);
+//         cout << "Print full sa" << endl;
+//         print_fullsa(iter, bitvectors, true);
+        printb(bitvectors, bit_interval);
+        
         
         ReturnCode rcode = check_interval(bitvectors, bit_interval, s);
 //      cout << "Return code: " << (int)rcode << endl;
@@ -653,10 +707,10 @@ ReturnCode checkMappability(TDelegate & delegate,
             //TODO I only need left value for rev and right value for fwd so delte one input?
             if(goToRight2){
                 directSearch(delegateDirect, iter, needle, bitvectors, needleRightPos - 1 , needleRightPos - 1, errors, s, blockIndex, bit_interval, Rev());
-                directSearchDummy(delegateDirect, iter.fwdIter, iter, needle, bitvectors, needleLeftPos , infixPosRight + 2, errors, s, blockIndex, bit_interval, Rev());
+//                 directSearchDummy(delegateDirect, iter.fwdIter, iter, needle, bitvectors, needleLeftPos , infixPosRight + 2, errors, s, blockIndex, bit_interval, Rev());
             }else{
                 directSearch(delegateDirect, iter, needle, bitvectors, needleRightPos - 1 , needleRightPos - 1, errors, s, blockIndex, bit_interval, Fwd());
-                directSearchDummy(delegateDirect, iter.fwdIter, iter, needle, bitvectors, infixPosLeft , needleRightPos, errors, s, blockIndex, bit_interval, Fwd());
+//                 directSearchDummy(delegateDirect, iter.fwdIter, iter, needle, bitvectors, infixPosLeft , needleRightPos, errors, s, blockIndex, bit_interval, Fwd());
             }
             return ReturnCode::FINISHED;
         }
@@ -793,6 +847,13 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
         uint32_t infixPosLeft = needleRightPos - 1;
         uint32_t infixPosRight = needleLeftPos + s.blocklength[blockIndex] - 1;
 
+        cout << "SearchScheme: " << endl;
+        printv(s.pi);
+        cout << "Needleeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" << endl;
+         for(int i = infixPosLeft; i < infixPosRight + 1; ++i)
+            cout << needle[i];
+        cout << endl;
+        
         if (!goDown(iter, infix(needle, infixPosLeft, infixPosRight + 1), TDir()))
             return;
 
@@ -821,13 +882,20 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
         int32_t infixPosLeft = needleRightPos - s.blocklength[blockIndex] - 1;
         int32_t infixPosRight = needleLeftPos - 1;
 
+        cout << "SearchScheme: " << endl;
+        printv(s.pi);
+        cout << "Needleeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee(Rev)" << endl;
+        for(int i = infixPosLeft; i < infixPosRight + 1; ++i)
+            cout << needle[i];
+        cout << endl;
+        
         while (infixPosRight >= infixPosLeft)
         {
             if (!goDown(iter, needle[infixPosRight], TDir()))
                 return;
             --infixPosRight;
         }
-        
+
         //TODO Check if we are Done here?
         ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1), goToRight2, TDir());
         //TDir() is in this case Fwd() ...
