@@ -4,7 +4,7 @@
 #include <seqan/arg_parse.h>
 #include <seqan/seq_io.h>
 #include <seqan/index.h>
-#include <iterator> 
+
 #include <sdsl/int_vector.hpp>
 
 // You can switch between different vector implementations. Consider that they have different thread safetyness!
@@ -13,6 +13,7 @@ typedef std::vector<uint8_t> TVector;
 // constexpr uint64_t max_val = (1 << 8) - 1;
 
 #include "common.h"
+
 #include "algo1.hpp"
 #include "algo2.hpp"
 
@@ -23,18 +24,15 @@ template <typename T>
 inline void save(vector<T> const & c, string const & output_path)
 {
     std::ofstream outfile(output_path, std::ios::out | std::ofstream::binary);
-//     std::copy(c.begin(), c.end(), std::ostream_iterator<uint8_t>(outfile));
-    std::copy(c.begin(), c.end(), (std::ostream_iterator<uint8_t>(outfile), std::ostream_iterator<int>(outfile, " ")));
+    std::copy(c.begin(), c.end(), std::ostream_iterator<uint8_t>(outfile));
     outfile.close();
 }
-
 
 template <uint8_t width_t>
 inline void save(sdsl::int_vector<width_t> const & c, string const & output_path)
 {
     store_to_file(c, output_path);
 }
-
 
 template <typename TDistance, typename TIndex, typename TText>
 inline void run(TIndex & index, TText const & text, Options & opt, signed chromosomeId)
@@ -56,7 +54,6 @@ inline void run(TIndex & index, TText const & text, Options & opt, signed chromo
         // case 4: run<4, TDistance>(index, text);
         //        break;
         default: cerr << "E = " << opt.errors << " not yet supported.\n";
-        
                  exit(1);
     }
     cout << mytime() << "Done.\n";
@@ -66,24 +63,12 @@ inline void run(TIndex & index, TText const & text, Options & opt, signed chromo
     if (chromosomeId >= 0)
         output_path += "-" + to_string(chromosomeId);
 
-    //Sven count number of 0 events
-    int counter = 0;
-    for (TVector::iterator iter = c.begin() ; iter != c.end(); ++iter)
-    {
-        if(*iter == 0){
-            ++counter;
-            *iter = UINT_LEAST8_MAX;
-        }
-
-    }  
-    cout << "Number of zeroes: " <<  counter << endl;
     save(c, output_path);
 
     cout << mytime() << "Saved to disk: " << output_path << '\n';
 }
 
 template <typename TChar, typename TAllocConfig, typename TDistance>
-
 inline void run(Options & opt)
 {
     typedef String<TChar, TAllocConfig> TString;
@@ -93,7 +78,7 @@ inline void run(Options & opt)
 
         TIndex<TStringSet> index;
         open(index, toCString(opt.indexPath), OPEN_RDONLY);
-        
+
         // TODO(cpockrandt): replace with a ConcatView
         auto & text = indexText(index);
         typename Concatenator<TStringSet>::Type concatText = concat(text);
@@ -113,7 +98,6 @@ inline void run(Options & opt)
         {
             std::string _indexPath = toCString(opt.indexPath);
             _indexPath += "." + to_string(i);
-
             TIndex<TString> index;
             open(index, toCString(_indexPath), OPEN_RDONLY);
             cout << mytime() << "Index of " << ids[i] << " loaded." << endl;
@@ -147,7 +131,7 @@ inline void run(Options & opt)
 int main(int argc, char *argv[])
 {
     // Argument parser
-    ArgumentParser parser("Mappability");
+    ArgumentParser parser("Mappabilty");
     addDescription(parser,
         "App for calculating the mappability values. Only supports Dna4/Dna5 so far.");
 
@@ -167,6 +151,7 @@ int main(int argc, char *argv[])
 
     addOption(parser, ArgParseOption("o", "overlap", "Length of overlap region (usually: the bigger, the faster)", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "overlap");
+
     addOption(parser, ArgParseOption("m", "mmap",
         "Turns memory-mapping on, i.e. the index is not loaded into RAM but accessed directly in secondary-memory. "
         "This makes the algorithm only slightly slower but the index does not have to be loaded into main memory "
@@ -195,6 +180,7 @@ int main(int argc, char *argv[])
         cerr << "ERROR: overlap should be <= K - E - 2\n";
         exit(1);
     }
+
     CharString _indexPath;
     _indexPath = opt.indexPath;
     _indexPath += ".singleIndex";
@@ -204,9 +190,10 @@ int main(int argc, char *argv[])
     _indexPath += ".alphabet";
     open(opt.alphabet, toCString(_indexPath));
 
-
     if (opt.alphabet == "dna4")
+    {
         run<Dna>(opt);
+    }
     else
     {
         // run<Dna5>(opt);
