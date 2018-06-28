@@ -59,7 +59,6 @@ struct Options
 };
 
 
-
 std::string mytime()
 {
     auto r = time(nullptr);
@@ -86,6 +85,32 @@ typedef BidirectionalIndex<FMIndex<void, TMyFastConfig> > TIndexConfig;*/
 
 template <typename TText>
 using TIndex = seqan::Index<TText, TIndexConfig>;
+
+// template <typename TString, typename TPos, typename TLength>
+// auto extractNeedle(TString const & text, TPos const pos, TLength const len)
+// {
+//     using namespace seqan;
+//     return infix(text, pos, pos + len);
+// }
+//
+// template <typename TString, typename TOwner, typename TPos, typename TLength>
+// auto extractNeedle(seqan::StringSet<TString, TOwner> const & text, TPos const pos, TLength const len)
+// {
+//     using namespace seqan;
+//     auto const & limits = stringSetLimits(text);
+//     Pair<unsigned, unsigned> res;
+//     posLocalize(res, pos, limits);
+//     if (res.i2 + len > length(text[res.i1]))
+//     {
+//         TString r(suffix(text[res.i1], res.i2));
+//         r += prefix(text[res.i1 + 2], length(text[res.i1]) - res.i2);
+//         return r;
+//     }
+//     else
+//     {
+//         return infix(text[res.i1], res.i2, res.i2 + len);
+//     }
+// }
 
 // template <typename T>
 // struct is_int_vector
