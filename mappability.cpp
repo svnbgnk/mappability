@@ -108,7 +108,18 @@ inline void run(TIndex & index, TText const & text, Options const & opt, signed 
         cerr << "Overlap and Threshold are currently mutually exclusive.\n";
         exit(1);
     }
+    
+    //Sven count number of 0 events
+    int counter = 0;
+    for (TVector::iterator iter = c.begin() ; iter != c.end(); ++iter)
+    {
+        if(*iter == 0){
+            ++counter;
+            *iter = UINT_LEAST8_MAX;
+        }
 
+    }  
+    cout << "Number of zeroes: " <<  counter << endl;
     cout << mytime() << "Done.\n";
 
     string output_path = get_output_path(opt, chromosomeId);

@@ -44,21 +44,6 @@ struct FastFMIndexConfigS1
 
 };
 
-struct Options
-{
-    unsigned errors;
-    unsigned length;
-    unsigned overlap;
-    unsigned threads;
-    bool mmap;
-    bool indels;
-    bool singleIndex;
-    seqan::CharString indexPath;
-    seqan::CharString outputPath;
-    seqan::CharString alphabet;
-};
-
-
 std::string mytime()
 {
     auto r = time(nullptr);

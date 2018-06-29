@@ -23,20 +23,55 @@ inline bool file_exists (const std::string& name) {
   return (stat (name.c_str(), &buffer) == 0); 
 }
 
-vector<float> read_calculate_frequency(const string mappability_path){
+
+/*
+
+
+        vector<uint8_t> mappability_int;
+        ifstream file(toCString(mappability_path), std::ios::binary);
+        if (!file.eof() && !file.fail())
+        {
+            file.seekg(0, std::ios_base::end);
+            std::streampos fileSize = file.tellg();
+            mappability_int.resize(fileSize);
+            file.seekg(0, std::ios_base::beg);
+            file.read((char*)&mappability_int[0], fileSize);
+            file.close();
+            cout << "Load successful" << endl;
+        }
+
+        // for (unsigned i = 0; i < 200; ++i)
+        //     cout << mappability_int[i] << ' ';
+
+        b.resize(mappability_int.size());
+        for (unsigned i = 0; i < mappability_int.size(); ++i)
+            b[i] = !(mappability_int[i] > threshold);
+        cout << "Bit vector constructed" << endl;
+
+*/
+vector<uint8_t> read(const string mappability_path){
     string mappability_str;
-    ifstream myfile;
-    myfile.open(mappability_path, std::ios::in | std::ofstream::binary);
-    std::getline(myfile, mappability_str);
-    vector<int> mappability_int = getInt(mappability_str);
-    vector<float> mappability(mappability_int.begin(), mappability_int.end());
-    myfile.close();
-    for(vector<float>::iterator it = mappability.begin(); mappability.end() != it; ++it)
-        *it = static_cast<float>(1) / *it;
-    return(mappability); 
+    
+    vector<uint8_t> mappability_int;
+    ifstream file(toCString(mappability_path), std::ios::binary);
+    if (!file.eof() && !file.fail())
+    {
+        file.seekg(0, std::ios_base::end);
+        std::streampos fileSize = file.tellg();
+        mappability_int.resize(fileSize);
+        file.seekg(0, std::ios_base::beg);
+        file.read((char*)&mappability_int[0], fileSize);
+        file.close();
+        cout << "Load successful" << endl;
+        }
+//     for(vector<float>::iterator it = mappability.begin(); mappability.end() != it; ++it)
+//         *it = static_cast<float>(1) / *it;
+    return(mappability_int); 
 }
 
-pair<vector<string>, vector<sdsl::bit_vector>> create_bit_vectors(const vector <float> & mappability, const int len, const double threshold, const int errors){
+pair<vector<string>, vector<sdsl::bit_vector>> create_bit_vectors(const vector <uint8_t> & mappability, const int len, double threshold, const int errors){
+    int th = round(1/threshold);
+    cout << "Threshold: " << th << endl;
     sdsl::bit_vector righti (mappability.size() + len - 1, 0);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
     #pragma omp parallel for schedule(static)        
@@ -143,7 +178,7 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("T", "threshold", "Threshold for inverse frequency that gets accepted", ArgParseArgument::DOUBLE, "DOUBLE"));
     setRequired(parser, "threshold");
     
-    addOption(parser, ArgParseOption("e", "errors", "Max errors allowed during mapping", ArgParseArgument::INTEGER, "INT"));
+    addOption(parser, ArgParseOption("E", "errors", "Max errors allowed during mapping", ArgParseArgument::INTEGER, "INT"));
     
     addOption(parser, ArgParseOption("d", "debug", "Also create chronical bit_vectors (for debugging)"));
     
@@ -185,16 +220,21 @@ int main(int argc, char *argv[])
     }
     
     cout << mytime() << "Program start." << endl;
-    vector<float> mappability = read_calculate_frequency(mappability_path);
+    vector<uint8_t> mappability = read(mappability_path);
     cout << mytime() << "Loaded Mappability vector. Size: " << mappability.size() << endl;
+//     for(int i = 0; i < mappability.size(); ++i)
+//         cout << (int)mappability[i];
+//     cout << endl;
     // TODO Merge both bit_vectors into for creation
 
+    
     pair<vector<string>, vector<sdsl::bit_vector>> result = create_bit_vectors(mappability, len, threshold, errors);
     vector<string> names = result.first;
     vector<sdsl::bit_vector> bit_vectors = result.second;
     cout << mytime() << "Finished bit vectors." << endl;
 
 
+    /*
     if(debug)
     {
         sdsl::store_to_file(bit_vectors[0], toCString(outputPath) + names[0] + "_for_heatmap");
@@ -303,5 +343,6 @@ int main(int argc, char *argv[])
         }
     }   
     cout << mytime() << "Finished saving bit vectors" << endl;
+    */
     return 0;
 }
