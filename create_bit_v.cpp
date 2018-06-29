@@ -69,41 +69,121 @@ vector<uint8_t> read(const string mappability_path){
     return(mappability_int); 
 }
 
+
 pair<vector<string>, vector<sdsl::bit_vector>> create_bit_vectors(const vector <uint8_t> & mappability, const int len, double threshold, const int errors){
+    
     int th = round(1/threshold);
     cout << "Threshold: " << th << endl;
+    
+    uint8_t blocks = errors + 2;
+    uint32_t blocklength = len / blocks;
+    uint8_t rest = len - blocks * blocklength;
+    std::vector<uint32_t> blocklengths;
+    std::vector<uint32_t> revBlocklengths(4, 0);
+    for (uint8_t i = 0; i < blocks; ++i)
+        blocklengths.push_back(blocklength + (i < rest));
+    
+    revBlocklengths[blocks - 1] = blocklengths[blocks - 1];    
+    for(int8_t i = blocks - 2; i >= 0; --i)
+        revBlocklengths[i] += blocklengths[i] + revBlocklengths[i + 1];
+       
+    for(uint8_t i = 1; i < blocks; ++i)
+        blocklengths[i] += blocklengths[i - 1];
+   
+    //revBlocklength is not the reverse of blocklength since the blocklength values can differ!
+    cout << "revBlockLengths" << endl;
+    for(uint8_t i = 0; i < revBlocklengths.size(); ++i)
+        cout << revBlocklengths[i] << endl;
+    
+    cout << "BlockLengths" << endl;
+    for(uint8_t i = 0; i < blocklengths.size(); ++i)
+        cout << blocklengths[i] << endl;
+    
     sdsl::bit_vector righti (mappability.size() + len - 1, 0);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
-    #pragma omp parallel for schedule(static)        
+//     #pragma omp parallel for schedule(static)        
     for(unsigned i = 0; i < mappability.size(); ++i){
-        lefti[i + len - 1] = (mappability[i] >= threshold);
-        righti[i] = (mappability[i] >= threshold);
+        lefti[i + len - 1] = (mappability[i] >= th);
+        righti[i] = (mappability[i] >= th);
     }
     cout << "Finished Default Bit Vectors.  Length: " << righti.size() << endl;
     vector<sdsl::bit_vector> bit_vectors;
     vector<string> names;
-    bit_vectors.push_back(lefti);
+    
     bit_vectors.push_back(righti);
-    names.push_back("l_bit_vector_" + to_string(len));
-    names.push_back("r_bit_vector_" + to_string(len));
+    names.push_back("r_bit_vector_" + to_string(len) + "_shift_0");
+
+    
     if(errors != 0){
         for(int i = 1; i < (errors + 2); ++i){
-//             sdsl::bit_vector newleft(mappability.size() + len - 1, 1);
-            sdsl::bit_vector newright(mappability.size() + len - 1, 1);
-            int shift = i * std::ceil(len / (errors + 2));
+            sdsl::bit_vector newright(mappability.size() + len - 1, 0); //TODO think 0 or 1 in edge cases
+            int shift = blocklengths[i];
             for(int j = 0; j < righti.size(); ++j){
                 if(j - shift >= 0)
                     newright[j] = righti[j - shift];
-//                 if(j + shift < lefti.size() - 1)
-//                     newleft[j] = lefti[j + shift];
             }
-//             bit_vectors.push_back(newleft);
             bit_vectors.push_back(newright);
-//             names.push_back("l_bit_vector_" + to_string(len) + "_shift_" + to_string(i));
             names.push_back("r_bit_vector_" + to_string(len) + "_shift_" + to_string(i));
         }
-    }    
+        
+        for(int i = errors + 2 - 1; i > 0; --i){
+            sdsl::bit_vector newleft(mappability.size() + len - 1, 0);//TODO think 0 or 1 in edge cases
+            int shift = i * revBlocklengths[i]; 
+            for(int j = 0; j < righti.size(); ++j){
+                if(j + shift < lefti.size() - 1)
+                    newleft[j] = lefti[j + shift];
+            }
+            bit_vectors.push_back(newleft);
+            names.push_back("l_bit_vector_" + to_string(len) + "_shift_" + to_string(i));
+        }
+    }
+    
+    bit_vectors.push_back(lefti);
+    names.push_back("l_bit_vector_" + to_string(len) + "_shift_0");
+
     return(std::make_pair(names, bit_vectors));
+}
+
+
+void print_SA(CharString const indexPath, vector<sdsl::bit_vector> &bit_vectors, CharString const & outputPath, bool const fwd){
+    string name = "_SA_debug";
+    string dir = (fwd) ? "fwd" : "rev";
+    std::ofstream outfile((toCString(outputPath) + dir + name), std::ios::out | std::ofstream::binary);
+    typedef String<Dna, Alloc<>> TString;
+    Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index;
+    open(index, toCString(indexPath), OPEN_RDONLY);
+    
+    int number_of_indeces = seqan::length(index.fwd.sa) - bit_vectors[0].size();
+    vector<int> sequenceLengths(number_of_indeces + 1, 0);
+    cout << "Number of Indeces: " << number_of_indeces << endl;
+    //sequenceLengths first value is 0
+    for(int i = 0; i < number_of_indeces; ++i)
+        sequenceLengths[getValueI1(index.fwd.sa[i]) + 1] = getValueI2(index.fwd.sa[i]);
+    // cumulative sum seq
+    for(int i = 1; i < sequenceLengths.size(); ++i)
+        sequenceLengths[i] += (sequenceLengths[i - 1]);
+    // skip sentinels
+    uint32_t sa_j;
+    uint16_t seq;
+    for (unsigned j = 0; j < seqan::length(index.fwd.sa); ++j)
+    {
+        if(fwd){
+            sa_j = index.fwd.sa[j].i2;
+            seq = index.fwd.sa[j].i1;
+        }else{
+            sa_j = index.rev.sa[j].i2;
+            seq = index.rev.sa[j].i1;
+        }
+        outfile << j << " " << "(" << seq << ", " << sa_j << "):\t" << sa_j + sequenceLengths[seq] << endl;
+    }
+    outfile.close();
+//     for(int i = 0; i < 10; ++i){
+//         cout << index.fwd.sa[i] << endl;
+//     }
+//     cout << "reverse:" << endl;
+//        for(int i = 0; i < 10; ++i){
+//         cout << index.rev.sa[i] << endl;
+//     }
 }
 
 
@@ -122,20 +202,26 @@ void loadIndex(vector<sdsl::bit_vector> &bit_vectors, CharString const indexPath
     
     //sequenceLengths first value is 0
     for(int i = 0; i < number_of_indeces; ++i)
-        sequenceLengths[getValueI1(index.fwd.sa[i]) + 1] = getValueI2(index.fwd.sa[i]);
+        sequenceLengths[(index.fwd.sa[i]).i1 + 1] = index.fwd.sa[i].i2;
     // cumulative sum seq
     for(int i = 1; i < sequenceLengths.size(); ++i)
         sequenceLengths[i] += (sequenceLengths[i - 1]);
+    
     // skip sentinels
-
-    #pragma omp parallel for schedule(static)
+//     #pragma omp parallel for schedule(static)
     for (unsigned j = 0; j < seqan::length(index.fwd.sa) - number_of_indeces; ++j)
     {
-        uint32_t sa_j = getValueI2(index.fwd.sa[j + number_of_indeces]);
-        uint16_t seq = getValueI1(index.fwd.sa[j + number_of_indeces]);
+        uint32_t sa_f = index.fwd.sa[j + number_of_indeces].i2;
+        uint16_t seq_f = index.fwd.sa[j + number_of_indeces].i1;
+        uint32_t sa_r = index.fwd.sa[j + number_of_indeces].i2;
+        uint16_t seq_r = index.fwd.sa[j + number_of_indeces].i1;
+        
 //         cout << j << " < " << (sa_j + sequenceLengths[seq]) << endl;
-        for(int i = 0; i < bit_vectors.size(); ++i){
-            bit_vectors_ordered[i][sa_j + sequenceLengths[seq]] = bit_vectors[i][j];
+        for(int i = 0; i < bit_vectors.size()/2; ++i){
+            bit_vectors_ordered[i][sa_f + sequenceLengths[seq_f]] = bit_vectors[i][j];
+        }
+        for(int i = bit_vectors.size()/2; i < bit_vectors.size(); ++i){
+            bit_vectors_ordered[i][sa_r + sequenceLengths[seq_r]] = bit_vectors[i][j];
         }
     }
     bit_vectors = bit_vectors_ordered;
@@ -226,110 +312,26 @@ int main(int argc, char *argv[])
 //         cout << (int)mappability[i];
 //     cout << endl;
     // TODO Merge both bit_vectors into for creation
-
+    
     
     pair<vector<string>, vector<sdsl::bit_vector>> result = create_bit_vectors(mappability, len, threshold, errors);
     vector<string> names = result.first;
     vector<sdsl::bit_vector> bit_vectors = result.second;
     cout << mytime() << "Finished bit vectors." << endl;
 
-
-    /*
     if(debug)
     {
-        sdsl::store_to_file(bit_vectors[0], toCString(outputPath) + names[0] + "_for_heatmap");
         for(int i = 0; i < bit_vectors.size(); ++i){
             std::ofstream outfile((toCString(outputPath) + names[i] + "_debug"), std::ios::out | std::ofstream::binary);
             std::copy(bit_vectors[i].begin(), bit_vectors[i].end(), std::ostream_iterator<bool>(outfile));
             outfile.close();
             
         }
-        {
-        std::ofstream outfile((toCString(outputPath) + names[0] + "_SA_array_debug"), std::ios::out | std::ofstream::binary);
-        typedef String<Dna, Alloc<>> TString;
-        Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index;
-        open(index, toCString(indexPath), OPEN_RDONLY);
-        
-        int number_of_indeces = seqan::length(index.fwd.sa) - bit_vectors[0].size();
-        vector<int> sequenceLengths(number_of_indeces + 1, 0);
-        cout << "Number of Indeces: " << number_of_indeces << endl;
+        print_SA(indexPath, bit_vectors, outputPath, true);
+        print_SA(indexPath, bit_vectors, outputPath, false);
     
-        //sequenceLengths first value is 0
-        for(int i = 0; i < number_of_indeces; ++i)
-            sequenceLengths[getValueI1(index.fwd.sa[i]) + 1] = getValueI2(index.fwd.sa[i]);
-        // cumulative sum seq
-        for(int i = 1; i < sequenceLengths.size(); ++i)
-            sequenceLengths[i] += (sequenceLengths[i - 1]);
-        // skip sentinels
-
-
-        for (unsigned j = 0; j < seqan::length(index.fwd.sa); ++j)
-        {
-            uint32_t sa_j = getValueI2(index.fwd.sa[j]);
-            uint16_t seq = getValueI1(index.fwd.sa[j]);
-//          cout << j << " < " << (sa_j + sequenceLengths[seq]) << endl;
-                outfile << j << " " << "(" << seq << "): " << sa_j + sequenceLengths[seq] << endl;
-        }
-        outfile.close();
-        }
-        {
-        std::ofstream outfile((toCString(outputPath) + names[0] + "_SA_array_rev_debug"), std::ios::out | std::ofstream::binary);
-        typedef String<Dna, Alloc<>> TString;
-        Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index;
-        open(index, toCString(indexPath), OPEN_RDONLY);
-        
-        int number_of_indeces = seqan::length(index.fwd.sa) - bit_vectors[0].size();
-        vector<int> sequenceLengths(number_of_indeces + 1, 0);
-        cout << "Number of Indeces: " << number_of_indeces << endl;
-    
-        //sequenceLengths first value is 0
-        for(int i = 0; i < number_of_indeces; ++i)
-            sequenceLengths[getValueI1(index.fwd.sa[i]) + 1] = getValueI2(index.fwd.sa[i]);
-        // cumulative sum seq
-        for(int i = 1; i < sequenceLengths.size(); ++i)
-            sequenceLengths[i] += (sequenceLengths[i - 1]);
-        // skip sentinels
-
-
-        for (unsigned j = 0; j < seqan::length(index.fwd.sa); ++j)
-        {
-            uint32_t sa_j = getValueI2(index.rev.sa[j]);
-            uint16_t seq = getValueI1(index.rev.sa[j]);
-//          cout << j << " < " << (sa_j + sequenceLengths[seq]) << endl;
-                outfile << j << " " << "(" << seq << "): " << sa_j + sequenceLengths[seq] << endl;
-        }
-        outfile.close();
-        }
-        
-        {
-        std::ofstream outfile((toCString(outputPath) + names[0] + "_SA_array_rev_split_debug"), std::ios::out | std::ofstream::binary);
-        typedef String<Dna, Alloc<>> TString;
-        Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index;
-        open(index, toCString(indexPath), OPEN_RDONLY);
-        
-        int number_of_indeces = seqan::length(index.fwd.sa) - bit_vectors[0].size();
-        vector<int> sequenceLengths(number_of_indeces + 1, 0);
-        cout << "Number of Indeces: " << number_of_indeces << endl;
-    
-        //sequenceLengths first value is 0
-        for(int i = 0; i < number_of_indeces; ++i)
-            sequenceLengths[getValueI1(index.fwd.sa[i]) + 1] = getValueI2(index.fwd.sa[i]);
-        // cumulative sum seq
-        for(int i = 1; i < sequenceLengths.size(); ++i)
-            sequenceLengths[i] += (sequenceLengths[i - 1]);
-        // skip sentinels
-
-
-        for (unsigned j = 0; j < seqan::length(index.fwd.sa); ++j)
-        {
-            uint32_t sa_j = getValueI2(index.rev.sa[j]);
-            uint16_t seq = getValueI1(index.rev.sa[j]);
-//          cout << j << " < " << (sa_j + sequenceLengths[seq]) << endl;
-                outfile << j << " " << "(" << seq << "): " << sa_j << endl;
-        }
-        outfile.close();
-        }
     }
+    
     cout << "Start sorting" << endl;
     //order in suffix array
     order_bit_vector(bit_vectors, indexPath, mmap, alphabet);
@@ -343,6 +345,6 @@ int main(int argc, char *argv[])
         }
     }   
     cout << mytime() << "Finished saving bit vectors" << endl;
-    */
+
     return 0;
 }
