@@ -71,28 +71,41 @@ int main(int argc, char *argv[])
     // load bitvectors
     vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bit_vectors;
     
-    sdsl::bit_vector b1, b2;
-    load_from_file(b1, "/home/sven/devel/Data/mappability_ref_m.fa/r_bit_vector_100");
-    load_from_file(b2, "/home/sven/devel/Data/mappability_ref_m.fa/l_bit_vector_100");
-    sdsl::rank_support_v<> rb1 (& b1);
-    sdsl::rank_support_v<> rb2 (& b2);
-    bit_vectors.push_back(make_pair(b1, rb1));
+//     sdsl::bit_vector b1, b2;
+//     load_from_file(b1, "/home/sven/devel/Data/mappability_ref_m.fa/r_bit_vector_100");
+//     load_from_file(b2, "/home/sven/devel/Data/mappability_ref_m.fa/l_bit_vector_100");
+//     sdsl::rank_support_v<> rb1 (& b1);
+//     sdsl::rank_support_v<> rb2 (& b2);
+//     bit_vectors.push_back(make_pair(b1, rb1));
 //     bit_vectors[0].second.set_vector(&bit_vectors[0].first);
-    
+//         bit_vectors.push_back(make_pair(b2, rb2));
     for(int i = 0; i < 10; ++i){
-         string file_name = toCString("/home/sven/devel/Data/mappability_ref_m.fa/r_bit_vector_100_shift_") + to_string(i);
+         string file_name = toCString("/home/sven/devel/Data/ref_m_mappa/r_bit_vector_40_shift_") + to_string(i);
          if(file_exists(file_name)){
              sdsl::bit_vector b;
-//              cout << "Filename: " << file_name << endl;
+             cout << "Filename: " << file_name << endl;
              load_from_file(b, file_name);
              sdsl::rank_support_v<> rb(& b);
              bit_vectors.push_back(make_pair(b, rb));
 //              bit_vectors[i + 1].second.set_vector(&bit_vectors[i + 1].first);
          }
     }
-    bit_vectors.push_back(make_pair(b2, rb2));
-//     bit_vectors[bit_vectors.size()].second.set_vector(&bit_vectors[bit_vectors.size()].first);
+    
+    
+    for(int i = 0; i < 10; ++i){
+         string file_name = toCString("/home/sven/devel/Data/ref_m_mappa/l_bit_vector_40_shift_") + to_string(i);
+         if(file_exists(file_name)){
+             sdsl::bit_vector b;
+             cout << "Filename: " << file_name << endl;
+             load_from_file(b, file_name);
+             sdsl::rank_support_v<> rb(& b);
+             bit_vectors.push_back(make_pair(b, rb));
+//              bit_vectors[i + 1].second.set_vector(&bit_vectors[i + 1].first);
+         }
+    }
     cout << "Bit vectors loaded. Size: " << bit_vectors.size() << endl;
+    
+
 //     sdsl::rank_support_v<> & rbt = bit_vectors[0].second;
 //     rbt.set_vector(&bit_vectors[0].first);
 //     cout << "Ranksupport Test: " << rbt(300) << endl;
@@ -105,7 +118,9 @@ int main(int argc, char *argv[])
 //     appendValue(reads, "TGAGCGTAATTGTGTCGCGCGCACTGCCTGATGTCCGTGATGGGCTTAAGCGTGTCCATCGGCGCATTCTTCATGCGATGAATGAAATGGGACTTTTGTT");
 //     appendValue(reads, "TGAGCGTAATTGTGTCGCGCGCACTGCCTGATGTCCGTGATGGGCTTAAGCCTGTCCATCGGCGCATTCTTCATGCGATGAATGAAATGGGACTTTTGTT"); //GA//GT
 //     appendValue(reads, "TGAGCGTAATTGTGTCGCGCGCACTGCCTGATGTCCGTGTTGGGCTTAAGCCTGTCCATCGGCGCATTCTTCATGCGATGAATGAAATGGGACTTTTGTT");  //error pos 38 A-> T
-    appendValue(reads, "CGATCTTACTCGACTACCAGAACATGATGTGTCGACCGGTATTGAACCAGTCAGTATCATTGAAGAAATGCAGTGCTCTTATCTAGATTA"); // repeat
+//     appendValue(reads, "CGATCTTACTCGACTACCAGAACATGATGTGTCGACCGGTATTGAACCAGTCAGTATCATTGAAGAAATGCAGTGCTCTTATCTAGATTA"); // repeat
+    appendValue(reads, "CGATCTTACTCGACTACCAGAACATGATGTGTCGACCGGT"); //short repeat
+    
 //     appendValue(reads, "TGAGCGTAATTGTGTCGCGCGCACTG");
     
 //     std::set<Pair<DnaString, unsigned> > hits;

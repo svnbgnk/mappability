@@ -72,9 +72,7 @@ vector<uint8_t> read(const string mappability_path){
 
 pair<vector<string>, vector<sdsl::bit_vector>> create_bit_vectors(const vector <uint8_t> & mappability, const int len, double threshold, const int errors){
     
-    int th = round(1/threshold);
-    cout << "Threshold: " << th << endl;
-    
+    int th = round(1/threshold);    
     uint8_t blocks = errors + 2;
     uint32_t blocklength = len / blocks;
     uint8_t rest = len - blocks * blocklength;
@@ -94,11 +92,11 @@ pair<vector<string>, vector<sdsl::bit_vector>> create_bit_vectors(const vector <
     cout << "revBlockLengths" << endl;
     for(uint8_t i = 0; i < revBlocklengths.size(); ++i)
         cout << revBlocklengths[i] << endl;
-    
-    cout << "BlockLengths" << endl;
-    for(uint8_t i = 0; i < blocklengths.size(); ++i)
-        cout << blocklengths[i] << endl;
-    
+//     
+//     cout << "BlockLengths" << endl;
+//     for(uint8_t i = 0; i < blocklengths.size(); ++i)
+//         cout << blocklengths[i] << endl;
+//     
     sdsl::bit_vector righti (mappability.size() + len - 1, 0);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
     #pragma omp parallel for schedule(static)        
@@ -115,26 +113,30 @@ pair<vector<string>, vector<sdsl::bit_vector>> create_bit_vectors(const vector <
 
     
     if(errors != 0){
-        for(int i = 1; i < (errors + 2); ++i){
+        for(int i = 0; i < (errors + 1); ++i){
             sdsl::bit_vector newright(mappability.size() + len - 1, 0); //TODO think 0 or 1 in edge cases
             int shift = blocklengths[i];
+            cout << "shift for l_bit  " << shift << endl;
+            cout << "name:  " << i + 1 << endl; 
             for(int j = 0; j < righti.size(); ++j){
                 if(j - shift >= 0)
                     newright[j] = righti[j - shift];
             }
             bit_vectors.push_back(newright);
-            names.push_back("r_bit_vector_" + to_string(len) + "_shift_" + to_string(i));
+            names.push_back("r_bit_vector_" + to_string(len) + "_shift_" + to_string(i + 1));
         }
         
-        for(int i = errors + 2 - 1; i > 0; --i){
+        for(int i = 1; i < (errors + 2); ++i){
             sdsl::bit_vector newleft(mappability.size() + len - 1, 0);//TODO think 0 or 1 in edge cases
-            int shift = i * revBlocklengths[i]; 
+            int shift = revBlocklengths[i];
+            cout << "shift for l_bit  " << shift << endl;
+            cout << "name:  " << errors + 2 - i << endl; 
             for(int j = 0; j < righti.size(); ++j){
                 if(j + shift < lefti.size() - 1)
                     newleft[j] = lefti[j + shift];
             }
             bit_vectors.push_back(newleft);
-            names.push_back("l_bit_vector_" + to_string(len) + "_shift_" + to_string(i));
+            names.push_back("l_bit_vector_" + to_string(len) + "_shift_" + to_string((errors + 2) - i));
         }
     }
     
@@ -200,15 +202,19 @@ void loadIndex(vector<sdsl::bit_vector> &bit_vectors, CharString const indexPath
     vector<int> sequenceLengths(number_of_indeces + 1, 0);
     cout << "Number of Indeces: " << number_of_indeces << endl;
     
+    int ssize = sequenceLengths.size();
     //sequenceLengths first value is 0
-    for(int i = 0; i < number_of_indeces; ++i)
-        sequenceLengths[(index.fwd.sa[i]).i1 + 1] = index.fwd.sa[i].i2;
-    // cumulative sum seq
-    for(int i = 1; i < sequenceLengths.size(); ++i)
+    for(int i = 0; i < ssize - 1; ++i)
+        sequenceLengths[(index.fwd.sa[i]).i1 + 1] = index.fwd.sa[i].i2;  
+    for(int i = 1; i < ssize; ++i)
         sequenceLengths[i] += (sequenceLengths[i - 1]);
-    
+    cout << "Sequence Lengths:" << endl;
+    for(int i = 0; i < ssize; ++i){
+        cout << sequenceLengths[i] << endl;        
+    }
+
     // skip sentinels
-    #pragma omp parallel for schedule(static)
+//     #pragma omp parallel for schedule(static)
     for (unsigned j = 0; j < seqan::length(index.fwd.sa) - number_of_indeces; ++j)
     {
         uint32_t sa_f = index.fwd.sa[j + number_of_indeces].i2;
@@ -218,10 +224,12 @@ void loadIndex(vector<sdsl::bit_vector> &bit_vectors, CharString const indexPath
         
 //         cout << j << " < " << (sa_j + sequenceLengths[seq]) << endl;
         for(int i = 0; i < bit_vectors.size()/2; ++i){
-            bit_vectors_ordered[i][sa_f + sequenceLengths[seq_f]] = bit_vectors[i][j];
+            bit_vectors_ordered[i][j] = bit_vectors[i][sa_f + sequenceLengths[seq_f]];
         }
         for(int i = bit_vectors.size()/2; i < bit_vectors.size(); ++i){
-            bit_vectors_ordered[i][sa_r + sequenceLengths[seq_r]] = bit_vectors[i][j];
+            int calc = sequenceLengths[seq_r + 1] - sa_r - 1;
+//             cout << "Seq: " << seq_r << "  SA:" << sa_r << "   calc: " << calc << endl;
+            bit_vectors_ordered[i][j] = bit_vectors[i][sequenceLengths[seq_r + 1] - sa_r - 1];
         }
     }
     bit_vectors = bit_vectors_ordered;
