@@ -390,11 +390,9 @@ ReturnCode check_interval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>>
     sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second;
     rb.set_vector(&bitvectors[brange.i1].first);
     uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
-//     sdsl::rank_support_v<> rbi(& bi);
-    if(ivalOne == 0)
-        return ReturnCode::NOMAPPABILITY;
-    
-    
+//     if(ivalOne == 0)
+//         return ReturnCode::NOMAPPABILITY;
+       //TODO fix this
     if(ivalOne <= 3){ // add additional constrains from chris?
         return ReturnCode::DIRECTSEARCH;
     }
@@ -536,16 +534,15 @@ void directSearch(TDelegateD & delegateDirect,
     
     if(reverse){
     for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
-        cout << "Direct Search" << endl;
-        cout << "NLP " << needleLeftPos <<  endl;
-        cout << "NRP " <<  needleRightPos <<  endl;
-        if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
+        cout << "Direct Search Rev" << endl;
+        cout << "NLP " <<  needleLeftPos - 1 <<  endl;
+        if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1 || true){    //TODO fix this
             uint8_t errors2 = errors;
             bool valid = true;
             Pair<uint16_t, uint32_t> sa_info;
             uint32_t startPos;
             sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
-            startPos = sa_info.i2 - needleLeftPos;
+            startPos = sa_info.i2 - needleLeftPos + 1;
 
 //             else
 //             {
@@ -557,11 +554,11 @@ void directSearch(TDelegateD & delegateDirect,
             cout << "StartPos " << startPos << endl;
             //search remaining blocks
             for(int j = blockIndex; j < s.pi.size(); ++j){
-                int blockStart = (s.pi[j] - 2 == 0) ? 0 : s.chronblocklength[s.pi[j] - 2];
-                cout << "searching Parts:" << startPos + blockStart << " - " << startPos + s.chronblocklength[s.pi[j] - 1] << "; ";
+                int blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronblocklength[s.pi[j] - 2];
+                cout << "searching Parts:" << blockStart << " - " << s.chronblocklength[s.pi[j] - 1] << "; ";
                 // compare bases to needle
                 for(int k = blockStart; k <  s.chronblocklength[s.pi[j] - 1]; ++k){
-                    if(needle[k] != genome[sa_info.i1][startPos + 1 * k])
+                    if(needle[k] != genome[sa_info.i1][startPos + k])
                         ++errors2;
                 }
                 if(errors2 < s.l[j] || errors2 > s.u[j]){
@@ -573,7 +570,7 @@ void directSearch(TDelegateD & delegateDirect,
             if(valid){
                 cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
                 cout << (int)errors2 << endl;
-                uint32_t occ = (reverse) ? startPos : seqan::length(genome[sa_info.i1]) - startPos - 1;
+                uint32_t occ = startPos;
                 hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
                 cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
                 errorsv.push_back(errors2);
@@ -581,6 +578,7 @@ void directSearch(TDelegateD & delegateDirect,
         }
     }
     }
+    
     cout << "Print blocklengths" << endl;
     for(int j = 0; j < s.blocklength.size(); ++j)
        cout << s.blocklength[j] << " ";
@@ -601,17 +599,15 @@ void directSearch(TDelegateD & delegateDirect,
     
     if(!reverse){
         for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
-            cout << "Direct Search" << endl;
-            cout << "NLP " << needleLeftPos <<  endl;
-            cout << "NRP " <<  needleRightPos <<  endl;
-            if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
+            cout << "Direct Search FWD" << endl;
+            if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1 || true){    //TODO fix this
                 uint8_t errors2 = errors;
                 bool valid = true;
                 Pair<uint16_t, uint32_t> sa_info;
                 uint32_t startPos;
                 {
                     sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
-                    startPos = sa_info.i2 - (length(needle) - needleRightPos);
+                    startPos = sa_info.i2 - (length(needle) - needleRightPos + 1);
                 }
                 // iter.fwdIter.vDesc.range.i1 is not the same brange.i2.i1 since sentinels are at the beginning!!!
                 cout <<  "Sa info" <<  sa_info <<  endl;
@@ -621,8 +617,6 @@ void directSearch(TDelegateD & delegateDirect,
                 for(int j = blockIndex; j < s.pi.size(); ++j){
                     int blockStart = (s.pi[j] == s.pi.size()) ? 0 : bl[s.pi[j]];
 //                     int blockStart = (s.pi[j] - 2 == 0) ? 0 : s.chronblocklength[s.pi[j] - 2];
-
-                    cout << "blockStart: " << blockStart << endl;
                     cout << "searching Parts:" << blockStart << " - " << bl[s.pi[j] - 1]  << "; ";
                     
                     cout << endl;
@@ -680,7 +674,7 @@ ReturnCode checkCurrentMappability(TDelegate & delegate,
     if(rcode == ReturnCode::DIRECTSEARCH){
         //search directly in Genome
         //TODO I only need left value for rev and right value for fwd so delte one input?
-        directSearch(delegateDirect, iter, needle, bitvectors, needleRightPos - 1 , needleRightPos - 1, errors, s, blockIndex, bit_interval, TDir());
+        directSearch(delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir());
         return ReturnCode::FINISHED;
     }
     
@@ -767,10 +761,10 @@ ReturnCode checkMappability(TDelegate & delegate,
             //search directly in Genome
             //TODO I only need left value for rev and right value for fwd so delte one input?
             if(goToRight2){
-                directSearch(delegateDirect, iter, needle, bitvectors, needleRightPos - 1 , needleRightPos - 1, errors, s, blockIndex, bit_interval, Rev());
+                directSearch(delegateDirect, iter, needle, bitvectors, needleRightPos, needleRightPos, errors, s, blockIndex, bit_interval, Rev());
 //                 directSearchDummy(delegateDirect, iter.fwdIter, iter, needle, bitvectors, needleLeftPos , infixPosRight + 2, errors, s, blockIndex, bit_interval, Rev());
             }else{
-                directSearch(delegateDirect, iter, needle, bitvectors, needleRightPos - 1 , needleRightPos - 1, errors, s, blockIndex, bit_interval, Fwd());
+                directSearch(delegateDirect, iter, needle, bitvectors, needleRightPos, needleRightPos, errors, s, blockIndex, bit_interval, Fwd());
 //                 directSearchDummy(delegateDirect, iter.fwdIter, iter, needle, bitvectors, infixPosLeft , needleRightPos, errors, s, blockIndex, bit_interval, Fwd());
             }
             return ReturnCode::FINISHED;
@@ -1080,6 +1074,9 @@ find(TDelegate & delegate,
     auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
     _optimalSearchSchemeComputeFixedBlocklength(scheme, length(needle));
     _optimalSearchSchemeSetMapParams(scheme);
+    scheme[0].pi[0] = 1;
+    scheme[0].pi[1] = 2;
+    //TODO fix this
     print_search_scheme(scheme);
     Iter<Index<TText, BidirectionalIndex<TIndexSpec> >, VSTree<TopDown<> > > it(index);
     _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, scheme);
