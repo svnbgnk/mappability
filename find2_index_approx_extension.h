@@ -544,10 +544,9 @@ void directSearch(TDelegateD & delegateDirect,
             bool valid = true;
             Pair<uint16_t, uint32_t> sa_info;
             uint32_t startPos;
-            if(reverse){
-                sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
-                startPos = sa_info.i2 - needleLeftPos;
-            }
+            sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
+            startPos = sa_info.i2 - needleLeftPos;
+
 //             else
 //             {
 //                 sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
@@ -559,13 +558,9 @@ void directSearch(TDelegateD & delegateDirect,
             //search remaining blocks
             for(int j = blockIndex; j < s.pi.size(); ++j){
                 int blockStart = (s.pi[j] - 2 == 0) ? 0 : s.chronblocklength[s.pi[j] - 2];
-//                 if(reverse)
-                    cout << "searching Parts:" << startPos + blockStart << " - " << startPos + s.chronblocklength[s.pi[j] - 1] << "; ";
-//                 else
-//                     cout << "searching Parts:" << startPos - blockStart << " - " << startPos - s.chronblocklength[s.pi[j] - 1] << "; ";
+                cout << "searching Parts:" << startPos + blockStart << " - " << startPos + s.chronblocklength[s.pi[j] - 1] << "; ";
                 // compare bases to needle
                 for(int k = blockStart; k <  s.chronblocklength[s.pi[j] - 1]; ++k){
-//                     int sign = (reverse) ? 1 : -1;
                     if(needle[k] != genome[sa_info.i1][startPos + 1 * k])
                         ++errors2;
                 }
@@ -603,6 +598,7 @@ void directSearch(TDelegateD & delegateDirect,
     for(int i = 0; i < blocks; ++i)
         cout << bl[i] << " ";
     cout << endl;
+    
     if(!reverse){
         for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
             cout << "Direct Search" << endl;
@@ -654,8 +650,6 @@ void directSearch(TDelegateD & delegateDirect,
             }
         }
     }
-    
-    
     delegateDirect(hitsv, needle, errorsv);
 }
 
