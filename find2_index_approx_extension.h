@@ -394,10 +394,11 @@ ReturnCode check_interval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>>
     if(ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
     
-    /*
+    
     if(ivalOne <= 3){ // add additional constrains from chris?
         return ReturnCode::DIRECTSEARCH;
     }
+    /*
     if(ivalOne == (brange.i2.i2 - brange.i2.i1))
         return ReturnCode::COMPMAPPABLE;
     //Only Case FIRSTTIMEUNIDIRECTIONAL doesnt get covered here
@@ -533,6 +534,7 @@ void directSearch(TDelegateD & delegateDirect,
     vector<Pair<uint16_t, uint32_t>> hitsv;
     vector<uint8_t> errorsv;
     
+    if(reverse){
     for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
         cout << "Direct Search" << endl;
         cout << "NLP " << needleLeftPos <<  endl;
@@ -546,25 +548,25 @@ void directSearch(TDelegateD & delegateDirect,
                 sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
                 startPos = sa_info.i2 - needleLeftPos;
             }
-            else
-            {
-                sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
-                startPos = sa_info.i2 + needleRightPos - 1;
-            }
+//             else
+//             {
+//                 sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
+//                 startPos = sa_info.i2 + needleRightPos - 1;
+//             }
             // iter.fwdIter.vDesc.range.i1 is not the same brange.i2.i1 since sentinels are at the beginning!!!
             cout <<  "Sa info" <<  sa_info <<  endl;
             cout << "StartPos " << startPos << endl;
             //search remaining blocks
             for(int j = blockIndex; j < s.pi.size(); ++j){
                 int blockStart = (s.pi[j] - 2 == 0) ? 0 : s.chronblocklength[s.pi[j] - 2];
-                if(reverse)
+//                 if(reverse)
                     cout << "searching Parts:" << startPos + blockStart << " - " << startPos + s.chronblocklength[s.pi[j] - 1] << "; ";
-                else
-                    cout << "searching Parts:" << startPos - blockStart << " - " << startPos - s.chronblocklength[s.pi[j] - 1] << "; ";
+//                 else
+//                     cout << "searching Parts:" << startPos - blockStart << " - " << startPos - s.chronblocklength[s.pi[j] - 1] << "; ";
                 // compare bases to needle
                 for(int k = blockStart; k <  s.chronblocklength[s.pi[j] - 1]; ++k){
-                    int sign = (reverse) ? 1 : -1;
-                    if(needle[k] != genome[sa_info.i1][startPos + sign * k])
+//                     int sign = (reverse) ? 1 : -1;
+                    if(needle[k] != genome[sa_info.i1][startPos + 1 * k])
                         ++errors2;
                 }
                 if(errors2 < s.l[j] || errors2 > s.u[j]){
@@ -583,6 +585,91 @@ void directSearch(TDelegateD & delegateDirect,
             }
         }
     }
+    }
+    cout << "Print blocklengths" << endl;
+    for(int j = 0; j < s.blocklength.size(); ++j)
+       cout << s.blocklength[j] << " ";
+    cout << endl;
+    
+    int blocks = s.pi.size();
+    std::vector<int> bl (blocks - 1,0);
+    bl[s.pi[blocks - 1] - 1]  = s.blocklength[blocks - 1] - s.blocklength[blocks - 2];
+    for(int i = blocks - 2; i >= 0; --i){
+        bl[s.pi[i] - 1] = s.blocklength[i] - ((i > 0) ? s.blocklength[i - 1] : 0);
+    }
+    for(int i = blocks - 2; i >= 0; --i)
+        bl[i] += bl[i + 1];
+    cout << "Print cum rev blocklengths" << endl;
+    for(int i = 0; i < blocks; ++i)
+        cout << bl[i] << " ";
+    cout << endl;
+    if(!reverse){
+        for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
+            cout << "Direct Search" << endl;
+            cout << "NLP " << needleLeftPos <<  endl;
+            cout << "NRP " <<  needleRightPos <<  endl;
+            if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
+                uint8_t errors2 = errors;
+                bool valid = true;
+                Pair<uint16_t, uint32_t> sa_info;
+                uint32_t startPos;
+                {
+                    sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
+                    startPos = sa_info.i2 - (length(needle) - needleRightPos);
+                }
+                // iter.fwdIter.vDesc.range.i1 is not the same brange.i2.i1 since sentinels are at the beginning!!!
+                cout <<  "Sa info" <<  sa_info <<  endl;
+                cout << "StartPos " << startPos << endl;
+                //search remaining blocks
+                cout << "Needle: " << endl;
+                for(int i = 0; i < length(needle); ++i)
+                    cout << needle[i];
+                cout << endl;
+   
+                
+//                 for(int i = 0; i < length(needle); ++i)
+//                     cout << genome[sa_info.i1][startPos + i];
+//                 cout << endl;
+                
+                for(int i = 0; i < length(needle); ++i)
+                    cout << genome[sa_info.i1][startPos + length(needle) - i - 1];
+                cout << endl;
+                
+                
+                for(int j = blockIndex; j < s.pi.size(); ++j){
+                    int blockStart = (s.pi[j] == s.pi.size()) ? 0 : bl[s.pi[j]];
+//                     int blockStart = (s.pi[j] - 2 == 0) ? 0 : s.chronblocklength[s.pi[j] - 2];
+
+                    cout << "blockStart: " << blockStart << endl;
+                    cout << "searching Parts:" << blockStart << " - " << bl[s.pi[j] - 1]  << "; ";
+                    
+                    cout << endl;
+                
+                    for(int k = blockStart; k < bl[s.pi[j] - 1]; ++k){
+//                         cout << genome[sa_info.i1][startPos + length(needle) - k - 1];
+                        if(needle[length(needle) - k - 1] != genome[sa_info.i1][startPos + k])
+                            ++errors2;
+                    }
+                    if(errors2 < s.l[j] || errors2 > s.u[j]){
+                        cout << "Triggered: " << (int)errors2 << endl;
+                        valid = false;
+                        break;
+                    }
+                }
+                if(valid){
+                    cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
+                    cout << (int)errors2 << endl;
+                    uint32_t occ = seqan::length(genome[sa_info.i1]) - startPos - 1;
+                    hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
+                    cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
+                    errorsv.push_back(errors2);
+                }
+                
+            }
+        }
+    }
+    
+    
     delegateDirect(hitsv, needle, errorsv);
 }
 
@@ -696,6 +783,7 @@ ReturnCode checkMappability(TDelegate & delegate,
             return ReturnCode::FINISHED;        
         }
         if(rcode == ReturnCode::DIRECTSEARCH){
+            cout << "DIRECTSEARCHDIRECTSEARCHDIRECTSEARCHDIRECTSEARCHDIRECTSEARCHDIRECTSEARCH" << endl;
             //search directly in Genome
             //TODO I only need left value for rev and right value for fwd so delte one input?
             if(goToRight2){

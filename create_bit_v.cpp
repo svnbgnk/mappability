@@ -89,21 +89,26 @@ pair<vector<string>, vector<sdsl::bit_vector>> create_bit_vectors(const vector <
         blocklengths[i] += blocklengths[i - 1];
    
     //revBlocklength is not the reverse of blocklength since the blocklength values can differ!
-    cout << "revBlockLengths" << endl;
+/*    cout << "revBlockLengths" << endl;
     for(uint8_t i = 0; i < revBlocklengths.size(); ++i)
         cout << revBlocklengths[i] << endl;
 //     
 //     cout << "BlockLengths" << endl;
-//     for(uint8_t i = 0; i < blocklengths.size(); ++i)
-//         cout << blocklengths[i] << endl;
-//     
+    for(uint8_t i = 0; i < blocklengths.size(); ++i)
+        cout << blocklengths[i] << endl;
+  */  
     sdsl::bit_vector righti (mappability.size() + len - 1, 0);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
-    #pragma omp parallel for schedule(static)        
+//     #pragma omp parallel for schedule(static)   
+//     for(unsigned i = 0; i < mappability.size(); ++i)
+//         cout << (int)mappability[i];
+//     cout << endl;
     for(unsigned i = 0; i < mappability.size(); ++i){
-        lefti[i + len - 1] = (mappability[i] >= th);
-        righti[i] = (mappability[i] >= th);
+        lefti[i + len - 1] = (mappability[i] <= th);
+        righti[i] = (mappability[i] <= th);
+//         cout << righti[i];
     }
+//     cout << endl;
     cout << "Finished Default Bit Vectors.  Length: " << righti.size() << endl;
     vector<sdsl::bit_vector> bit_vectors;
     vector<string> names;
@@ -113,7 +118,7 @@ pair<vector<string>, vector<sdsl::bit_vector>> create_bit_vectors(const vector <
 
     
     if(errors != 0){
-        for(int i = 0; i < (errors + 1); ++i){
+        for(int i = 0; i < blocks - 1; ++i){
             sdsl::bit_vector newright(mappability.size() + len - 1, 0); //TODO think 0 or 1 in edge cases
             int shift = blocklengths[i];
             cout << "shift for l_bit  " << shift << endl;
@@ -126,17 +131,17 @@ pair<vector<string>, vector<sdsl::bit_vector>> create_bit_vectors(const vector <
             names.push_back("r_bit_vector_" + to_string(len) + "_shift_" + to_string(i + 1));
         }
         
-        for(int i = 1; i < (errors + 2); ++i){
+        for(int i = 1; i < blocks; ++i){
             sdsl::bit_vector newleft(mappability.size() + len - 1, 0);//TODO think 0 or 1 in edge cases
             int shift = revBlocklengths[i];
             cout << "shift for l_bit  " << shift << endl;
-            cout << "name:  " << errors + 2 - i << endl; 
+            cout << "name:  " << blocks - i << endl; 
             for(int j = 0; j < righti.size(); ++j){
                 if(j + shift < lefti.size() - 1)
                     newleft[j] = lefti[j + shift];
             }
             bit_vectors.push_back(newleft);
-            names.push_back("l_bit_vector_" + to_string(len) + "_shift_" + to_string((errors + 2) - i));
+            names.push_back("l_bit_vector_" + to_string(len) + "_shift_" + to_string(blocks - i));
         }
     }
     
@@ -219,15 +224,18 @@ void loadIndex(vector<sdsl::bit_vector> &bit_vectors, CharString const indexPath
     {
         uint32_t sa_f = index.fwd.sa[j + number_of_indeces].i2;
         uint16_t seq_f = index.fwd.sa[j + number_of_indeces].i1;
-        uint32_t sa_r = index.fwd.sa[j + number_of_indeces].i2;
-        uint16_t seq_r = index.fwd.sa[j + number_of_indeces].i1;
+        uint32_t sa_r = index.rev.sa[j + number_of_indeces].i2;
+        uint16_t seq_r = index.rev.sa[j + number_of_indeces].i1;
         
 //         cout << j << " < " << (sa_j + sequenceLengths[seq]) << endl;
         for(int i = 0; i < bit_vectors.size()/2; ++i){
             bit_vectors_ordered[i][j] = bit_vectors[i][sa_f + sequenceLengths[seq_f]];
+//             cout << i << endl;
         }
         for(int i = bit_vectors.size()/2; i < bit_vectors.size(); ++i){
-            int calc = sequenceLengths[seq_r + 1] - sa_r - 1;
+            
+//             cout << i << endl;
+//             int calc = sequenceLengths[seq_r + 1] - sa_r - 1;
 //             cout << "Seq: " << seq_r << "  SA:" << sa_r << "   calc: " << calc << endl;
             bit_vectors_ordered[i][j] = bit_vectors[i][sequenceLengths[seq_r + 1] - sa_r - 1];
         }
