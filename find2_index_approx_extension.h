@@ -620,21 +620,7 @@ void directSearch(TDelegateD & delegateDirect,
                 // iter.fwdIter.vDesc.range.i1 is not the same brange.i2.i1 since sentinels are at the beginning!!!
                 cout <<  "Sa info" <<  sa_info <<  endl;
                 cout << "StartPos " << startPos << endl;
-                //search remaining blocks
-                cout << "Needle: " << endl;
-                for(int i = 0; i < length(needle); ++i)
-                    cout << needle[i];
-                cout << endl;
-   
-                
-//                 for(int i = 0; i < length(needle); ++i)
-//                     cout << genome[sa_info.i1][startPos + i];
-//                 cout << endl;
-                
-                for(int i = 0; i < length(needle); ++i)
-                    cout << genome[sa_info.i1][startPos + length(needle) - i - 1];
-                cout << endl;
-                
+                //search remaining blocks             
                 
                 for(int j = blockIndex; j < s.pi.size(); ++j){
                     int blockStart = (s.pi[j] == s.pi.size()) ? 0 : bl[s.pi[j]];
