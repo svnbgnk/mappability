@@ -8,6 +8,80 @@
 using namespace std;
 using namespace seqan;
 
+
+template <typename TText, typename TIndex, typename TIndexSpec>
+void print_fullsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+              vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
+              bool const fwd)
+{
+    int size = seqan::length(iter.fwdIter.index->sa);
+    uint32_t number_of_indeces = size - bitvectors[0].first.size();
+    int noi = number_of_indeces;
+    vector<int> sequenceLengths(number_of_indeces + 1, 0);
+    for(int i = 0; i < number_of_indeces; ++i)
+        sequenceLengths[iter.fwdIter.index->sa[i].i1 + 1] = iter.fwdIter.index->sa[i].i2;
+        // cumulative sum seq
+    for(int i = 1; i < sequenceLengths.size(); ++i)
+        sequenceLengths[i] += (sequenceLengths[i - 1]);
+    if(!fwd){
+        for(uint32_t i = 0; i < size; ++i){
+            int seq = iter.revIter.index->sa[i].i1;
+            int sa = iter.revIter.index->sa[i].i2;
+            cout << i << "(" << seq << ")" << ": " << sa + sequenceLengths[seq] << endl;
+        }
+    }else{
+        for(uint32_t i = 0; i < size; ++i){
+            int seq = iter.fwdIter.index->sa[i].i1;
+            int sa = iter.fwdIter.index->sa[i].i2;
+            cout << i << "(" << seq << ")" << ": " << sa + sequenceLengths[seq] << endl;
+        }
+    }
+}
+
+
+
+template <typename TText, typename TIndex, typename TIndexSpec>
+void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+              vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
+              bool const fwd)
+{
+    int size = seqan::length(iter.fwdIter.index->sa);
+    Pair<uint32_t, uint32_t> dirrange = (fwd) ? range(iter.fwdIter) : range(iter.revIter);
+    uint32_t number_of_indeces = size - bitvectors[0].first.size();
+    vector<int> sequenceLengths(number_of_indeces + 1, 0);
+    for(int i = 0; i < number_of_indeces; ++i)
+        sequenceLengths[iter.fwdIter.index->sa[i].i1 + 1] = iter.fwdIter.index->sa[i].i2;
+        // cumulative sum seq
+    for(int i = 1; i < sequenceLengths.size(); ++i)
+        sequenceLengths[i] += (sequenceLengths[i - 1]);
+    if(!fwd){
+        for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
+            int seq = iter.revIter.index->sa[i].i1;
+            int sa = iter.revIter.index->sa[i].i2;
+            cout << i << ": " << iter.revIter.index->sa[i] << endl;
+        }
+    }else{
+        for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
+            int seq = iter.fwdIter.index->sa[i].i1;
+            int sa = iter.fwdIter.index->sa[i].i2;
+            cout << i << ": " << sa + sequenceLengths[seq] << endl;
+        }
+    }
+}
+
+void printPair(pair<uint32_t, uint32_t> p){
+    cout << "<" << p.first << ", " << p.second << ">";
+}
+
+void printbit(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors, Pair<uint8_t, Pair<uint32_t, uint32_t>> brange){
+    sdsl::bit_vector const & rb = bitvectors[brange.i1].first;
+    cout << "bitvector: " << (int)brange.i1 << " brange start: " << brange.i2.i1 << "  brange end: " << brange.i2.i2 << endl;
+    for(int i = brange.i2.i1; i < brange.i2.i2; ++i)
+        cout << i << " Bit: " << rb[i] << endl;
+}
+
+
+
 template <typename T> 
 void printv(T a){
     for(int i = 0; i < a.size(); ++i){
@@ -34,14 +108,15 @@ void print_search_scheme(std::array<OptimalSearch<nbrBlocks>, N> & searchsscheme
         cout << "blockLengths: " << endl;
         printv(searchsscheme[i].blocklength);
         cout << "chronblockLengths: " << endl;
-        printv(searchsscheme[i].chronblocklength);
+        printv(searchsscheme[i].chronBL);
+        cout << "revchronblockLengths: " << endl;
+        printv(searchsscheme[i].revChronBL);
         cout << "start Pos: " << endl;
         cout << searchsscheme[i].startPos << endl;
         cout << "minMax: " << endl;
         printv(searchsscheme[i].min);
         printv(searchsscheme[i].max);
         cout << "OneDirection" << endl << (int)searchsscheme[i].startUniDir << endl;
-        
         cout << endl;
     }
 }
