@@ -2,6 +2,7 @@
 #include <seqan/seq_io.h>
 #include <seqan/index.h>
 #include "common.h"
+#include "common_auxiliary.h"
 #include "find2_index_approx_extension.h"
 #include <sdsl/bit_vectors.hpp>
 
@@ -194,7 +195,7 @@ int main(int argc, char *argv[])
 //     appendValue(reads, "TGAGCGTAATTGTGTCGCGCGCACTGCCTGATGTCCGTGATGGGCTTAAGCCTGTCCATCGGCGCATTCTTCATGCGATGAATGAAATGGGACTTTTGTT"); //GA//GT
 //     appendValue(reads, "TGAGCGTAATTGTGTCGCGCGCACTGCCTGATGTCCGTGTTGGGCTTAAGCCTGTCCATCGGCGCATTCTTCATGCGATGAATGAAATGGGACTTTTGTT");  //error pos 38 A-> T
 //     appendValue(reads, "CGATCTTACTCGACTACCAGAACATGATGTGTCGACCGGTATTGAACCAGTCAGTATCATTGAAGAAATGCAGTGCTCTTATCTAGATTA"); // repeat
-    appendValue(reads, "CGATCTTACTCGACTACCAGAACATGATGTGTCGACCGGT"); //short repeat start 5
+    appendValue(reads, "CGATCTTACTCGACTACCAGAACATGATGTGTCGACCGGTAT");// AT //short repeat start 5
 //     appendValue(reads, "ACCAGAACATGATGTGTCGACCGGTATTGAACCAGTCAGT"); //short repeat start 20
     
     

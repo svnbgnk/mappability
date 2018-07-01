@@ -6,6 +6,8 @@
 #include <seqan/index.h>
 #include <sdsl/bit_vectors.hpp>
 #include "common.h"
+#include "common_auxiliary.h"
+#include "find2_index_approx_unidirectional.h"
 
 
 namespace seqan{
@@ -283,7 +285,7 @@ bool filter_interval(TDelegate & delegate,
         return(false);
     }    
 }
-
+/*
 template <typename TDelegateD,
           typename TText, typename TConfig, typename TIndexSpec,
           typename TNeedle, typename TIndex,
@@ -300,7 +302,7 @@ void directSearchDummy(TDelegateD & delegateDirect,
                   OptimalSearch<nbrBlocks> const & s,
                   uint8_t const blockIndex,
                   Pair<uint8_t, Pair<uint32_t, uint32_t>> brange,
-                  TDir const & /**/)
+                  TDir const & )
 {
     cout << "Test Dummy Function: " << endl;
     
@@ -385,7 +387,7 @@ void directSearchDummy(TDelegateD & delegateDirect,
         cout << saveOppositePositions[i] << endl;
     cout << "End" << endl;
     
-}
+}*/
 
 template <typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,

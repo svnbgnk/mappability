@@ -9,33 +9,9 @@
 using namespace std;
 using namespace seqan;
 
-
-template <typename T> 
-void printv(T a);
-
-inline bool file_exists (const std::string& name);
-
-template <size_t nbrBlocks, size_t N>
-void print_search_scheme(std::array<OptimalSearch<nbrBlocks>, N> & searchsscheme);
-
-template <typename TText, typename TIndex, typename TIndexSpec>
-void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-              vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
-              bool const fwd);
-
-template <typename TText, typename TIndex, typename TIndexSpec>
-void print_fullsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-              vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
-              bool const fwd);
-
-void printbit(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors, Pair<uint8_t, Pair<uint32_t, uint32_t>> brange);
-
-void printPair(pair<uint32_t, uint32_t> p);
-
 // reduce space consumption.
 // requires genome not to have more than ~ 4 gigabases
 // multi-sequence fasta file must contain less than ~64k sequences of at most ~ 4 gigabases in total
-
 namespace seqan {
 
 template <typename TChar, typename TAlloc, typename TOwner>
