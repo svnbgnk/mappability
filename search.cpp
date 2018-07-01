@@ -122,6 +122,26 @@ void print_search_scheme(std::array<OptimalSearch<nbrBlocks>, N> & searchsscheme
     }
 }
 
+
+template <typename TText, typename TIndex, typename TIndexSpec>
+void print_genome(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it,
+                  string const & output_path, 
+                  int chr)
+{
+    StringSet<DnaString> const & genome = indexText(*it.fwdIter.index);
+    ofstream file(output_path, ios::out | ios::binary);
+    for(int i = 0; i < chr; ++i){
+        file << to_string(i);
+        file << ("\n>");
+        String<char> target;
+        DnaString test = genome[i];
+        move(target, test);
+        file << target;
+        file << ("\n");
+    }
+    file.close();
+}
+
 int main(int argc, char *argv[])
 {
     //load index
@@ -132,9 +152,25 @@ int main(int argc, char *argv[])
      open(index, toCString("/home/sven/devel/Data/ref_m_index/index"), OPEN_RDONLY);
      cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
 
-//       typedef String<Dna, Alloc<>> TString;        
-//      Iter<Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig>, VSTree<TopDown<> > > it(index);
-//      cout << "; countSequences: " << seqan::countSequences(it.fwdIter.index) << endl;
+    typedef String<Dna, Alloc<>> TString;        
+    Iter<Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig>, VSTree<TopDown<> > > it(index);
+    if(argc == 3){
+        int chr = stoi(argv[2]);
+        print_genome(it, static_cast<string>(argv[1]), chr);
+        cout << "finished writing" << endl;
+        exit(0);
+        // /home/sven/devel/chr13.fa
+    }
+    
+//     DnaString test = DnaString("ACCAGAACATGATGTGTCGACCGGTATTGAACCAGTCAGT");
+    
+
+
+
+
+    
+    
+//     cout << "; countSequences: " << seqan::countSequences(it.fwdIter.index) << endl;
 //      for(int i = 0; i < 4; ++i)
 //          cout << it.fwdIter.index->sa[i] << endl;
 //     countSequences: 1
