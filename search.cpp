@@ -131,8 +131,9 @@ void print_genome(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown
     StringSet<DnaString> const & genome = indexText(*it.fwdIter.index);
     ofstream file(output_path, ios::out | ios::binary);
     for(int i = 0; i < chr; ++i){
+        file << (">");
         file << to_string(i);
-        file << ("\n>");
+        file << ("\n");
         String<char> target;
         DnaString test = genome[i];
         move(target, test);
@@ -147,21 +148,21 @@ int main(int argc, char *argv[])
     //load index
     typedef String<Dna, Alloc<>> TString;
     typedef Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> MyIndex;
-     MyIndex index;
-//      open(index, toCString("/home/sven/devel/Data/hg38_test_index/index"), OPEN_RDONLY);
-     open(index, toCString("/home/sven/devel/Data/ref_m_index/index"), OPEN_RDONLY);
-     cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
-
-    typedef String<Dna, Alloc<>> TString;        
+    MyIndex index;      
     Iter<Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig>, VSTree<TopDown<> > > it(index);
-    if(argc == 3){
-        int chr = stoi(argv[2]);
-        print_genome(it, static_cast<string>(argv[1]), chr);
+    
+    if(argc == 4){
+        open(index, toCString(argv[1]), OPEN_RDONLY);
+        int chr = stoi(argv[3]);
+        print_genome(it, static_cast<string>(argv[2]), chr);
         cout << "finished writing" << endl;
         exit(0);
         // /home/sven/devel/chr13.fa
-    }
-    
+    }  
+
+//      open(index, toCString("/home/sven/devel/Data/hg38_test_index/index"), OPEN_RDONLY);
+     open(index, toCString("/home/sven/devel/Data/ref_m_index/index"), OPEN_RDONLY);
+     cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
 //     DnaString test = DnaString("ACCAGAACATGATGTGTCGACCGGTATTGAACCAGTCAGT");
     
 
