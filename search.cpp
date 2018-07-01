@@ -149,19 +149,22 @@ int main(int argc, char *argv[])
     typedef String<Dna, Alloc<>> TString;
     typedef Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> MyIndex;
     MyIndex index;      
-    Iter<Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig>, VSTree<TopDown<> > > it(index);
+    
     
     if(argc == 4){
         open(index, toCString(argv[1]), OPEN_RDONLY);
+        Iter<Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig>, VSTree<TopDown<> > > iter(index);
         int chr = stoi(argv[3]);
-        print_genome(it, static_cast<string>(argv[2]), chr);
+        print_genome(iter, static_cast<string>(argv[2]), chr);
         cout << "finished writing" << endl;
         exit(0);
         // /home/sven/devel/chr13.fa
-    }  
+    }else{
+        open(index, toCString("/home/sven/devel/Data/ref_m_index/index"), OPEN_RDONLY);
+        Iter<Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig>, VSTree<TopDown<> > > it(index);
+    }
 
 //      open(index, toCString("/home/sven/devel/Data/hg38_test_index/index"), OPEN_RDONLY);
-     open(index, toCString("/home/sven/devel/Data/ref_m_index/index"), OPEN_RDONLY);
      cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
 //     DnaString test = DnaString("ACCAGAACATGATGTGTCGACCGGTATTGAACCAGTCAGT");
     
