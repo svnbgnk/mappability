@@ -288,6 +288,7 @@ int main(int argc, char *argv[])
     std::chrono::duration<double> elapsed = finish - start;
     cout << "Finished elapsed: " << elapsed.count() << "s" << endl;
     
+    /*
     cout << "Hits:" << endl;
     for (int i = 0; i < hits.size(); ++i){
         cout << hits[i] << endl;
@@ -302,7 +303,7 @@ int main(int argc, char *argv[])
             cout << "Errors: " << static_cast<int> (errors_vD[i]) << endl;
     }
     }
-
+*/
     }
     
 
