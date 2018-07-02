@@ -280,9 +280,9 @@ int main(int argc, char *argv[])
     
     cout << "Start My Search!" << endl;
     auto start = std::chrono::high_resolution_clock::now();
-    cout.setstate(std::ios_base::failbit);
+//     cout.setstate(std::ios_base::failbit);
     find<0, 2>(delegate, delegateDirect, index, reads, bit_vectors);
-    std::cout.clear();
+//     std::cout.clear();
     cout << endl;
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finish - start;

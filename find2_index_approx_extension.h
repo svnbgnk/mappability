@@ -327,9 +327,13 @@ void directSearch(TDelegateD & delegateDirect,
                 int blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
                 cout << "searching Parts:" << blockStart << " - " << s.chronBL[s.pi[j] - 1] << "; ";
                 // compare bases to needle
+//                 Iterator<DnaString>::Type it = begin(genome[sa_info.i1]);
+//                 ++(it, startPos);
                 for(int k = blockStart; k <  s.chronBL[s.pi[j] - 1]; ++k){
+                    //                     if(needle[k] != it)
                     if(needle[k] != genome[sa_info.i1][startPos + k])
                         ++errors2;
+//                     goNext(it);
                 }
                 if(errors2 < s.l[j] || errors2 > s.u[j]){
                     cout << "Triggered: " << (int)errors2 << endl;
@@ -389,7 +393,7 @@ void directSearch(TDelegateD & delegateDirect,
                     cout << (int)errors2 << endl;
                     uint32_t occ = seqan::length(genome[sa_info.i1]) - startPos - 1;
                     hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
-                    cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
+//                     cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
                     errorsv.push_back(errors2);
                 }
                 
@@ -439,10 +443,10 @@ ReturnCode check_interval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>>
     uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
     if(ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
-/*
+
     if(ivalOne <= 3){ // add additional constrains from chris?
         return ReturnCode::DIRECTSEARCH;
-    }*/
+    }
     /*
     if(ivalOne == (brange.i2.i2 - brange.i2.i1))
         return ReturnCode::COMPMAPPABLE;
@@ -547,7 +551,7 @@ ReturnCode checkMappability(TDelegate & delegate,
             bit_interval = get_bitvector_interval(iter, bitvectors, s, blockIndex, Rev());
         else
             bit_interval = get_bitvector_interval(iter, bitvectors, s, blockIndex, Fwd());
-/*        //TODO redo this
+        //TODO redo this
         cout << "Printttt" << endl;
         if(goToRight2)
             print_sa(iter, bitvectors, true);
@@ -557,7 +561,7 @@ ReturnCode checkMappability(TDelegate & delegate,
 //         print_fullsa(iter, bitvectors, true);
         printbit(bitvectors, bit_interval);
         
-        */
+        
         ReturnCode rcode = check_interval(bitvectors, bit_interval, s);
 //      cout << "Return code: " << (int)rcode << endl;
         
@@ -874,7 +878,6 @@ find(TDelegate & delegate,
     auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
     _optimalSearchSchemeComputeFixedBlocklength(scheme, length(needle));
     _optimalSearchSchemeSetMapParams(scheme);
-    print_search_scheme(scheme);
     Iter<Index<TText, BidirectionalIndex<TIndexSpec> >, VSTree<TopDown<> > > it(index);
     _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, scheme);
 }
