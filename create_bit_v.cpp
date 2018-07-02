@@ -99,10 +99,7 @@ pair<vector<string>, vector<sdsl::bit_vector>> create_bit_vectors(const vector <
   */  
     sdsl::bit_vector righti (mappability.size() + len - 1, 0);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
-//     #pragma omp parallel for schedule(static)   
-//     for(unsigned i = 0; i < mappability.size(); ++i)
-//         cout << (int)mappability[i];
-//     cout << endl;
+    #pragma omp parallel for schedule(static)   
     for(unsigned i = 0; i < mappability.size(); ++i){
         lefti[i + len - 1] = (mappability[i] <= th);
         righti[i] = (mappability[i] <= th);
@@ -121,7 +118,7 @@ pair<vector<string>, vector<sdsl::bit_vector>> create_bit_vectors(const vector <
         for(int i = 0; i < blocks - 1; ++i){
             sdsl::bit_vector newright(mappability.size() + len - 1, 0); //TODO think 0 or 1 in edge cases
             int shift = blocklengths[i];
-            cout << "shift for l_bit  " << shift << endl;
+            cout << "shift for r_bit  " << shift << endl;
             cout << "name:  " << i + 1 << endl; 
             for(int j = 0; j < righti.size(); ++j){
                 if(j - shift >= 0)
@@ -219,7 +216,7 @@ void loadIndex(vector<sdsl::bit_vector> &bit_vectors, CharString const indexPath
     }
 
     // skip sentinels
-//     #pragma omp parallel for schedule(static)
+    #pragma omp parallel for schedule(static)
     for (unsigned j = 0; j < seqan::length(index.fwd.sa) - number_of_indeces; ++j)
     {
         uint32_t sa_f = index.fwd.sa[j + number_of_indeces].i2;
