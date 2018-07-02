@@ -5,6 +5,7 @@
 #include "common_auxiliary.h"
 #include "find2_index_approx_extension.h"
 #include <sdsl/bit_vectors.hpp>
+#include <chrono>
 
 using namespace std;
 using namespace seqan;
@@ -145,71 +146,76 @@ void print_genome(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown
 
 int main(int argc, char *argv[])
 {
+    ArgumentParser parser("Search");
+    addDescription(parser, "App for searching reads. Only supports Dna4 so far.");
+    
+    addOption(parser, ArgParseOption("I", "index", "Path to the index", ArgParseArgument::INPUT_FILE, "IN"));
+    setRequired(parser, "index");
+    
+    addOption(parser, ArgParseOption("B", "ibitvector", "Path to the index", ArgParseArgument::INPUT_FILE, "IN"));
+    setRequired(parser, "index");
+    
+    addOption(parser, ArgParseOption("R", "ireads", "Path to the index", ArgParseArgument::INPUT_FILE, "IN"));
+    setRequired(parser, "index");
+    
+    addOption(parser, ArgParseOption("O", "output", "Path to output directory", ArgParseArgument::OUTPUT_FILE, "OUT"));
+//     setRequired(parser, "output");
+    
+    
+    addOption(parser, ArgParseOption("K", "length", "Length of k-mers", ArgParseArgument::INTEGER, "INT"));
+    setRequired(parser, "length");
+    
+    
+    ArgumentParser::ParseResult res = parse(parser, argc, argv);
+    if (res != ArgumentParser::PARSE_OK)
+        return res == ArgumentParser::PARSE_ERROR;
+    
+    CharString indexPath, bitvectorpath, readspath;
+    int K;
+    getOptionValue(indexPath, parser, "index");
+    getOptionValue(bitvectorpath, parser, "ibitvector");
+    getOptionValue(readspath, parser, "ireads");
+    getOptionValue(K, parser, "K");
+    
+    //load reads
+    CharString seqFileName = readspath;
+    SeqFileIn seqFileIn(toCString(seqFileName));
+    StringSet<CharString> ids;
+    StringSet<DnaString> reads;
+    readRecords(ids, reads, seqFileIn);
+    cout << "Loaded reads" << endl;
+
+    
+    
     //load index
     typedef String<Dna, Alloc<>> TString;
     typedef Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> MyIndex;
     MyIndex index;      
-    
-    
-    if(argc == 4){
-        open(index, toCString(argv[1]), OPEN_RDONLY);
-        Iter<Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig>, VSTree<TopDown<> > > iter(index);
-        int chr = stoi(argv[3]);
-        print_genome(iter, static_cast<string>(argv[2]), chr);
-        cout << "finished writing" << endl;
-        exit(0);
-        // /home/sven/devel/chr13.fa
-    }else{
-        open(index, toCString("/home/sven/devel/Data/ref_m_index/index"), OPEN_RDONLY);
-        Iter<Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig>, VSTree<TopDown<> > > it(index);
-    }
+
+    open(index, toCString(indexPath), OPEN_RDONLY);
+    Iter<Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig>, VSTree<TopDown<> > > it(index);
 
 //      open(index, toCString("/home/sven/devel/Data/hg38_test_index/index"), OPEN_RDONLY);
      cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
-//     DnaString test = DnaString("ACCAGAACATGATGTGTCGACCGGTATTGAACCAGTCAGT");
-    
-
-
-
-
-    
-    
-//     cout << "; countSequences: " << seqan::countSequences(it.fwdIter.index) << endl;
-//      for(int i = 0; i < 4; ++i)
-//          cout << it.fwdIter.index->sa[i] << endl;
-//     countSequences: 1
-//     < 2 , 149 >
-//     < 1 , 300 >
-//     < 0 , 550 >
-//     < 2 , 91 >
-
     
     // load bitvectors
     vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bit_vectors;
-    
-//     sdsl::bit_vector b1, b2;
-//     load_from_file(b1, "/home/sven/devel/Data/mappability_ref_m.fa/r_bit_vector_100");
-//     load_from_file(b2, "/home/sven/devel/Data/mappability_ref_m.fa/l_bit_vector_100");
-//     sdsl::rank_support_v<> rb1 (& b1);
-//     sdsl::rank_support_v<> rb2 (& b2);
-//     bit_vectors.push_back(make_pair(b1, rb1));
-//     bit_vectors[0].second.set_vector(&bit_vectors[0].first);
-//         bit_vectors.push_back(make_pair(b2, rb2));
     for(int i = 0; i < 10; ++i){
-         string file_name = toCString("/home/sven/devel/Data/ref_m_mappa/r_bit_vector_40_shift_") + to_string(i);
-         if(file_exists(file_name)){
-             sdsl::bit_vector b;
-             cout << "Filename: " << file_name << endl;
-             load_from_file(b, file_name);
-             sdsl::rank_support_v<> rb(& b);
-             bit_vectors.push_back(make_pair(b, rb));
+        
+        string file_name = string("") + toCString(bitvectorpath) + "r_bit_vector_" + to_string(K) + "_shift_" + to_string(i);
+        if(file_exists(file_name)){
+            sdsl::bit_vector b;
+            cout << "Filename: " << file_name << endl;
+            load_from_file(b, file_name);
+            sdsl::rank_support_v<> rb(& b);
+            bit_vectors.push_back(make_pair(b, rb));
 //              bit_vectors[i + 1].second.set_vector(&bit_vectors[i + 1].first);
          }
     }
     
     
     for(int i = 0; i < 10; ++i){
-         string file_name = toCString("/home/sven/devel/Data/ref_m_mappa/l_bit_vector_40_shift_") + to_string(i);
+         string file_name = string("") + toCString(bitvectorpath) + "l_bit_vector_" + to_string(K) + "_shift_" + to_string(i);
          if(file_exists(file_name)){
              sdsl::bit_vector b;
              cout << "Filename: " << file_name << endl;
@@ -221,12 +227,8 @@ int main(int argc, char *argv[])
     }
     cout << "Bit vectors loaded. Size: " << bit_vectors.size() << endl;
     
-
-//     sdsl::rank_support_v<> & rbt = bit_vectors[0].second;
-//     rbt.set_vector(&bit_vectors[0].first);
-//     cout << "Ranksupport Test: " << rbt(300) << endl;
-     
-//     String<Dna> read = "TATGGTGCTTAAATGCTCTTGGCTTTCTCCTGCCCACTTAAGGCCTGCCTGCAATTACAAGAGAAACCATTCATACTGGAAATGGTTGCTCTTTGCTGCT";
+    /*
+    //Manuel reads
     
     StringSet<DnaString> reads;
 //     String<Dna> read = "TGAGCGTAATTGTGTCGCGCGCACTGCCTGATGTCCGTGATGGGCTTAAGCCTGTCCATCGGCGCATTCTTCATGCGATGAATGAAATGGGACTTTTGTT";
@@ -237,23 +239,15 @@ int main(int argc, char *argv[])
 //     appendValue(reads, "CGATCTTACTCGACTACCAGAACATGATGTGTCGACCGGTATTGAACCAGTCAGTATCATTGAAGAAATGCAGTGCTCTTATCTAGATTA"); // repeat
     appendValue(reads, "CGATCTTACTCGACTACCAGAACATGATGTGTCGACCGGTAT");// AT //short repeat start 5
 //     appendValue(reads, "ACCAGAACATGATGTGTCGACCGGTATTGAACCAGTCAGT"); //short repeat start 20
-    
-    
 //     appendValue(reads, "TGAGCGTAATTGTGTCGCGCGCACTG");
-    
-//     std::set<Pair<DnaString, unsigned> > hits;
+    */
 
+  
+  
+    {
     std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hits;
     std::vector<uint8_t> errors_v;
-    std::vector<DnaString> reps;
-    
-//     auto scheme = OptimalSearchSchemes<0, 2>::VALUE;
-//     print_search_scheme(scheme);
-//     _optimalSearchSchemeSetMapParams(scheme);
-//     cout << "Scheme used in the moment: " << endl;
-//     print_search_scheme(scheme);
-    
-  
+//     std::vector<DnaString> reps;  
     auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors)
     {
         for (auto occ : getOccurrences(iter)){
@@ -273,27 +267,52 @@ int main(int argc, char *argv[])
         }
     };
     
-    find<0, 2>(delegate, delegateDirect, index, reads, bit_vectors);
     
-//     find<0, 2>(delegate, index, reads, HammingDistance());
+    cout << "Start My Search!" << endl;
+    auto start = std::chrono::high_resolution_clock::now();
+    cout.setstate(std::ios_base::failbit);
+    find<0, 2>(delegate, delegateDirect, index, reads, bit_vectors);
+    std::cout.clear();
+    cout << endl;
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = finish - start;
+    cout << "Finished elapsed: " << elapsed.count() << "s" << endl;
+    
     cout << "Hits:" << endl;
     for (int i = 0; i < hits.size(); ++i){
         cout << hits[i] << endl;
         cout << "Errors: " << static_cast<int> (errors_v[i]) << endl;
     }
-    cout << "Direct Hits:" << endl;
-    for (int i = 0; i < hitsD.size(); ++i){
-        cout << hitsD[i] << endl;
-        cout << "Errors: " << static_cast<int> (errors_vD[i]) << endl;
-    }
+   
     
-    // what i searched for
-    cout << "Representatives: " << endl;
-    for(int i = 0; i < reps.size(); ++i){
-        cout << reps[i] << endl;
+    if(hitsD.size() > 0){
+        cout << "Direct Hits:" << endl;
+        for (int i = 0; i < hitsD.size(); ++i){
+            cout << hitsD[i] << endl;
+            cout << "Errors: " << static_cast<int> (errors_vD[i]) << endl;
+    }
     }
 
-    cout << "Hello!" << endl;
+    }
+    
+
+    {
+    cout << "Test default" << endl;
+    std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hits;
+    std::vector<uint8_t> errors_v;
+    auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors)
+    {
+        for (auto occ : getOccurrences(iter)){
+            hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
+            errors_v.push_back(errors);
+        }
+    };
+    auto start = std::chrono::high_resolution_clock::now();
+    find<0, 2>(delegate, index, reads, HammingDistance());
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = finish - start;
+    cout << "Finished elapsed: " << elapsed.count() << "s" << endl;
+    }
     
     return 0;
     
