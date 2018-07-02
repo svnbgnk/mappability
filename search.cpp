@@ -165,17 +165,21 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("K", "length", "Length of k-mers", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "length");
     
+    addOption(parser, ArgParseOption("r", "r", "number of reads to test ", ArgParseArgument::INTEGER, "INT"));
+
+    
     
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
     if (res != ArgumentParser::PARSE_OK)
         return res == ArgumentParser::PARSE_ERROR;
     
     CharString indexPath, bitvectorpath, readspath;
-    int K;
+    int K, r = 0;
     getOptionValue(indexPath, parser, "index");
     getOptionValue(bitvectorpath, parser, "ibitvector");
     getOptionValue(readspath, parser, "ireads");
-    getOptionValue(K, parser, "K");
+    getOptionValue(K, parser, "length");
+    getOptionValue(r, parser, "r");
     
     //load reads
     CharString seqFileName = readspath;
@@ -183,10 +187,16 @@ int main(int argc, char *argv[])
     StringSet<CharString> ids;
     StringSet<DnaString> reads;
     readRecords(ids, reads, seqFileIn);
-    cout << "Loaded reads" << endl;
-
-    
-    
+    int nreads = seqan::length(reads);
+    cout << "Loaded reads: " << nreads << endl;
+    if(r >= nreads){
+        cout << "not enought reads" << endl;
+        exit(0);
+    }
+    if(r != 0){
+        for(int i = 0; i < nreads - r; ++i)
+            eraseBack(reads);
+    }
     //load index
     typedef String<Dna, Alloc<>> TString;
     typedef Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> MyIndex;
