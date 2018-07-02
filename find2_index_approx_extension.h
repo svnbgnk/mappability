@@ -118,7 +118,7 @@ template <typename TDelegate, typename TDelegateD,
           typename TDir>
 bool filterCurrent_interval(TDelegate & delegate,
                      TDelegateD & delegateDirect,
-                     Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > & iter,
+                     Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                      TNeedle const & needle,
                      vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
                      uint32_t const needleLeftPos,
@@ -126,7 +126,7 @@ bool filterCurrent_interval(TDelegate & delegate,
                      uint8_t const errors,
                      OptimalSearch<nbrBlocks> const & s,
                      uint8_t const blockIndex,
-                     Pair<uint8_t, Pair<uint32_t, uint32_t>> brange,
+                     Pair<uint8_t, Pair<uint32_t, uint32_t>> const  & brange,
                      TDir const & /**/)
 {
     uint32_t intervalfilter_size = 3;
@@ -206,7 +206,7 @@ template <typename TDelegate, typename TDelegateD,
           typename TDir>
 bool filter_interval(TDelegate & delegate,
                      TDelegateD & delegateDirect,
-                     Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > & iter,
+                     Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                      TNeedle const & needle,
                      vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
                      uint32_t const needleLeftPos,
@@ -214,7 +214,7 @@ bool filter_interval(TDelegate & delegate,
                      uint8_t const errors,
                      OptimalSearch<nbrBlocks> const & s,
                      uint8_t const blockIndex,
-                     Pair<uint8_t, Pair<uint32_t, uint32_t>> brange,
+                     Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
                      TDir const & /**/)
 {
     uint32_t intervalfilter_size = 3;
@@ -300,7 +300,7 @@ void directSearch(TDelegateD & delegateDirect,
                   uint8_t const errors,
                   OptimalSearch<nbrBlocks> const & s,
                   uint8_t const blockIndex,
-                  Pair<uint8_t, Pair<uint32_t, uint32_t>> brange,
+                  Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
                   TDir const & /**/)
 {
     //TODO  stop using both needle pos ?
@@ -431,7 +431,7 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval(Iter<Index<TText,
 
 template<size_t nbrBlocks>
 ReturnCode check_interval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
-                           Pair<uint8_t, Pair<uint32_t, uint32_t>> brange,
+                           Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
                            OptimalSearch<nbrBlocks> const & s)
 {
     sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second;
@@ -439,10 +439,10 @@ ReturnCode check_interval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>>
     uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
     if(ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
-
+/*
     if(ivalOne <= 3){ // add additional constrains from chris?
         return ReturnCode::DIRECTSEARCH;
-    }
+    }*/
     /*
     if(ivalOne == (brange.i2.i2 - brange.i2.i1))
         return ReturnCode::COMPMAPPABLE;
