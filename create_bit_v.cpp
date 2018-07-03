@@ -70,15 +70,6 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
        
     for(uint8_t i = 1; i < blocks; ++i)
         blocklengths[i] += blocklengths[i - 1];
-   
-    cout << "blocklength" << endl;
-    for(int i = 0; i < blocklengths.size(); ++i)
-        cout << blocklengths[i] << " ";
-    cout << endl;
-    cout << "reverse Blocklengths" << endl;
-    for(int i = 0; i < revBlocklengths.size(); ++i)
-        cout << revBlocklengths[i] << " ";
-    cout << endl;
     
     sdsl::bit_vector righti (mappability.size() + len - 1, 0);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
