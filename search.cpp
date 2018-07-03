@@ -144,6 +144,48 @@ void print_genome(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown
     file.close();
 }
 
+
+vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(CharString const bitvectorpath, const int K){
+    vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bit_vectors;
+    string file_name = string("") + toCString(bitvectorpath) + "right_bit_vector_" + to_string(K);
+    if(file_exists(file_name)){
+        sdsl::bit_vector b;
+        cout << "Filename: " << file_name << endl;
+        load_from_file(b, file_name);
+        sdsl::rank_support_v<> rb(& b);
+        bit_vectors.push_back(make_pair(b, rb));
+        }else{
+            cerr << file_name << " not found" <<  "\n";
+        }
+
+    file_name = string("") + toCString(bitvectorpath) + "middle_bit_vector_" + to_string(K);
+    if(file_exists(file_name)){
+        sdsl::bit_vector b;
+        cout << "Filename: " << file_name << endl;
+        load_from_file(b, file_name);
+        sdsl::rank_support_v<> rb(& b);
+        bit_vectors.push_back(make_pair(b, rb));
+    }else{
+        cerr << file_name << " not found" <<  "\n";
+    }
+        
+    file_name = string("") + toCString(bitvectorpath) + "left_bit_vector_" + to_string(K);
+    if(file_exists(file_name)){
+        sdsl::bit_vector b;
+        cout << "Filename: " << file_name << endl;
+        load_from_file(b, file_name);
+        sdsl::rank_support_v<> rb(& b);
+        bit_vectors.push_back(make_pair(b, rb));
+    }else{
+        cerr << file_name << " not found" <<  "\n";
+    }
+        
+    if(bit_vectors.size() != 3){
+        exit(0);
+    } 
+    return(bit_vectors);
+}
+
 int main(int argc, char *argv[])
 {
     ArgumentParser parser("Search");
@@ -197,6 +239,7 @@ int main(int argc, char *argv[])
         for(int i = 0; i < nreads - r; ++i)
             eraseBack(reads);
     }
+    cout << "Loading Index" << endl;
     //load index
     typedef String<Dna, Alloc<>> TString;
     typedef Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> MyIndex;
@@ -206,35 +249,12 @@ int main(int argc, char *argv[])
     Iter<Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig>, VSTree<TopDown<> > > it(index);
 
 //      open(index, toCString("/home/sven/devel/Data/hg38_test_index/index"), OPEN_RDONLY);
-     cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
+    cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
+    cout << "Loading bitvectors" << endl;
     
     // load bitvectors
-    vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bit_vectors;
-    for(int i = 0; i < 10; ++i){
-        
-        string file_name = string("") + toCString(bitvectorpath) + "r_bit_vector_" + to_string(K) + "_shift_" + to_string(i);
-        if(file_exists(file_name)){
-            sdsl::bit_vector b;
-            cout << "Filename: " << file_name << endl;
-            load_from_file(b, file_name);
-            sdsl::rank_support_v<> rb(& b);
-            bit_vectors.push_back(make_pair(b, rb));
-//              bit_vectors[i + 1].second.set_vector(&bit_vectors[i + 1].first);
-         }
-    }
     
-    
-    for(int i = 0; i < 10; ++i){
-         string file_name = string("") + toCString(bitvectorpath) + "l_bit_vector_" + to_string(K) + "_shift_" + to_string(i);
-         if(file_exists(file_name)){
-             sdsl::bit_vector b;
-             cout << "Filename: " << file_name << endl;
-             load_from_file(b, file_name);
-             sdsl::rank_support_v<> rb(& b);
-             bit_vectors.push_back(make_pair(b, rb));
-//              bit_vectors[i + 1].second.set_vector(&bit_vectors[i + 1].first);
-         }
-    }
+    vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bit_vectors = loadBitvectors(bitvectorpath, K);
     cout << "Bit vectors loaded. Size: " << bit_vectors.size() << endl;
     
     /*

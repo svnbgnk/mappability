@@ -45,6 +45,10 @@ enum class ReturnCode {
 	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, ONEDIRECTION, MAPPABLE, FINISHED, UNIDIRECTIONAL, FIRSTTIMEUNIDIRECTIONAL, ERROR
 };
 
+enum class BV {
+	RIGHT = 0, MIDDLE = 1, LEFT = 2
+};
+
 template <size_t nbrBlocks, size_t N>
 constexpr inline void _optimalSearchSchemeSetMapParams(std::array<OptimalSearch<nbrBlocks>, N> & ss)
 {
@@ -303,57 +307,56 @@ void directSearch(TDelegateD & delegateDirect,
                   Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
                   TDir const & /**/)
 {
-    //TODO  stop using both needle pos ?
-    bool reverse = std::is_same<TDir, Rev>::value;
-    StringSet<DnaString> const & genome = (reverse) ? indexText(*iter.fwdIter.index) : indexText(*iter.revIter.index);
     vector<Pair<uint16_t, uint32_t>> hitsv;
     vector<uint8_t> errorsv;
-    
-    if(reverse){
-    for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
-        cout << "Direct Search Rev" << endl;
-        cout << "NLP " <<  needleLeftPos - 1 <<  endl;
-        if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
-            uint8_t errors2 = errors;
-            bool valid = true;
-            Pair<uint16_t, uint32_t> sa_info;
-            uint32_t startPos;
-            sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
-            startPos = sa_info.i2 - needleLeftPos + 1;
-//             cout <<  "Sa info" <<  sa_info <<  endl; //TODO redo this
-            cout << "StartPos " << startPos << endl;
-            //search remaining blocks
-            for(int j = blockIndex; j < s.pi.size(); ++j){
-                int blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
-                cout << "searching Parts:" << blockStart << " - " << s.chronBL[s.pi[j] - 1] << "; ";
-                // compare bases to needle
-//                 Iterator<DnaString>::Type it = begin(genome[sa_info.i1]);
-//                 ++(it, startPos);
-                for(int k = blockStart; k <  s.chronBL[s.pi[j] - 1]; ++k){
-                    //                     if(needle[k] != it)
-                    if(needle[k] != genome[sa_info.i1][startPos + k])
-                        ++errors2;
+    if(std::is_same<TDir, Rev>::value){
+        auto const & genome = indexText(*iter.fwdIter.index);
+        for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
+            cout << "Direct Search Rev" << endl;
+            cout << "NLP " <<  needleLeftPos - 1 <<  endl;
+            if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
+                uint8_t errors2 = errors;
+                bool valid = true;
+                Pair<uint16_t, uint32_t> sa_info;
+                uint32_t startPos;
+                sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
+                startPos = sa_info.i2 - needleLeftPos + 1;
+//                 cout <<  "Sa info" <<  sa_info <<  endl; //TODO redo this
+                cout << "StartPos " << startPos << endl;
+                //search remaining blocks
+                for(int j = blockIndex; j < s.pi.size(); ++j){
+                    int blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
+                    cout << "searching Parts:" << blockStart << " - " << s.chronBL[s.pi[j] - 1] << "; ";
+                    // compare bases to needle
+//                    Iterator<DnaString>::Type it = begin(genome[sa_info.i1]);
+//                   ++(it, startPos);
+                    for(int k = blockStart; k <  s.chronBL[s.pi[j] - 1]; ++k){
+                        //                     if(needle[k] != it)
+                        if(needle[k] != genome[sa_info.i1][startPos + k])
+                            ++errors2;
 //                     goNext(it);
+                    }
+                    if(errors2 < s.l[j] || errors2 > s.u[j]){
+                        cout << "Triggered: " << (int)errors2 << endl;
+                        valid = false;
+                        break;
+                    }
                 }
-                if(errors2 < s.l[j] || errors2 > s.u[j]){
-                    cout << "Triggered: " << (int)errors2 << endl;
-                    valid = false;
-                    break;
+                if(valid){
+                    cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
+                    cout << (int)errors2 << endl;
+                    uint32_t occ = startPos;
+                    hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
+//                     cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
+                    errorsv.push_back(errors2);
                 }
-            }
-            if(valid){
-                cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
-                cout << (int)errors2 << endl;
-                uint32_t occ = startPos;
-                hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
-                cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
-                errorsv.push_back(errors2);
             }
         }
     }
-    }
-    
-    if(!reverse){
+    else
+    {
+//         StringSet<DnaString>
+        auto const & rgenome = indexText(*iter.revIter.index);
         for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
             if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
                 cout << "Direct Search FWD" << endl;
@@ -378,8 +381,8 @@ void directSearch(TDelegateD & delegateDirect,
                     cout << endl;
                 
                     for(int k = blockStart; k < s.revChronBL[s.pi[j] - 1]; ++k){
-//                         cout << genome[sa_info.i1][startPos + length(needle) - k - 1];
-                        if(needle[length(needle) - k - 1] != genome[sa_info.i1][startPos + k])
+//                         cout << rgenome[sa_info.i1][startPos + length(needle) - k - 1];
+                        if(needle[length(needle) - k - 1] != rgenome[sa_info.i1][startPos + k])
                             ++errors2;
                     }
                     if(errors2 < s.l[j] || errors2 > s.u[j]){
@@ -391,7 +394,7 @@ void directSearch(TDelegateD & delegateDirect,
                 if(valid){
                     cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
                     cout << (int)errors2 << endl;
-                    uint32_t occ = seqan::length(genome[sa_info.i1]) - startPos - 1;
+                    uint32_t occ = seqan::length(rgenome[sa_info.i1]) - startPos - 1;
                     hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
 //                     cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
                     errorsv.push_back(errors2);
@@ -414,20 +417,33 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval(Iter<Index<TText,
     
     Pair<uint32_t, uint32_t> dirrange = (std::is_same<TDir, Rev>::value) ? range(iter.fwdIter) : range(iter.revIter);
     uint8_t needed_bitvector;
-    if (std::is_same<TDir, Rev>::value)
-        needed_bitvector = s.min[blockIndex] - 1;//mymin(s.pi, blockIndex) - 1;
-    else
-        needed_bitvector = bitvectors.size() - s.max[blockIndex];// + 1 - 1//mymax(s.pi, blockIndex) - 1;
+    //TODO just check first position if == size then FWD Index == 1 then BWD Index otherwise middle
     
-    //TODO find out why this does not work my fix this so i dont have to use bitvectors as an input
+    int const size = s.pi.size();
+    int const firstE = s.pi[0];
+    cout << "Largest Element: " << size << endl;
+    cout << "First Element: " << firstE << endl;
+    if(firstE == size)
+        needed_bitvector = 2;   //BV::LEFT;
+    else if(firstE == 1)
+        needed_bitvector = 0;   //BV::RIGHT;
+    else
+        needed_bitvector = 1;   //BV::MIDDLE;
+    
+//     if (std::is_same<TDir, Rev>::value)
+//         needed_bitvector = s.min[blockIndex] - 1;//mymin(s.pi, blockIndex) - 1;
+//     else
+//         needed_bitvector = bitvectors.size() - s.max[blockIndex];// + 1 - 1//mymax(s.pi, blockIndex) - 1;
+//     
+    //TODO find out why this does not work and dont have to use bitvectors as an input
     //uint32_t number_of_indeces = countSequences(iter.fwdIter.index);
-    cout << "maxe: " << (int)s.max[blockIndex] << endl;
+//     cout << "maxe: " << (int)s.max[blockIndex] << endl;
     uint32_t number_of_indeces = seqan::length(iter.fwdIter.index->sa) - bitvectors[needed_bitvector].first.size();
-    cout << "shift_" << (int)needed_bitvector << "_bitvector" << endl;
-//     cout << "Sa Range: " << dirrange << endl;  TODO revert this
+    cout << "selected bitvector: " << (int)needed_bitvector << endl;
+//     cout << "Sa Range: " << dirrange << endl;  
     dirrange.i1 = dirrange.i1 - number_of_indeces;
     dirrange.i2 = dirrange.i2 - number_of_indeces;
-//     cout << "Bit Range: " << dirrange << endl;  //TODO redo this
+//     cout << "Bit Range: " << dirrange << endl;  
     cout << ((std::is_same<TDir, Rev>::value) ? "reverse case" : "forward case") << endl;
     Pair<uint8_t, Pair<uint32_t, uint32_t>> brange(needed_bitvector, dirrange);
     return brange;
@@ -551,16 +567,14 @@ ReturnCode checkMappability(TDelegate & delegate,
             bit_interval = get_bitvector_interval(iter, bitvectors, s, blockIndex, Rev());
         else
             bit_interval = get_bitvector_interval(iter, bitvectors, s, blockIndex, Fwd());
-        //TODO redo this
-        cout << "Printttt" << endl;
-        if(goToRight2)
-            print_sa(iter, bitvectors, true);
-        else
-            print_sa(iter, bitvectors, false);
-//         cout << "Print full sa" << endl;
-//         print_fullsa(iter, bitvectors, true);
-        printbit(bitvectors, bit_interval);
         
+//         cout << "Printttt" << endl;
+//         if(goToRight2)
+//             print_sa(iter, bitvectors, true);
+//         else
+//             print_sa(iter, bitvectors, false);
+//         printbit(bitvectors, bit_interval);
+//         cout << "Printend" << endl;
         
         ReturnCode rcode = check_interval(bitvectors, bit_interval, s);
 //      cout << "Return code: " << (int)rcode << endl;
