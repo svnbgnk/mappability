@@ -82,7 +82,16 @@ void printbit(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvector
         cout << i << " Bit: " << rb[i] << endl;
 }
 
-
+sdsl::bit_vector create_random_bit_v(int length){
+//     srand (time(0));
+    sdsl::bit_vector rv (length, 0);
+    srand (time(0));
+    for(sdsl::bit_vector::iterator it = rv.begin(); it != rv.end(); ++it){
+        if((rand() % 5) == 1)
+            *it = 1;
+    }
+    return(rv);
+}
 
 template <typename T> 
 void printv(T a){
@@ -308,13 +317,12 @@ int main(int argc, char *argv[])
     std::chrono::duration<double> elapsed = finish - start;
     cout << "Finished elapsed: " << elapsed.count() << "s" << endl;
     
-    /*
+    
     cout << "Hits:" << endl;
     for (int i = 0; i < hits.size(); ++i){
         cout << hits[i] << endl;
         cout << "Errors: " << static_cast<int> (errors_v[i]) << endl;
     }
-   
     
     if(hitsD.size() > 0){
         cout << "Direct Hits:" << endl;
@@ -323,7 +331,7 @@ int main(int argc, char *argv[])
             cout << "Errors: " << static_cast<int> (errors_vD[i]) << endl;
     }
     }
-*/
+
     }
     
 
@@ -343,8 +351,15 @@ int main(int argc, char *argv[])
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finish - start;
     cout << "Finished elapsed: " << elapsed.count() << "s" << endl;
-    }
     
+    cout << "Default Hits:" << endl;
+    for (int i = 0; i < hits.size(); ++i){
+        cout << hits[i] << endl;
+        cout << "Errors: " << static_cast<int> (errors_v[i]) << endl;
+    }    
+    
+    }
+
     return 0;
     
 }

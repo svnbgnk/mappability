@@ -208,7 +208,7 @@ template <typename TDelegate, typename TDelegateD,
           typename TNeedle,
           size_t nbrBlocks,
           typename TDir>
-bool filter_interval(TDelegate & delegate,
+void filter_interval(TDelegate & delegate,
                      TDelegateD & delegateDirect,
                      Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                      TNeedle const & needle,
@@ -218,76 +218,70 @@ bool filter_interval(TDelegate & delegate,
                      uint8_t const errors,
                      OptimalSearch<nbrBlocks> const & s,
                      uint8_t const blockIndex,
-                     Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
+                     Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
                      TDir const & /**/)
 {
     uint32_t intervalfilter_size = 3;
-    float threshold = 0.5;  //equal or more than half zeroes     
+
+      
     sdsl::bit_vector & b = bitvectors[brange.i1].first;
-    sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second;
-    rb.set_vector(&b);
-    
-    if(rb(rb.size()) / static_cast<float>(rb.size() - 1) <= threshold){
-        uint32_t startPos = brange.i2.i1, endPos = brange.i2.i2;
-        for(uint32_t i = startPos; i < endPos; ++i){
-            if(b[i] != 0)
-                break; 
-            ++startPos;
-        }
-        for(uint32_t i = startPos; i < endPos; ++i){
-            if(b[endPos - 1 - i] != 0)
-                break;
-            --endPos;
-        }
-        if(startPos > endPos)
-            cout << "Error bit vector has only zeroes this should have been checked by check_interval" << endl; 
-        cout << "Size: " << endPos - startPos << endl;
-        cout << "startPos: " << startPos << " endPos: " << endPos << endl;
-        
-        vector<pair<uint32_t, uint32_t>> consOnes;
-        uint32_t k = startPos;
-        uint32_t startOneInterval = startPos;
-        while(k < endPos){
-            uint32_t interval = 0;
-            //TODO delete second condition it should end with 1
-            while(b[k + interval] == 0 && (k + interval) < endPos){
-                ++interval;
-            }
-            if(interval >= intervalfilter_size){
-                consOnes.push_back(make_pair(startOneInterval, k));
-                startOneInterval = k + interval;
-            }
-            k += interval;
-            interval = 0;
-            ++k;
-        }
-        consOnes.push_back(make_pair(startOneInterval, k));
-        
-        for(int i = 0; i < consOnes.size(); ++i){
-            printPair(consOnes[i]);
-            if (std::is_same<TDir, Rev>::value){
-                iter.revIter.vDesc.range.i1 = consOnes[i].first;
-                iter.revIter.vDesc.range.i2 = consOnes[i].second;
-                //TODO already checked if we are in the last block so no need for std::min
-                //TODO call function with unidirectional iter
-                _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Rev());
-            }
-            else
-            {
-                //TODO does it everything above work for reverse?
-                iter.fwdIter.vDesc.range.i1 = consOnes[i].first;
-                iter.fwdIter.vDesc.range.i2 = consOnes[i].second;
-                //TODO call function with unidirectional iter
-                _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Fwd());
-            }
-        }
-        cout << endl;
-        return(true);
-    }
+    //TODO load all bitvectors again
+/*    
+ * //TODO need bitvector 
+    int n;
+    if(std::is_same<TDir, Rev>::value)
+        n = 4 + s.max[blockIndex];
     else
-    {
-        return(false);
-    }    
+        n = s.min[blockIndex];
+    uint32_t number_of_indeces = seqan::length(iter.fwdIter.index->sa) - bitvectors[needed_bitvector].first.size();
+    cout << "selected bitvector: " << (int)needed_bitvector << endl;
+//     cout << "Sa Range: " << dirrange << endl;  
+    dirrange.i1 = dirrange.i1 - number_of_indeces;
+    dirrange.i2 = dirrange.i2 - number_of_indeces;
+    //TODO create correct range 
+    //TODO brange is no longer needed as input
+    */
+  
+
+        
+    vector<pair<uint32_t, uint32_t>> consOnes;
+    uint32_t k = brange.i2.i1;
+    uint32_t startOneInterval = brange.i2.i1;
+    while(k < brange.i2.i2){
+        uint32_t interval = 0;
+        //TODO delete second condition it should end with 1
+        while(b[k + interval] == 0 && (k + interval) < brange.i2.i2){
+            ++interval;
+        }
+        if(interval >= intervalfilter_size){
+            consOnes.push_back(make_pair(startOneInterval, k));
+            startOneInterval = k + interval;
+        }
+        k += interval;
+        interval = 0;
+        ++k;
+    }
+    consOnes.push_back(make_pair(startOneInterval, k));
+    uint32_t noi = seqan::length(iter.fwdIter.index->sa) - bitvectors[0].first.size(); // number_of_indeces
+    
+    for(int i = 0; i < consOnes.size(); ++i){
+         cout << "Print Bit Range";
+         printPair(consOnes[i]);
+         cout << endl;
+        if (std::is_same<TDir, Rev>::value){
+            //TODO call DirectSearch here if the interval is to small also use block Index ....?
+            iter.revIter.vDesc.range.i1 = consOnes[i].first + noi;
+            iter.revIter.vDesc.range.i2 = consOnes[i].second + noi;
+            _optimalSearchScheme(delegate, delegateDirect, iter.revIter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Rev());
+        }
+        else
+        {
+            //TODO does it everything above work for reverse?
+            iter.fwdIter.vDesc.range.i1 = consOnes[i].first + noi;
+            iter.fwdIter.vDesc.range.i2 = consOnes[i].second + noi;
+            _optimalSearchScheme(delegate, delegateDirect, iter.fwdIter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Fwd());
+        }
+    } 
 }
 
 template <typename TDelegateD,
@@ -429,6 +423,7 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval(Iter<Index<TText,
         needed_bitvector = 0;   //BV::RIGHT;
     else
         needed_bitvector = 1;   //BV::MIDDLE;
+    //TODO only change values on the right
     
 //     if (std::is_same<TDir, Rev>::value)
 //         needed_bitvector = s.min[blockIndex] - 1;//mymin(s.pi, blockIndex) - 1;
@@ -451,11 +446,27 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval(Iter<Index<TText,
 
 template<size_t nbrBlocks>
 ReturnCode check_interval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
-                           Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
-                           OptimalSearch<nbrBlocks> const & s)
+                           Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
+                           OptimalSearch<nbrBlocks> const & s,
+                           uint8_t const blockIndex)
 {
-    sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second;
-    rb.set_vector(&bitvectors[brange.i1].first);
+    sdsl::bit_vector & b = bitvectors[brange.i1].first;
+    sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second; //redo
+    rb.set_vector(&b);//redo
+    
+/*    
+    srand (time(0));
+    cout << "Print random generated bit vector:" << endl;
+    for(int i = brange.i2.i1; i < brange.i2.i2; ++i){
+        if((rand() % 2) == 0){
+            b[i] = 0;
+        }
+        cout << i << "  Bitt: " << b[i] << endl;
+    }
+    sdsl::rank_support_v<> rb(&b);
+    bitvectors[brange.i1].first = b;
+    bitvectors[brange.i1].second = rb;  */ 
+   
     uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
     if(ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
@@ -463,14 +474,58 @@ ReturnCode check_interval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>>
     if(ivalOne <= 3){ //TODO add additional constrains from chris? //incorparated blockIndex
         return ReturnCode::DIRECTSEARCH;
     }
-    /*
-    if(ivalOne == (brange.i2.i2 - brange.i2.i1))
-        return ReturnCode::COMPMAPPABLE;
+    
+//     if(ivalOne == (brange.i2.i2 - brange.i2.i1))
+//         return ReturnCode::COMPMAPPABLE;
 //     if(s.startUniDir == blockIndex)
 //         return ReturnCode::FIRSTTIMEUNIDIRECTIONAL   
-//     if(s.startUniDir >= blockIndex)
-//         return ReturnCode::UNIDIRECTIONAL
-    */
+    
+//TODO put into new function
+    //equal or more than half zeroes     
+    float filter_threshold = 0.5; 
+    // allowd flips per intervalSize
+    float flipDensity = 1/2;
+    float ivalSize = brange.i2.i2 - brange.i2.i1;
+    if(s.startUniDir <= blockIndex && ivalOne/ ivalSize <= filter_threshold){
+        //squas interval
+        uint32_t startPos = brange.i2.i1, endPos = brange.i2.i2;
+        for(uint32_t i = startPos; i < endPos; ++i){
+            if(b[i] != 0)
+                break; 
+            ++startPos;
+        }
+        for(uint32_t i = startPos; i < endPos; ++i){
+            if(b[endPos - 1 - i] != 0)
+                break;
+            --endPos;
+        }
+        if(startPos > endPos){
+            cout << "Error bit vector has only zeroes this should have been checked by check_interval" << endl;
+            cout << "Size: " << endPos - startPos << endl;
+            exit(0);
+        }
+        // order of bits
+        bool last = b[startPos];
+        int pos = 1;
+        uint32_t count = 0; 
+        while(pos < endPos){
+            if(b[pos] != last){
+                ++count;
+                last = !last;
+            }
+            ++pos;
+        }  
+// only interested in changes inside the supinterval (startPos - endPos)
+// if 0 got Cutoff that means more changes but is at the same time also good
+// therefore ignore them
+        if(ivalSize * flipDensity - 1 <= count){
+            cout << "Continue UNIDIRECTIONAL" << endl;
+            brange.i2.i1 = startPos;
+            brange.i2.i2 = endPos;
+            return ReturnCode::UNIDIRECTIONAL;
+        }
+    }
+    
     return ReturnCode::MAPPABLE;
 }
 
@@ -492,7 +547,7 @@ ReturnCode checkCurrentMappability(TDelegate & delegate,
                             TDir const & /**/)
 {
     Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval(iter, s, blockIndex, TDir());
-    ReturnCode rcode = check_interval(bitvectors, bit_interval, s);
+    ReturnCode rcode = check_interval(bitvectors, bit_interval, s, blockIndex);
 //   cout << "Return code: " << (int)rcode << endl;
         
     if(rcode == ReturnCode::NOMAPPABILITY)
@@ -511,18 +566,15 @@ ReturnCode checkCurrentMappability(TDelegate & delegate,
         _optimalSearchSchemeChildren(delegate, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), HammingDistance());
         return ReturnCode::FINISHED;
     }
-    //TODO check if we are in one direction case  and apply filter interval
+ */
     if(rcode == ReturnCode::UNIDIRECTIONAL){
-        bool did_filter = filterCurrent_interval(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s,blockIndex, bit_interval, TDir());
-        if(did_filter)
-            return ReturnCode::FINISHED;
-    }
-    if(rcode == ReturnCode::FIRSTTIMEUNIDIRECTIONAL){
-        //TODO call same with unidirectional iter?? then stop 
+        filterCurrent_interval(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s,blockIndex, bit_interval, TDir());
         return ReturnCode::FINISHED;
-    }*/
+    }
+
     return ReturnCode::MAPPABLE;
 }
+
 
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
@@ -544,6 +596,7 @@ ReturnCode checkMappability(TDelegate & delegate,
                             bool const goToRight2,
                             TDir const & /**/)
 {
+    //TODO probably dont need needleLeftPos and needleRightPos sind there important border wasnt shifted
     bool finished = current_needleLeftPos == 0 && current_needleRightPos == length(needle) + 1;
     //check if we are done with the needle    
     if(!finished){
@@ -561,7 +614,7 @@ ReturnCode checkMappability(TDelegate & delegate,
         printbit(bitvectors, bit_interval);
         cout << "Printend" << endl;
         
-        ReturnCode rcode = check_interval(bitvectors, bit_interval, s);
+        ReturnCode rcode = check_interval(bitvectors, bit_interval, s, blockIndex);
 //      cout << "Return code: " << (int)rcode << endl;
         
         if(rcode == ReturnCode::NOMAPPABILITY){
@@ -609,19 +662,15 @@ ReturnCode checkMappability(TDelegate & delegate,
             }
             return ReturnCode::FINISHED;
         }
-        if(rcode == ReturnCode::MAPPABLE && s.startUniDir >= blockIndex){
-            bool did_filter;
+        if(rcode == ReturnCode::UNIDIRECTIONAL){
             if(goToRight2){
-                did_filter = filter_interval(delegate, delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s,blockIndex, bit_interval, Rev());
+                filter_interval(delegate, delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, Rev());
             }
             else
             {
-                did_filter = filter_interval(delegate, delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s,blockIndex, bit_interval, Fwd());
+                filter_interval(delegate, delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s,blockIndex, bit_interval, Fwd());
             }
-            
-            //TODO iter changes from iter -> iter.revIter now has the Type: ??? or do it in the function filter_interval
-            if(did_filter)
-                return ReturnCode::FINISHED;        
+            return ReturnCode::FINISHED;        
         }
         if(rcode == ReturnCode::FIRSTTIMEUNIDIRECTIONAL){
             //TODO call same function with unidirectional iter (+ normal iter)?? then stop 
@@ -806,8 +855,10 @@ inline void _optimalSearchScheme(TDelegate & delegate,
 
 //     cout << "Step: " << needleRightPos - needleLeftPos - 1 << "    ss: "; printv(s.pi); cout << endl;
     // Done. (Last step)
+    cout << "Check bidirectional Search is Finished" << endl;
     if (minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1)
     {
+        cout << "Finished bidirectional Search" << endl;
         delegate(iter, needle, errors);
     }
     // Exact search in current block.

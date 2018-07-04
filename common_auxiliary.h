@@ -9,6 +9,8 @@
 using namespace std;
 using namespace seqan;
 
+sdsl::bit_vector create_random_bit_v(int length);
+
 template <typename T> 
 void printv(T a);
 
