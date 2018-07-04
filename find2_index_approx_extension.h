@@ -313,14 +313,14 @@ void directSearch(TDelegateD & delegateDirect,
         auto const & genome = indexText(*iter.fwdIter.index);
         for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
             cout << "Direct Search Rev" << endl;
-            cout << "NLP " <<  needleLeftPos - 1 <<  endl;
+            cout << "NLP " <<  needleLeftPos <<  endl;
             if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
                 uint8_t errors2 = errors;
                 bool valid = true;
                 Pair<uint16_t, uint32_t> sa_info;
                 uint32_t startPos;
                 sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
-                startPos = sa_info.i2 - needleLeftPos + 1;
+                startPos = sa_info.i2 - needleLeftPos; //TODO maybe non 0 case is different
 //                 cout <<  "Sa info" <<  sa_info <<  endl; //TODO redo this
                 cout << "StartPos " << startPos << endl;
                 //search remaining blocks
@@ -360,6 +360,7 @@ void directSearch(TDelegateD & delegateDirect,
         for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
             if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
                 cout << "Direct Search FWD" << endl;
+                cout << "NRP " <<  needleRightPos <<  endl;
                 uint8_t errors2 = errors;
                 bool valid = true;
                 Pair<uint16_t, uint32_t> sa_info;
@@ -585,13 +586,15 @@ ReturnCode checkMappability(TDelegate & delegate,
         }
         if(rcode == ReturnCode::DIRECTSEARCH){
             cout << "DIRECTSEARCHDIRECTSEARCHDIRECTSEARCHDIRECTSEARCHDIRECTSEARCHDIRECTSEARCH" << endl;
+            cout << "NLP: " << needleLeftPos << endl;
+            cout << "NRP: " << needleRightPos << endl;
             //search directly in Genome
             //TODO I only need left value for rev and right value for fwd so delte one input?
             if(goToRight2){
-                directSearch(delegateDirect, iter, needle, bitvectors, needleRightPos, needleRightPos, errors, s, blockIndex, bit_interval, Rev());
+                directSearch(delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, Rev());
 //                 directSearchDummy(delegateDirect, iter.fwdIter, iter, needle, bitvectors, needleLeftPos , infixPosRight + 2, errors, s, blockIndex, bit_interval, Rev());
             }else{
-                directSearch(delegateDirect, iter, needle, bitvectors, needleRightPos, needleRightPos, errors, s, blockIndex, bit_interval, Fwd());
+                directSearch(delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, Fwd());
 //                 directSearchDummy(delegateDirect, iter.fwdIter, iter, needle, bitvectors, infixPosLeft , needleRightPos, errors, s, blockIndex, bit_interval, Fwd());
             }
             return ReturnCode::FINISHED;
@@ -681,10 +684,9 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
                 uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
                 bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
             
-//                 ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, goToRight2, TDir());
-//                 //TDir() is in this case Rev() ...
-//                 if(rcode == ReturnCode::FINISHED)
-//                     return;
+                ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, goToRight2, TDir());
+                if(rcode == ReturnCode::FINISHED)
+                    return;
                 
                 if (goToRight2)
                 {
