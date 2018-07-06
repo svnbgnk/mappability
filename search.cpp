@@ -10,6 +10,12 @@
 using namespace std;
 using namespace seqan;
 
+struct readOcc
+{
+    public:
+    Pair<DnaString, Pair <unsigned, unsigned>> hit;
+    uint8_t errors;
+};
 
 template <typename TText, typename TIndex, typename TIndexSpec>
 void print_fullsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
@@ -69,6 +75,37 @@ void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIn
             cout << i << ": " << sa + sequenceLengths[seq] << endl;
         }
     }
+}
+
+bool compare(std::vector<readOcc> x, std::vector<readOcc> y){
+    bool same = true;
+    if(!(x.size() == y.size())){
+        same = false;
+        cout << "MyVersion has: " << x.size() << "hits while default version has: " << y.size() << endl;
+    }
+    
+        int offset = 0;
+        for(int i = 0; i < x.size(); ++i){
+            if(x[i].hit.i2.i1 == y[i].hit.i2.i1 && x[i].hit.i2.i2 == y[i].hit.i2.i2)
+                ;
+            else{
+                cout << "MyVersion has: " << x[i].hit.i2;
+                cout << "while default version has: " << y[i].hit.i2 << endl;
+                cout << y[i].hit.i1 << endl;
+                same = false;
+                ++offset;
+            }
+        }
+    return(same);
+}
+
+
+bool occ_smaller(const readOcc& x, const readOcc& y)
+{
+    if(x.hit.i2.i1 == y.hit.i2.i1)
+        return x.hit.i2.i2 < y.hit.i2.i2;
+    else
+        return x.hit.i2.i1 < y.hit.i2.i1;
 }
 
 void printPair(pair<uint32_t, uint32_t> p){
@@ -156,6 +193,33 @@ void print_genome(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown
 
 vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(CharString const bitvectorpath, const int K){
     vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bit_vectors;
+    if(file_exists(string("") + toCString(bitvectorpath) + "l_bit_vector_" + to_string(K) + "_shift_" + to_string(0)))
+    {
+    cout << "Load the following Bitvectors:" << endl;
+    for(int i = 0; i < 10; ++i){
+        string file_name = string("") + toCString(bitvectorpath) + "r_bit_vector_" + to_string(K) + "_shift_" + to_string(i);
+        if(file_exists(file_name)){
+            sdsl::bit_vector b;
+            cout << "Filename: " << file_name << endl;
+            load_from_file(b, file_name);
+            sdsl::rank_support_v<> rb(& b);
+            bit_vectors.push_back(make_pair(b, rb));
+//              bit_vectors[i + 1].second.set_vector(&bit_vectors[i + 1].first);
+         }
+    }
+    
+    for(int i = 0; i < 10; ++i){
+         string file_name = string("") + toCString(bitvectorpath) + "l_bit_vector_" + to_string(K) + "_shift_" + to_string(i);
+         if(file_exists(file_name)){
+             sdsl::bit_vector b;
+             cout << "Filename: " << file_name << endl;
+             load_from_file(b, file_name);
+             sdsl::rank_support_v<> rb(& b);
+             bit_vectors.push_back(make_pair(b, rb));
+//              bit_vectors[i + 1].second.set_vector(&bit_vectors[i + 1].first);
+         }
+    }
+    }else{
     string file_name = string("") + toCString(bitvectorpath) + "right_bit_vector_" + to_string(K);
     if(file_exists(file_name)){
         sdsl::bit_vector b;
@@ -191,7 +255,9 @@ vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(CharString
         
     if(bit_vectors.size() != 3){
         exit(0);
-    } 
+    }
+        
+    }
     return(bit_vectors);
 }
 
@@ -264,7 +330,7 @@ int main(int argc, char *argv[])
     // load bitvectors
     
     vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bit_vectors = loadBitvectors(bitvectorpath, K);
-    cout << "Bit vectors loaded. Size: " << bit_vectors.size() << endl;
+    cout << "Bit vectors loaded. Number: " << bit_vectors.size() << endl;
     
     /*
     //Manuel reads
@@ -282,8 +348,7 @@ int main(int argc, char *argv[])
     */
 
   
-  
-    {
+    std::vector<readOcc> readOccs;
     std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hits;
     std::vector<uint8_t> errors_v;
 //     std::vector<DnaString> reps;  
@@ -296,6 +361,7 @@ int main(int argc, char *argv[])
 //         reps.push_back(representative(iter));
     };
     
+      
     std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hitsD;
     std::vector<uint8_t> errors_vD;
     auto delegateDirect = [&hitsD, &errors_vD](vector<Pair<uint16_t, uint32_t>> poss, DnaString const & needle, vector<uint8_t> errors)
@@ -305,60 +371,79 @@ int main(int argc, char *argv[])
             errors_vD.push_back(errors[i]);
         }
     };
-    
-    
+        
     cout << "Start My Search!" << endl;
     auto start = std::chrono::high_resolution_clock::now();
 //     cout.setstate(std::ios_base::failbit);
     find<0, 2>(delegate, delegateDirect, index, reads, bit_vectors);
-//     std::cout.clear();
+    //     std::cout.clear();
     cout << endl;
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finish - start;
     cout << "Finished elapsed: " << elapsed.count() << "s" << endl;
     
-    
-    cout << "Hits:" << endl;
-    for (int i = 0; i < hits.size(); ++i){
-        cout << hits[i] << endl;
-        cout << "Errors: " << static_cast<int> (errors_v[i]) << endl;
+    for(int i = 0; i < hits.size(); ++i){
+        readOcc readOcc;
+        readOcc.hit = hits[i];
+        readOcc.errors = errors_v[i];
+        readOccs.push_back(readOcc);
     }
     
-    if(hitsD.size() > 0){
-        cout << "Direct Hits:" << endl;
-        for (int i = 0; i < hitsD.size(); ++i){
-            cout << hitsD[i] << endl;
-            cout << "Errors: " << static_cast<int> (errors_vD[i]) << endl;
+    for(int i = 0; i < hitsD.size(); ++i){
+        readOcc readOcc;
+        readOcc.hit = hitsD[i];
+        readOcc.errors = errors_vD[i];
+        readOccs.push_back(readOcc);
     }
+    
+    std::sort(readOccs.begin(), readOccs.end(), occ_smaller);
+    
+    cout << "normal Hits: " << hits.size() << endl;
+    cout << "direct Hits: " << hitsD.size() << endl;
+    for(int i = 0; i < readOccs.size(); ++i){
+        cout << "Errors: "<< (int)readOccs[i].errors;
+        cout << "   "  << readOccs[i].hit << endl;
+        
     }
 
-    }
     
-
-    {
+    std::vector<readOcc> readOccsDe;
     cout << "Test default" << endl;
-    std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hits;
-    std::vector<uint8_t> errors_v;
-    auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors)
+    std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hitsDe;
+    std::vector<uint8_t> errors_vDe;
+    auto delegateDe = [&hitsDe, &errors_vDe](auto & iter, DnaString const & needle, uint8_t errors)
     {
         for (auto occ : getOccurrences(iter)){
-            hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
-            errors_v.push_back(errors);
+            hitsDe.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
+            errors_vDe.push_back(errors);
         }
     };
-    auto start = std::chrono::high_resolution_clock::now();
-    find<0, 2>(delegate, index, reads, HammingDistance());
-    auto finish = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = finish - start;
+    start = std::chrono::high_resolution_clock::now();
+    find<0, 2>(delegateDe, index, reads, HammingDistance());
+    finish = std::chrono::high_resolution_clock::now();
+    elapsed = finish - start;
     cout << "Finished elapsed: " << elapsed.count() << "s" << endl;
     
-    cout << "Default Hits:" << endl;
-    for (int i = 0; i < hits.size(); ++i){
-        cout << hits[i] << endl;
-        cout << "Errors: " << static_cast<int> (errors_v[i]) << endl;
-    }    
-    
+    for(int i = 0; i < hitsDe.size(); ++i){
+        readOcc readOcc;
+        readOcc.hit = hitsDe[i];
+        readOcc.errors = errors_vDe[i];
+        readOccsDe.push_back(readOcc);
     }
+    std::sort(readOccsDe.begin(), readOccsDe.end(), occ_smaller);
+    
+    cout << "Default Hits:" << hitsDe.size() << endl;
+    
+    for(int i = 0; i < readOccsDe.size(); ++i){
+        cout << "Errors: "<< (int)readOccsDe[i].errors;
+        cout << "   " << readOccsDe[i].hit << endl;
+        
+    }
+
+    cout << "Test if default and my version are the same: " << endl;
+    bool same = compare(readOccs, readOccsDe);
+    cout << endl << same << endl;
+    
 
     return 0;
     

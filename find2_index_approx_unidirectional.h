@@ -104,7 +104,7 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
     // not in last block and next Block is larger then current block
     bool goToRight2 = (blockIndex < s.pi.size() - 1) && s.pi[blockIndex + 1] > s.pi[blockIndex];
         //sanity check
-    if(!(std::is_same<TDir, Rev>::value ^ !goToRight2)){
+    if((blockIndex < s.pi.size() - 1) && !(std::is_same<TDir, Rev>::value ^ !goToRight2)){
         cout << "switching direction in unidirectional function" << endl;
         cout << "blockIndex: " << blockIndex << endl;
         printv(s.pi);
@@ -225,6 +225,9 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     // Done. (Last step)
     if (minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1)
     {
+        for (auto occ : getOccurrences(iter)){
+        cout << "UniSearch Hits: "<< (Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ)) << endl;
+        }
         cout << "Finished unidirectional Search" << endl;
         delegate(iter, needle, errors);
     }

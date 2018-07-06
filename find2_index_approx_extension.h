@@ -42,7 +42,7 @@ struct OptimalSearchSchemes<0, 2, TVoidType>
 };
     */
 enum class ReturnCode {
-	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, ONEDIRECTION, MAPPABLE, FINISHED, UNIDIRECTIONAL, FIRSTTIMEUNIDIRECTIONAL, ERROR
+	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, ONEDIRECTION, MAPPABLE, FINISHED, UNIDIRECTIONAL, SUSPECTEUNIDIRECTIONAL, ERROR
 };
 
 enum class BV {
@@ -218,14 +218,11 @@ void filter_interval(TDelegate & delegate,
                      uint8_t const errors,
                      OptimalSearch<nbrBlocks> const & s,
                      uint8_t const blockIndex,
-                     Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
+                     Pair<uint8_t, Pair<uint32_t, uint32_t>> & inside_bit_interval,
                      TDir const & /**/)
 {
-    uint32_t intervalfilter_size = 3;
-
-      
-    sdsl::bit_vector & b = bitvectors[brange.i1].first;
-    //TODO load all bitvectors again
+    uint32_t intervalfilter_size = 3;      
+    sdsl::bit_vector & b = bitvectors[inside_bit_interval.i1].first;
 /*    
  * //TODO need bitvector 
     int n;
@@ -239,18 +236,23 @@ void filter_interval(TDelegate & delegate,
     dirrange.i1 = dirrange.i1 - number_of_indeces;
     dirrange.i2 = dirrange.i2 - number_of_indeces;
     //TODO create correct range 
-    //TODO brange is no longer needed as input
     */
-  
 
-        
+//     
+
+    cout << "In filterInterval" << endl;
+    printbit(bitvectors, inside_bit_interval);
+    cout << "print Sa FWD I" << endl;
+ 
+    print_sa(iter, bitvectors, true);
     vector<pair<uint32_t, uint32_t>> consOnes;
-    uint32_t k = brange.i2.i1;
-    uint32_t startOneInterval = brange.i2.i1;
-    while(k < brange.i2.i2){
+    
+    uint32_t k = inside_bit_interval.i2.i1;
+    uint32_t startOneInterval = inside_bit_interval.i2.i1;
+    while(k < inside_bit_interval.i2.i2){
         uint32_t interval = 0;
         //TODO delete second condition it should end with 1
-        while(b[k + interval] == 0 && (k + interval) < brange.i2.i2){
+        while(b[k + interval] == 0 && (k + interval) < inside_bit_interval.i2.i2){
             ++interval;
         }
         if(interval >= intervalfilter_size){
@@ -262,6 +264,7 @@ void filter_interval(TDelegate & delegate,
         ++k;
     }
     consOnes.push_back(make_pair(startOneInterval, k));
+//     consOnes.push_back(make_pair(inside_bit_interval.i2.i1, inside_bit_interval.i2.i2));
     uint32_t noi = seqan::length(iter.fwdIter.index->sa) - bitvectors[0].first.size(); // number_of_indeces
     
     for(int i = 0; i < consOnes.size(); ++i){
@@ -342,7 +345,7 @@ void directSearch(TDelegateD & delegateDirect,
                     cout << (int)errors2 << endl;
                     uint32_t occ = startPos;
                     hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
-//                     cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
+                    cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
                     errorsv.push_back(errors2);
                 }
             }
@@ -368,11 +371,11 @@ void directSearch(TDelegateD & delegateDirect,
 //                 cout <<  "Sa info" <<  sa_info <<  endl; //TODO redo this
                 cout << "StartPos " << startPos << endl;
                 //search remaining blocks             
-                
+                uint8_t blocks = s.pi.size();
                 for(int j = blockIndex; j < s.pi.size(); ++j){
-                    int blockStart = (s.pi[j] == s.pi.size()) ? 0 : s.revChronBL[s.pi[j]];
+                    int blockStart = (s.pi[j] == 1) ? 0 : s.revChronBL[s.pi.size() - s.pi[j] + 1];
 //                     int blockStart = (s.pi[j] - 2 == 0) ? 0 : s.chronblocklength[s.pi[j] - 2];
-                    cout << "searching Parts:" << blockStart << " - " << s.revChronBL[s.pi[j] - 1]  << "; ";
+                    cout << "searching Parts:" << blockStart << " - " << s.revChronBL[s.pi.size() - s.pi[j]]  << "; ";
                     
                     cout << endl;
                 
@@ -390,9 +393,9 @@ void directSearch(TDelegateD & delegateDirect,
                 if(valid){
                     cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
                     cout << (int)errors2 << endl;
-                    uint32_t occ = seqan::length(rgenome[sa_info.i1]) - startPos - 1;
+                    uint32_t occ = seqan::length(rgenome[sa_info.i1]) - startPos - length(needle);
                     hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
-//                     cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
+                    cout << "Hit occ FWD Index: " << hitsv[hitsv.size() - 1] << endl;
                     errorsv.push_back(errors2);
                 }
                 
@@ -400,6 +403,39 @@ void directSearch(TDelegateD & delegateDirect,
         }
     }
     delegateDirect(hitsv, needle, errorsv);
+}
+
+//TODO load bitvectors inside a struct to make accessing the correct bitvector easier
+template <typename TText, typename TIndex, typename TIndexSpec, size_t nbrBlocks, typename TDir>
+Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval_inside(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+                                        vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,    
+                                        OptimalSearch<nbrBlocks> const & s,
+                                        uint8_t const blockIndex,
+                                        TDir const & /**/) 
+{
+    cout << "Get Inside bitvector Interval" << endl;
+    cout << ((std::is_same<TDir, Rev>::value) ? "reverse Index" : "forward index") << endl;
+    Pair<uint32_t, uint32_t> dirrange = (std::is_same<TDir, Rev>::value) ? range(iter.revIter) : range(iter.fwdIter);
+    uint8_t needed_bitvector;
+    uint8_t size = s.pi.size();
+    uint8_t bitvsize = bitvectors.size();
+    cout << "max: " << (int)s.max[blockIndex] << endl;
+    cout << "bitvsize: " << (int)bitvsize << "end bitvector size" << endl;
+    if (std::is_same<TDir, Rev>::value)
+        needed_bitvector = bitvsize - s.max[blockIndex];      
+    else
+        needed_bitvector = s.min[blockIndex] - 1;
+
+
+    uint32_t number_of_indeces = seqan::length(iter.fwdIter.index->sa) - bitvectors[needed_bitvector].first.size();
+    cout << "selected bitvector inside: " << (int)needed_bitvector << endl;
+//     cout << "Sa Range: " << dirrange << endl;  
+    dirrange.i1 = dirrange.i1 - number_of_indeces;
+    dirrange.i2 = dirrange.i2 - number_of_indeces;
+//     cout << "Bit Range: " << dirrange << endl;  
+    
+    Pair<uint8_t, Pair<uint32_t, uint32_t>> brange(needed_bitvector, dirrange);
+    return brange;
 }
 
 template <typename TText, typename TIndex, typename TIndexSpec, size_t nbrBlocks, typename TDir>
@@ -413,24 +449,24 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval(Iter<Index<TText,
     
     Pair<uint32_t, uint32_t> dirrange = (std::is_same<TDir, Rev>::value) ? range(iter.fwdIter) : range(iter.revIter);
     uint8_t needed_bitvector;
-    //TODO just check first position if == size then FWD Index == 1 then BWD Index otherwise middle
+    uint8_t bitvsize = bitvectors.size();
     
-    int const size = s.pi.size();
-    int const firstE = s.pi[0];
-    if(firstE == size)
-        needed_bitvector = 2;   //BV::LEFT;
-    else if(firstE == 1)
-        needed_bitvector = 0;   //BV::RIGHT;
-    else
-        needed_bitvector = 1;   //BV::MIDDLE;
-    //TODO only change values on the right
-    
-//     if (std::is_same<TDir, Rev>::value)
-//         needed_bitvector = s.min[blockIndex] - 1;//mymin(s.pi, blockIndex) - 1;
-//     else
-//         needed_bitvector = bitvectors.size() - s.max[blockIndex];// + 1 - 1//mymax(s.pi, blockIndex) - 1;
-//     
-    //TODO find out why this does not work and dont have to use bitvectors as an input
+    uint8_t size = s.pi.size();
+    uint8_t firstE = s.pi[0];
+    if(bitvsize == 3){
+        if(firstE == size)
+            needed_bitvector = 2; //BV::LEFT;
+        else if(firstE == 1)
+            needed_bitvector = 0; //BV::RIGHT;
+        else 
+            needed_bitvector = 1; //BV::MIDDLE;
+    }else{
+        if (std::is_same<TDir, Rev>::value)
+                needed_bitvector = s.min[blockIndex] - 1;//mymin(s.pi, blockIndex) - 1;
+            else
+                needed_bitvector = bitvsize - s.max[blockIndex];// + 1 - 1//mymax(s.pi, blockIndex) - 1; 
+    }
+    //TODO find out why this does not work
     //uint32_t number_of_indeces = countSequences(iter.fwdIter.index);
 //     cout << "maxe: " << (int)s.max[blockIndex] << endl;
     uint32_t number_of_indeces = seqan::length(iter.fwdIter.index->sa) - bitvectors[needed_bitvector].first.size();
@@ -444,15 +480,17 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval(Iter<Index<TText,
     return brange;
 }
 
-template<size_t nbrBlocks>
-ReturnCode check_interval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
-                           Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
-                           OptimalSearch<nbrBlocks> const & s,
-                           uint8_t const blockIndex)
+template<typename TText, typename TIndex, typename TIndexSpec, size_t nbrBlocks, typename TDir>
+ReturnCode check_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+                          vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
+                          Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
+                          OptimalSearch<nbrBlocks> const & s,
+                          uint8_t const blockIndex,
+                          TDir const & /**/)
 {
     sdsl::bit_vector & b = bitvectors[brange.i1].first;
-    sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second; //redo
-    rb.set_vector(&b);//redo
+    sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second; 
+    rb.set_vector(&b);
     
 /*    
     srand (time(0));
@@ -471,60 +509,79 @@ ReturnCode check_interval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>>
     if(ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
 
-    if(ivalOne <= 3){ //TODO add additional constrains from chris? //incorparated blockIndex
+    if(ivalOne < 4){ //TODO add additional constrains from chris? //incorparated blockIndex (s.pi.size() - blockIndex - 1) * 2
         return ReturnCode::DIRECTSEARCH;
     }
     
 //     if(ivalOne == (brange.i2.i2 - brange.i2.i1))
 //         return ReturnCode::COMPMAPPABLE;
-//     if(s.startUniDir == blockIndex)
-//         return ReturnCode::FIRSTTIMEUNIDIRECTIONAL   
+    
+ /*   
+    
     
 //TODO put into new function
     //equal or more than half zeroes     
     float filter_threshold = 0.5; 
     // allowd flips per intervalSize
-    float flipDensity = 1/2;
+    float flipDensity = 1/static_cast<float>(2);
     float ivalSize = brange.i2.i2 - brange.i2.i1;
+    //TODO check if we are in a block this can only be used between to blocks
     if(s.startUniDir <= blockIndex && ivalOne/ ivalSize <= filter_threshold){
+        // need bitinterval from inside the pattern to filter according to the mappability form
+        //therefore i also need to acces the block before because of that block i got mappability of both sides
+        auto bit_interval = get_bitvector_interval_inside(iter, bitvectors, s, blockIndex - 1, TDir());
+        sdsl::bit_vector & b2 = bitvectors[bit_interval.i1].first;
+        
+        
         //squas interval
-        uint32_t startPos = brange.i2.i1, endPos = brange.i2.i2;
+        uint32_t startPos = bit_interval.i2.i1, endPos = bit_interval.i2.i2;
+        
         for(uint32_t i = startPos; i < endPos; ++i){
-            if(b[i] != 0)
+            if(b2[i] != 0)
                 break; 
             ++startPos;
         }
-        for(uint32_t i = startPos; i < endPos; ++i){
-            if(b[endPos - 1 - i] != 0)
+        for(uint32_t i = endPos - 1; i >= startPos; --i){
+            if(b2[i] != 0)
                 break;
             --endPos;
         }
+        
         if(startPos > endPos){
             cout << "Error bit vector has only zeroes this should have been checked by check_interval" << endl;
             cout << "Size: " << endPos - startPos << endl;
             exit(0);
         }
         // order of bits
-        bool last = b[startPos];
-        int pos = 1;
+        bool last = b2[startPos];
+        uint32_t pos = startPos;
         uint32_t count = 0; 
         while(pos < endPos){
-            if(b[pos] != last){
+            if(b2[pos] != last){
                 ++count;
                 last = !last;
             }
             ++pos;
         }  
+// if next condition is true then brange will be modified!!!!
+// it will contain mappability of the bitvector from the other side of already searched needle
+    
 // only interested in changes inside the supinterval (startPos - endPos)
 // if 0 got Cutoff that means more changes but is at the same time also good
 // therefore ignore them
-        if(ivalSize * flipDensity - 1 <= count){
+        cout << "Test flipdensitey " << endl;
+        cout << brange << endl;
+        cout << ivalSize * flipDensity - 1 << endl;
+        cout << "count: " << count << endl;
+        if(ivalSize * flipDensity - 1 > static_cast<float>(count)){
             cout << "Continue UNIDIRECTIONAL" << endl;
+            brange.i1 = bit_interval.i1;
             brange.i2.i1 = startPos;
             brange.i2.i2 = endPos;
             return ReturnCode::UNIDIRECTIONAL;
         }
     }
+    */
     
     return ReturnCode::MAPPABLE;
 }
@@ -547,7 +604,8 @@ ReturnCode checkCurrentMappability(TDelegate & delegate,
                             TDir const & /**/)
 {
     Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval(iter, s, blockIndex, TDir());
-    ReturnCode rcode = check_interval(bitvectors, bit_interval, s, blockIndex);
+    ReturnCode rcode = check_interval(iter, bitvectors, bit_interval, s, blockIndex, TDir());
+    //TODO create function for case SUSPECTEUNIDIRECTIONAL
 //   cout << "Return code: " << (int)rcode << endl;
         
     if(rcode == ReturnCode::NOMAPPABILITY)
@@ -614,7 +672,9 @@ ReturnCode checkMappability(TDelegate & delegate,
         printbit(bitvectors, bit_interval);
         cout << "Printend" << endl;
         
-        ReturnCode rcode = check_interval(bitvectors, bit_interval, s, blockIndex);
+        cout << "Current Selected Bitv: " << bit_interval << endl;
+        ReturnCode rcode = check_interval(iter, bitvectors, bit_interval, s, blockIndex, TDir());
+        cout << "New Selected Bitv? " << bit_interval << endl;
 //      cout << "Return code: " << (int)rcode << endl;
         
         if(rcode == ReturnCode::NOMAPPABILITY){
@@ -671,10 +731,6 @@ ReturnCode checkMappability(TDelegate & delegate,
                 filter_interval(delegate, delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s,blockIndex, bit_interval, Fwd());
             }
             return ReturnCode::FINISHED;        
-        }
-        if(rcode == ReturnCode::FIRSTTIMEUNIDIRECTIONAL){
-            //TODO call same function with unidirectional iter (+ normal iter)?? then stop 
-            return ReturnCode::FINISHED;
         }
     }else{
         cout << "Already finished" << endl;
@@ -858,6 +914,9 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     cout << "Check bidirectional Search is Finished" << endl;
     if (minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1)
     {
+        for (auto occ : getOccurrences(iter)){
+        cout << "BiSearch Hits: "<< (Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ)) << endl;
+        }
         cout << "Finished bidirectional Search" << endl;
         delegate(iter, needle, errors);
     }

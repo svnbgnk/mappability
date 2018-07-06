@@ -52,7 +52,7 @@ vector<uint8_t> read(const string mappability_path){
     return(mappability_int); 
 }
 
-
+/*
 bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const int len, double threshold, const int errors){
     bitvectors b;
     int th = round(1/threshold);    
@@ -122,12 +122,74 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
     b.names.push_back("l_bit_vector_" + to_string(len) + "_shift_0");
     b.fwdd.push_back(false);
     return(b);
+}*/
+
+
+template <unsigned errors>
+bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const int len, double threshold){
+    bitvectors b;
+    int th = round(1/threshold);
+    
+    auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
+    _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
+    _optimalSearchSchemeSetMapParams(scheme);
+    auto s = scheme[0];
+    sdsl::bit_vector righti (mappability.size() + len - 1, 0);
+    sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
+    #pragma omp parallel for schedule(static)   
+    for(unsigned i = 0; i < mappability.size(); ++i){
+        lefti[i + len - 1] = (mappability[i] <= th);
+        righti[i] = (mappability[i] <= th);
+    }
+    cout << "Finished Default Bit Vectors.  Length: " << righti.size() << endl;
+ 
+    
+    b.bv.push_back(righti);
+    b.names.push_back("r_bit_vector_" + to_string(len) + "_shift_0");
+    b.fwdd.push_back(true);
+
+    uint8_t blocks = errors + 2;
+    if(errors != 0){
+        for(int i = 0; i < blocks - 1; ++i){
+            sdsl::bit_vector newright(mappability.size() + len - 1, 0); //TODO think 0 or 1 in edge cases
+            int shift = s.chronBL[i];
+            cout << "shift for r_bit  " << shift << endl;
+            cout << "name:  " << i + 1 << endl; 
+            for(int j = 0; j < righti.size(); ++j){
+                if(j - shift >= 0)
+                    newright[j] = righti[j - shift];
+            }
+            b.bv.push_back(newright);
+            b.names.push_back("r_bit_vector_" + to_string(len) + "_shift_" + to_string(i + 1));
+            b.fwdd.push_back(true);
+        }
+        
+        for(int i = 1; i < blocks; ++i){
+            sdsl::bit_vector newleft(mappability.size() + len - 1, 0);//TODO think 0 or 1 in edge cases
+            int shift = s.revChronBL[blocks - i];
+            cout << "shift for l_bit  " << shift << endl;
+            cout << "name:  " << i << endl; 
+            for(int j = 0; j < righti.size(); ++j){
+                if(j + shift < lefti.size() - 1)
+                    newleft[j] = lefti[j + shift];
+            }
+            b.bv.push_back(newleft);
+            b.names.push_back("l_bit_vector_" + to_string(len) + "_shift_" + to_string(i));
+            b.fwdd.push_back(false);
+        }
+    }
+    
+    b.bv.push_back(lefti);
+    b.names.push_back("l_bit_vector_" + to_string(len) + "_shift_0");
+    b.fwdd.push_back(false);
+    return(b);
 }
 
 
 template <unsigned errors>
 bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int len, double threshold){
 
+    cout << "Create minimum amount of bitvectors" << endl;
     int th = round(1/threshold);     
     bitvectors b;
     sdsl::bit_vector righti (mappability.size() + len - 1, 0);
@@ -204,20 +266,36 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int le
 }
 
 
-bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int len, double threshold, const int errors){
+bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int len, double threshold, bool const bit3, const int errors){
     bitvectors result;
-    switch (errors)
-    {
-        case 0: result = create_bit_vectors<0>(mappability, len, threshold);
-                break;
-        case 1: result = create_bit_vectors<1>(mappability, len, threshold);
-                break;
-        case 2: result = create_bit_vectors<2>(mappability, len, threshold);
-                break;
-        case 3: result = create_bit_vectors<3>(mappability, len, threshold);
-                break;
-        default: cerr << "E = " << errors << " not yet supported.\n";
-                     exit(1);
+    if(bit3){
+        switch (errors)
+        {
+            case 0: result = create_bit_vectors<0>(mappability, len, threshold);
+                    break;
+            case 1: result = create_bit_vectors<1>(mappability, len, threshold);
+                    break;
+            case 2: result = create_bit_vectors<2>(mappability, len, threshold);
+                    break;
+            case 3: result = create_bit_vectors<3>(mappability, len, threshold);
+                    break;
+            default: cerr << "E = " << errors << " not yet supported.\n";
+                    exit(1);
+        }
+    }else{
+        switch (errors)
+        {
+            case 0: result = create_all_bit_vectors<0>(mappability, len, threshold);
+                    break;
+            case 1: result = create_all_bit_vectors<1>(mappability, len, threshold);
+                    break;
+            case 2: result = create_all_bit_vectors<2>(mappability, len, threshold);
+                    break;
+            case 3: result = create_all_bit_vectors<3>(mappability, len, threshold);
+                    break;
+            default: cerr << "E = " << errors << " not yet supported.\n";
+                    exit(1);
+        }
     }
     return(result);    
 }
@@ -250,7 +328,7 @@ void print_SA(CharString const indexPath, vector<sdsl::bit_vector> &bit_vectors,
             sa_j = index.rev.sa[j].i2;
             seq = index.rev.sa[j].i1;
         }
-        outfile << j << " " << "(" << seq << ", " << sa_j << "):\t" << sa_j + sequenceLengths[seq] << endl;
+        outfile << j << " " << "(" << seq << ", " << sa_j << "):\t" << sa_j + sequenceLengths[seq] << "\n";
     }
     outfile.close();
 //     for(int i = 0; i < 10; ++i){
@@ -354,6 +432,9 @@ int main(int argc, char *argv[])
         "This makes the algorithm only slightly slower but the index does not have to be loaded into main memory "
         "(which takes some time)."));
     
+    addOption(parser, ArgParseOption("min", "3bitversion",
+        "Only create the required 3 bitvectors needed for acquiring mappability in non-unidirectional cases"));
+    
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
     if (res != ArgumentParser::PARSE_OK)
         return res == ArgumentParser::PARSE_ERROR;
@@ -372,6 +453,7 @@ int main(int argc, char *argv[])
     getOptionValue(errors, parser, "errors");
     bool debug = isSet(parser, "debug");
     bool mmap = isSet(parser, "mmap");
+    bool bit3 = isSet(parser, "3bitversion");
     
     StringSet<CharString> ids;
     CharString alphabet;
@@ -394,10 +476,8 @@ int main(int argc, char *argv[])
 //     cout << endl;
     
     
-    bitvectors result = create_bit_vectors(mappability, len, threshold, errors);
+    bitvectors result = create_bit_vectors(mappability, len, threshold, bit3, errors);
 
-
-    cout << "finished" << endl;
     cout << mytime() << "Finished bit vectors." << endl;
 
     if(debug)
@@ -408,15 +488,15 @@ int main(int argc, char *argv[])
             outfile.close();
             
         }
-        print_SA(indexPath, result.bv, outputPath, true);
-        print_SA(indexPath, result.bv, outputPath, false);
+//         print_SA(indexPath, result.bv, outputPath, true);
+//         print_SA(indexPath, result.bv, outputPath, false);
     
     }
     
-    cout << "Start sorting" << endl;
+    cout << "Start sorting of bit vectors" << endl;
     //order in suffix array
     order_bit_vector(result, indexPath, mmap, alphabet);
-    cout << mytime() << "Ordering (Suffix array) bit vectors" << endl;
+    cout << mytime() << "Finished sorting" << endl;
     for(int i = 0; i < result.bv.size(); ++i){
         sdsl::store_to_file(result.bv[i], toCString(outputPath) + result.names[i]);
         if(debug){
