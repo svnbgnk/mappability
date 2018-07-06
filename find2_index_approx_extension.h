@@ -246,7 +246,7 @@ void filter_interval(TDelegate & delegate,
  
     print_sa(iter, bitvectors, true);
     vector<pair<uint32_t, uint32_t>> consOnes;
-    
+    /*
     uint32_t k = inside_bit_interval.i2.i1;
     uint32_t startOneInterval = inside_bit_interval.i2.i1;
     while(k < inside_bit_interval.i2.i2){
@@ -263,8 +263,8 @@ void filter_interval(TDelegate & delegate,
         interval = 0;
         ++k;
     }
-    consOnes.push_back(make_pair(startOneInterval, k));
-//     consOnes.push_back(make_pair(inside_bit_interval.i2.i1, inside_bit_interval.i2.i2));
+    consOnes.push_back(make_pair(startOneInterval, k));*/
+    consOnes.push_back(make_pair(inside_bit_interval.i2.i1, inside_bit_interval.i2.i2)); //TODO revert this
     uint32_t noi = seqan::length(iter.fwdIter.index->sa) - bitvectors[0].first.size(); // number_of_indeces
     
     for(int i = 0; i < consOnes.size(); ++i){
@@ -405,7 +405,7 @@ void directSearch(TDelegateD & delegateDirect,
     delegateDirect(hitsv, needle, errorsv);
 }
 
-//TODO load bitvectors inside a struct to make accessing the correct bitvector easier
+
 template <typename TText, typename TIndex, typename TIndexSpec, size_t nbrBlocks, typename TDir>
 Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval_inside(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                         vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,    
@@ -422,10 +422,9 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval_inside(Iter<Index
     cout << "max: " << (int)s.max[blockIndex] << endl;
     cout << "bitvsize: " << (int)bitvsize << "end bitvector size" << endl;
     if (std::is_same<TDir, Rev>::value)
-        needed_bitvector = bitvsize - s.max[blockIndex];      
-    else
         needed_bitvector = s.min[blockIndex] - 1;
-
+    else
+        needed_bitvector = bitvsize - s.max[blockIndex]; 
 
     uint32_t number_of_indeces = seqan::length(iter.fwdIter.index->sa) - bitvectors[needed_bitvector].first.size();
     cout << "selected bitvector inside: " << (int)needed_bitvector << endl;
@@ -453,19 +452,20 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval(Iter<Index<TText,
     
     uint8_t size = s.pi.size();
     uint8_t firstE = s.pi[0];
-    if(bitvsize == 3){
-        if(firstE == size)
-            needed_bitvector = 2; //BV::LEFT;
-        else if(firstE == 1)
-            needed_bitvector = 0; //BV::RIGHT;
-        else 
-            needed_bitvector = 1; //BV::MIDDLE;
+    if(firstE == size){
+        needed_bitvector = bitvsize - 1;//2;   //BV::LEFT;
+    }else if(firstE == 1){
+        needed_bitvector = 0;   //BV::RIGHT;
     }else{
-        if (std::is_same<TDir, Rev>::value)
+        if(bitvsize == 3){
+            needed_bitvector = 1;   //BV::MIDDLE;
+        }else{
+            if (std::is_same<TDir, Rev>::value)
                 needed_bitvector = s.min[blockIndex] - 1;//mymin(s.pi, blockIndex) - 1;
             else
                 needed_bitvector = bitvsize - s.max[blockIndex];// + 1 - 1//mymax(s.pi, blockIndex) - 1; 
-    }
+        }
+    }   
     //TODO find out why this does not work
     //uint32_t number_of_indeces = countSequences(iter.fwdIter.index);
 //     cout << "maxe: " << (int)s.max[blockIndex] << endl;
@@ -516,14 +516,11 @@ ReturnCode check_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree
 //     if(ivalOne == (brange.i2.i2 - brange.i2.i1))
 //         return ReturnCode::COMPMAPPABLE;
     
- /*   
-    
-    
 //TODO put into new function
     //equal or more than half zeroes     
     float filter_threshold = 0.5; 
     // allowd flips per intervalSize
-    float flipDensity = 1/static_cast<float>(2);
+    float flipDensity = 1/2;
     float ivalSize = brange.i2.i2 - brange.i2.i1;
     //TODO check if we are in a block this can only be used between to blocks
     if(s.startUniDir <= blockIndex && ivalOne/ ivalSize <= filter_threshold){
@@ -535,7 +532,6 @@ ReturnCode check_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree
         
         //squas interval
         uint32_t startPos = bit_interval.i2.i1, endPos = bit_interval.i2.i2;
-        
         for(uint32_t i = startPos; i < endPos; ++i){
             if(b2[i] != 0)
                 break; 
@@ -546,7 +542,6 @@ ReturnCode check_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree
                 break;
             --endPos;
         }
-        
         if(startPos > endPos){
             cout << "Error bit vector has only zeroes this should have been checked by check_interval" << endl;
             cout << "Size: " << endPos - startPos << endl;
@@ -554,7 +549,7 @@ ReturnCode check_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree
         }
         // order of bits
         bool last = b2[startPos];
-        uint32_t pos = startPos;
+        int pos = 1;
         uint32_t count = 0; 
         while(pos < endPos){
             if(b2[pos] != last){
@@ -569,11 +564,7 @@ ReturnCode check_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree
 // only interested in changes inside the supinterval (startPos - endPos)
 // if 0 got Cutoff that means more changes but is at the same time also good
 // therefore ignore them
-        cout << "Test flipdensitey " << endl;
-        cout << brange << endl;
-        cout << ivalSize * flipDensity - 1 << endl;
-        cout << "count: " << count << endl;
-        if(ivalSize * flipDensity - 1 > static_cast<float>(count)){
+        if(ivalSize * flipDensity - 1 <= count){
             cout << "Continue UNIDIRECTIONAL" << endl;
             brange.i1 = bit_interval.i1;
             brange.i2.i1 = startPos;
@@ -581,7 +572,6 @@ ReturnCode check_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree
             return ReturnCode::UNIDIRECTIONAL;
         }
     }
-    */
     
     return ReturnCode::MAPPABLE;
 }
