@@ -313,10 +313,9 @@ void directSearch(TDelegateD & delegateDirect,
                 cout << "NLP " <<  needleLeftPos <<  endl;
                 uint8_t errors2 = errors;
                 bool valid = true;
-                Pair<uint16_t, uint32_t> sa_info;
-                uint32_t startPos;
-                sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
-                startPos = sa_info.i2 - needleLeftPos; //TODO maybe non 0 case is different
+                Pair<uint16_t, uint32_t> sa_info= iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
+                uint32_t startPos = sa_info.i2 - needleLeftPos;
+
 //                 cout <<  "Sa info" <<  sa_info <<  endl; //TODO redo this
                 cout << "StartPos " << startPos << endl;
                 //search remaining blocks
@@ -360,11 +359,8 @@ void directSearch(TDelegateD & delegateDirect,
                 cout << "NRP " <<  needleRightPos <<  endl;
                 uint8_t errors2 = errors;
                 bool valid = true;
-                Pair<uint16_t, uint32_t> sa_info;
-                uint32_t startPos;
-                sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
-                startPos = sa_info.i2 - (length(needle) - needleRightPos + 1);
-
+                Pair<uint16_t, uint32_t> sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
+                uint32_t startPos = sa_info.i2 - (length(needle) - needleRightPos + 1);
                 // iter.fwdIter.vDesc.range.i1 is not the same brange.i2.i1 since sentinels are at the beginning!!!
 //                 cout <<  "Sa info" <<  sa_info <<  endl; //TODO redo this
                 cout << "StartPos " << startPos << endl;
