@@ -238,13 +238,11 @@ void filter_interval(TDelegate & delegate,
     //TODO create correct range 
     */
 
-//     
-
     cout << "In filterInterval" << endl;
     printbit(bitvectors, inside_bit_interval);
-    cout << "print Sa FWD I" << endl;
- 
-    print_sa(iter, bitvectors, true);
+    
+    cout << "Print reverse index" << endl;
+    print_sa(iter, bitvectors, false);
     vector<pair<uint32_t, uint32_t>> consOnes;
     
     uint32_t k = inside_bit_interval.i2.i1;
@@ -668,10 +666,7 @@ ReturnCode checkMappability(TDelegate & delegate,
             print_sa(iter, bitvectors, false);
         printbit(bitvectors, bit_interval);
         cout << "Printend" << endl;
-        
-        cout << "Current Selected Bitv: " << bit_interval << endl;
         ReturnCode rcode = check_interval(iter, bitvectors, bit_interval, s, blockIndex, TDir());
-        cout << "New Selected Bitv? " << bit_interval << endl;
 //      cout << "Return code: " << (int)rcode << endl;
         
         if(rcode == ReturnCode::NOMAPPABILITY){

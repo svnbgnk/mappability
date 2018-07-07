@@ -62,18 +62,19 @@ void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIn
         // cumulative sum seq
     for(int i = 1; i < sequenceLengths.size(); ++i)
         sequenceLengths[i] += (sequenceLengths[i - 1]);
-    if(!fwd){
-        for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
-            int seq = iter.revIter.index->sa[i].i1;
-            int sa = iter.revIter.index->sa[i].i2;
-            cout << i << ": " << iter.revIter.index->sa[i] << endl;
-        }
-    }else{
+    if(fwd){
         for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
             int seq = iter.fwdIter.index->sa[i].i1;
             int sa = iter.fwdIter.index->sa[i].i2;
             cout << i << ": " << sa + sequenceLengths[seq] << endl;
         }
+    }else{
+        for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
+            int seq = iter.revIter.index->sa[i].i1;
+            int sa = iter.revIter.index->sa[i].i2;
+            cout << i << ": " << sequenceLengths[seq + 1] - sa - 1 << endl;
+        }
+
     }
 }
 
@@ -397,6 +398,20 @@ int main(int argc, char *argv[])
     vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bit_vectors = loadBitvectors(bitvectorpath, K);
     cout << "Bit vectors loaded. Number: " << bit_vectors.size() << endl;
     
+    
+    
+    int size = seqan::length(it.fwdIter.index->sa);
+    uint32_t number_of_indeces = size - bit_vectors[0].first.size();
+    vector<int> sequenceLengths(number_of_indeces + 1, 0);
+    for(int i = 0; i < number_of_indeces; ++i)
+        sequenceLengths[it.fwdIter.index->sa[i].i1 + 1] = it.fwdIter.index->sa[i].i2;
+        // cumulative sum seq
+    for(int i = 1; i < sequenceLengths.size(); ++i)
+        sequenceLengths[i] += (sequenceLengths[i - 1]);
+    cout << "sequenceLengths: " << endl;
+    for(int i = 0; i < sequenceLengths.size(); ++i)
+        cout << sequenceLengths[i] << endl;
+        
     /*
     //Manuel reads
     
@@ -417,6 +432,7 @@ int main(int argc, char *argv[])
     std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hits;
     std::vector<uint8_t> errors_v;
 //     std::vector<DnaString> reps;  
+    //TODO correct hit also for only reverse index
     auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors)
     {
         for (auto occ : getOccurrences(iter)){
