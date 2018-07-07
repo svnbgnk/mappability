@@ -77,28 +77,6 @@ void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIn
     }
 }
 
-bool compare(std::vector<readOcc> x, std::vector<readOcc> y){
-    bool same = true;
-    if(!(x.size() == y.size())){
-        same = false;
-        cout << "MyVersion has: " << x.size() << "hits while default version has: " << y.size() << endl;
-    }
-    
-        int offset = 0;
-        for(int i = 0; i < x.size(); ++i){
-            if(x[i].hit.i2.i1 == y[i].hit.i2.i1 && x[i].hit.i2.i2 == y[i].hit.i2.i2)
-                ;
-            else{
-                cout << "MyVersion has: " << x[i].hit.i2;
-                cout << "while default version has: " << y[i].hit.i2 << endl;
-                cout << y[i].hit.i1 << endl;
-                same = false;
-                ++offset;
-            }
-        }
-    return(same);
-}
-
 
 bool occ_smaller(const readOcc& x, const readOcc& y)
 {
@@ -106,6 +84,93 @@ bool occ_smaller(const readOcc& x, const readOcc& y)
         return x.hit.i2.i2 < y.hit.i2.i2;
     else
         return x.hit.i2.i1 < y.hit.i2.i1;
+}
+
+std::vector<readOcc> print_readocc_sorted(std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hits, std::vector<uint8_t> errors_v)
+{
+    std::vector<readOcc> readOccs;
+    for(int i = 0; i < hits.size(); ++i){
+        readOcc readOcc;
+        readOcc.hit = hits[i];
+        readOcc.errors = errors_v[i];
+        readOccs.push_back(readOcc);
+    }
+    std::sort(readOccs.begin(), readOccs.end(), occ_smaller);
+    
+    cout << "Default Hits:" << hits.size() << endl;
+    
+    for(int i = 0; i < readOccs.size(); ++i){
+        cout << "Errors: "<< (int)readOccs[i].errors;
+        cout << "   " << readOccs[i].hit << endl;
+    }
+    return(readOccs);
+}
+
+
+template <size_t minErrors, size_t maxErrors,
+          typename TText, typename TIndexSpec>
+int testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+              readOcc readOcc)
+{
+    auto const & genome = indexText(index);
+    std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hits;
+    std::vector<uint8_t> errors_v;
+    auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors)
+    {
+        for (auto occ : getOccurrences(iter)){
+            hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
+            errors_v.push_back(errors);
+        }
+    };
+    
+    StringSet<DnaString> testocc;
+    DnaString part = infix(genome[readOcc.hit.i2.i1], readOcc.hit.i2.i2, readOcc.hit.i2.i2 + 100);
+    appendValue(testocc, part);
+    cout << "Search occ: " << readOcc.hit.i2.i2 << " which has seq: " << endl;
+    cout << part << endl;
+
+    find<minErrors, maxErrors>(delegate, index, testocc, HammingDistance());
+//        print_readocc_sorted(hite, errors_v);
+    cout << hits.size() << " hits!!!!!!!!!!" << endl;
+    return(hits.size());
+}
+
+template <typename TText, typename TIndexSpec>
+bool compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+             int n,
+             std::vector<readOcc> x,
+             std::vector<readOcc> y)
+{
+    bool same2 = true;
+    bool same = true;
+    if(!(x.size() == y.size())){
+        same2 = false;
+        cout << "MyVersion has: " << x.size() << "hits while default version has: " << y.size() << " hits" << endl;
+    }   
+    int offset = 0;
+    for(int i = 0; i < y.size() + offset; ++i){
+        same = false;
+        same = (i < x.size() && x[i].hit.i2.i1 == y[i + offset].hit.i2.i1 && x[i].hit.i2.i2 == y[i + offset].hit.i2.i2);
+        while(!same && i + offset < y.size()){
+            if(i < x.size())
+                cout << "MyVersion has: " << x[i].hit.i2 << " while " ;
+            cout << "default version has: " << y[i + offset].hit.i2 << endl;
+//             cout << y[i + offset].hit.i1 << endl;
+            int nhits = testread<0, 2>(index, y[i + offset]);
+            if(nhits <= n){
+                cout << "To few hits should have found this part!!!!" << endl;
+                exit(0);
+            }
+            ++offset;
+            same = (i < x.size() && x[i].hit.i2.i1 == y[i + offset].hit.i2.i1 && x[i].hit.i2.i2 == y[i + offset].hit.i2.i2);
+        }
+        if(i == x.size() - 1 && y.size() - 1 == i + offset){
+            cout << "MyVersion is correct!" << endl;
+            return(true);
+        }
+    }
+        
+    return(false);
 }
 
 void printPair(pair<uint32_t, uint32_t> p){
@@ -398,16 +463,20 @@ int main(int argc, char *argv[])
     
     std::sort(readOccs.begin(), readOccs.end(), occ_smaller);
     
+    
+    auto const & genome = indexText(index);
+    
     cout << "normal Hits: " << hits.size() << endl;
     cout << "direct Hits: " << hitsD.size() << endl;
     for(int i = 0; i < readOccs.size(); ++i){
         cout << "Errors: "<< (int)readOccs[i].errors;
         cout << "   "  << readOccs[i].hit << endl;
+//         cout << infix(genome[readOccs[i].hit.i2.i1], readOccs[i].hit.i2.i2, readOccs[i].hit.i2.i2 + 100) << endl;
         
     }
 
     
-    std::vector<readOcc> readOccsDe;
+//     std::vector<readOcc> readOccsDe;
     cout << "Test default" << endl;
     std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hitsDe;
     std::vector<uint8_t> errors_vDe;
@@ -423,7 +492,7 @@ int main(int argc, char *argv[])
     finish = std::chrono::high_resolution_clock::now();
     elapsed = finish - start;
     cout << "Finished elapsed: " << elapsed.count() << "s" << endl;
-    
+/*    
     for(int i = 0; i < hitsDe.size(); ++i){
         readOcc readOcc;
         readOcc.hit = hitsDe[i];
@@ -437,12 +506,32 @@ int main(int argc, char *argv[])
     for(int i = 0; i < readOccsDe.size(); ++i){
         cout << "Errors: "<< (int)readOccsDe[i].errors;
         cout << "   " << readOccsDe[i].hit << endl;
-        
-    }
+    }*/
+    std::vector<readOcc> readOccsDe = print_readocc_sorted(hitsDe, errors_vDe);
 
+
+
+    int threshold = 10; 
     cout << "Test if default and my version are the same: " << endl;
-    bool same = compare(readOccs, readOccsDe);
+    bool same = compare(index, threshold, readOccs, readOccsDe);
     cout << endl << same << endl;
+    
+    cout << "Test if my version is still ok:" << endl;
+    
+    
+    
+//    appendValue(testocc, "TGAGCGTAATTGTGTCGCGCGCACTGCCTGACTTTTGTT");
+/*
+        StringSet<DnaString> testocc;
+        DnaString part = infix(genome[readOcc.hit.i2.i1], readOcc.hit.i2.i2, readOcc.hit.i2.i2 + 100);
+        appendValue(testocc, part);
+        cout << "Test occ: " << i << readOcc.hit.i2.i2 << endl;
+        hitsDe.clear();
+        errors_vDe.clear();
+        find<0, 2>(delegateDe, index, testocc, HammingDistance());
+//         print_readocc_sorted(hitsDe, errors_vDe);
+        cout << hitsDe.size() << endl;*/
+    
     
 
     return 0;

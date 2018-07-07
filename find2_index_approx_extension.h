@@ -358,31 +358,28 @@ void directSearch(TDelegateD & delegateDirect,
         for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
             if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
                 cout << "Direct Search FWD" << endl;
+                cout << "blockIndex: " << (int)blockIndex << endl;
                 cout << "NRP " <<  needleRightPos <<  endl;
                 uint8_t errors2 = errors;
                 bool valid = true;
                 Pair<uint16_t, uint32_t> sa_info;
                 uint32_t startPos;
-                {
-                    sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
-                    startPos = sa_info.i2 - (length(needle) - needleRightPos + 1);
-                }
+                sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
+                startPos = sa_info.i2 - (length(needle) - needleRightPos + 1);
+
                 // iter.fwdIter.vDesc.range.i1 is not the same brange.i2.i1 since sentinels are at the beginning!!!
 //                 cout <<  "Sa info" <<  sa_info <<  endl; //TODO redo this
                 cout << "StartPos " << startPos << endl;
                 //search remaining blocks             
                 uint8_t blocks = s.pi.size();
                 for(int j = blockIndex; j < s.pi.size(); ++j){
-                    int blockStart = (s.pi[j] == 1) ? 0 : s.revChronBL[s.pi.size() - s.pi[j] + 1];
-//                     int blockStart = (s.pi[j] - 2 == 0) ? 0 : s.chronblocklength[s.pi[j] - 2];
-                    cout << "searching Parts:" << blockStart << " - " << s.revChronBL[s.pi.size() - s.pi[j]]  << "; ";
-                    
+                    int blockStart = (s.pi[j] == s.pi.size()) ? 0 : s.revChronBL[s.pi[j]];
+                    cout << "searching Parts:" << length(needle) - blockStart << " - " << length(needle) - s.revChronBL[s.pi[j] - 1]  << "; ";
                     cout << endl;
-                
                     for(int k = blockStart; k < s.revChronBL[s.pi[j] - 1]; ++k){
-//                         cout << rgenome[sa_info.i1][startPos + length(needle) - k - 1];
                         if(needle[length(needle) - k - 1] != rgenome[sa_info.i1][startPos + k])
                             ++errors2;
+                        
                     }
                     if(errors2 < s.l[j] || errors2 > s.u[j]){
                         cout << "Triggered: " << (int)errors2 << endl;
@@ -516,7 +513,7 @@ ReturnCode check_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree
 //     if(ivalOne == (brange.i2.i2 - brange.i2.i1))
 //         return ReturnCode::COMPMAPPABLE;
     
- /*   
+  
     
     
 //TODO put into new function
@@ -581,7 +578,7 @@ ReturnCode check_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree
             return ReturnCode::UNIDIRECTIONAL;
         }
     }
-    */
+    
     
     return ReturnCode::MAPPABLE;
 }
