@@ -33,6 +33,7 @@ struct Options
 #include "algo1_approx.hpp"
 #include "algo2.hpp"
 #include "algo2_approx.hpp"
+#include "algo3.hpp"
 
 using namespace std;
 using namespace seqan;
@@ -73,48 +74,52 @@ inline void run(TIndex & index, TText const & text, Options const & opt, signed 
     cout << mytime() << "Vector initialized (size: " << c.size() << ")." << endl;
 
     // TODO: won't be necessary in the future
-    if (opt.overlap == 0 && opt.threshold > 0)
+    // if (opt.overlap == 0 && opt.threshold > 0)
+    // {
+    //     switch (opt.errors)
+    //     {
+    //         case 0: runAlgo1_approx<0>(index, text, opt.length, c, opt.threads, opt.threshold);
+    //                 break;
+    //         case 1: runAlgo1_approx<1>(index, text, opt.length, c, opt.threads, opt.threshold);
+    //                 break;
+    //         case 2: runAlgo1_approx<2>(index, text, opt.length, c, opt.threads, opt.threshold);
+    //                 break;
+    //         default: cerr << "E = " << opt.errors << " not yet supported.\n";
+    //                  exit(1);
+    //     }
+    // }
+    /*else*/ if (opt.overlap > 0 && opt.threshold == 0)
     {
         switch (opt.errors)
         {
-            case 0: runAlgo1_approx<0>(index, text, opt.length, c, opt.threads, opt.threshold);
+            case 0: runAlgo3<0>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
                     break;
-            case 1: runAlgo1_approx<1>(index, text, opt.length, c, opt.threads, opt.threshold);
+            case 1: runAlgo3<1>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
                     break;
-            case 2: runAlgo1_approx<2>(index, text, opt.length, c, opt.threads, opt.threshold);
+            case 2: runAlgo3<2>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
+                    break;
+            case 3: runAlgo3<3>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
+                    break;
+            case 4: runAlgo3<4>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
                     break;
             default: cerr << "E = " << opt.errors << " not yet supported.\n";
                      exit(1);
         }
     }
-    else if (opt.overlap > 0 && opt.threshold == 0)
-    {
-        switch (opt.errors)
-        {
-            case 0: runAlgo2<0>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
-                    break;
-            case 1: runAlgo2<1>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
-                    break;
-            case 2: runAlgo2<2>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
-                    break;
-            default: cerr << "E = " << opt.errors << " not yet supported.\n";
-                     exit(1);
-        }
-    }
-    else if (opt.overlap > 0 && opt.threshold > 0)
-    {
-        switch (opt.errors)
-        {
-            case 0: runAlgo2_approx<0>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads, opt.threshold);
-                    break;
-            case 1: runAlgo2_approx<1>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads, opt.threshold);
-                    break;
-            case 2: runAlgo2_approx<2>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads, opt.threshold);
-                    break;
-            default: cerr << "E = " << opt.errors << " not yet supported.\n";
-                     exit(1);
-        }
-    }
+    // else if (opt.overlap > 0 && opt.threshold > 0)
+    // {
+    //     switch (opt.errors)
+    //     {
+    //         case 0: runAlgo2_approx<0>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads, opt.threshold);
+    //                 break;
+    //         case 1: runAlgo2_approx<1>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads, opt.threshold);
+    //                 break;
+    //         case 2: runAlgo2_approx<2>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads, opt.threshold);
+    //                 break;
+    //         default: cerr << "E = " << opt.errors << " not yet supported.\n";
+    //                  exit(1);
+    //     }
+    // }
     else
     {
         cerr << "Overlap and Threshold are currently mutually exclusive.\n";
