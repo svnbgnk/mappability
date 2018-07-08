@@ -235,12 +235,51 @@ void print_search_scheme(std::array<OptimalSearch<nbrBlocks>, N> & searchsscheme
     }
 }
 
+template <typename TIter>
+struct isBidirectionalIter
+{
+     static constexpr bool VALUE = false;
+};
+
+template <typename TText, typename TIndex, typename TIndexSpec>
+struct isBidirectionalIter<Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > >
+{
+     static constexpr bool VALUE = true;
+};
+
+
+template <typename TText, typename TConfig, typename TIndexSpec>
+void print_genome(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > it,
+                  string const & output_path, 
+                  int chr)
+{
+    if(isBidirectionalIter<decltype(it)>::VALUE){
+    }else{
+        cout << "UniDirectional Iter" << endl;
+    }
+    StringSet<DnaString> const & genome = indexText(*it.index);
+    ofstream file(output_path, ios::out | ios::binary);
+    for(int i = 0; i < chr; ++i){
+        file << (">");
+        file << to_string(i);
+        file << ("\n");
+        String<char> target;
+        DnaString test = genome[i];
+        move(target, test);
+        file << target;
+        file << ("\n");
+    }
+    file.close();
+}
 
 template <typename TText, typename TIndex, typename TIndexSpec>
 void print_genome(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it,
                   string const & output_path, 
                   int chr)
 {
+    if(isBidirectionalIter<decltype(it)>::VALUE){
+        cout << "Bidirectional Iter" << endl;
+    }
     StringSet<DnaString> const & genome = indexText(*it.fwdIter.index);
     ofstream file(output_path, ios::out | ios::binary);
     for(int i = 0; i < chr; ++i){
@@ -357,16 +396,18 @@ int main(int argc, char *argv[])
         return res == ArgumentParser::PARSE_ERROR;
     
     CharString indexPath, bitvectorpath, readspath;
+    string outputpath;
     int K, r = 0;
     getOptionValue(indexPath, parser, "index");
     getOptionValue(bitvectorpath, parser, "ibitvector");
     getOptionValue(readspath, parser, "ireads");
+    getOptionValue(outputpath, parser, "output");
     getOptionValue(K, parser, "length");
     getOptionValue(r, parser, "r");
     
     //load reads
     CharString seqFileName = readspath;
-    SeqFileIn seqFileIn(toCString(seqFileName));
+    SeqFileIn seqFileIn(toCString(seqFileName)); //TODO clean this up
     StringSet<CharString> ids;
     StringSet<DnaString> reads;
     readRecords(ids, reads, seqFileIn);
@@ -383,12 +424,16 @@ int main(int argc, char *argv[])
     cout << "Loading Index" << endl;
     //load index
     typedef String<Dna, Alloc<>> TString;
-    typedef Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> MyIndex;
+    typedef StringSet<TString, Owner<ConcatDirect<> > > TText;
+    typedef Index<TText, TIndexConfig> MyIndex;
     MyIndex index;      
 
     open(index, toCString(indexPath), OPEN_RDONLY);
-    Iter<Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig>, VSTree<TopDown<> > > it(index);
+    Iter<Index<TText, TIndexConfig>, VSTree<TopDown<> > > it(index);
+    auto iter = it.revIter;
 
+//     print_genome(iter, outputpath, 1);
+    
 //      open(index, toCString("/home/sven/devel/Data/hg38_test_index/index"), OPEN_RDONLY);
     cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
     cout << "Loading bitvectors" << endl;
@@ -434,7 +479,7 @@ int main(int argc, char *argv[])
 //     std::vector<DnaString> reps;  
     //TODO correct hit also for only reverse index
     
-    
+  
     auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors)
     {
         for (auto occ : getOccurrences(iter)){
@@ -447,7 +492,7 @@ int main(int argc, char *argv[])
 /*
     auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors, TDir const & )
     {
-        if( Is Uni directional iter)
+        if(isBidirectionalIter<decltype(it)>::VALUE)
         {
             auto const & rgenome = indexText(*iter.index);
             for (auto occ : getOccurrences(iter)){
@@ -465,8 +510,8 @@ int main(int argc, char *argv[])
             }
         }
     };
-    */
-      
+    
+      */
     std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hitsD;
     std::vector<uint8_t> errors_vD;
     auto delegateDirect = [&hitsD, &errors_vD](vector<Pair<uint16_t, uint32_t>> poss, DnaString const & needle, vector<uint8_t> errors)
