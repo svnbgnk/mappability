@@ -1,14 +1,23 @@
 #ifndef SEQAN_INDEX_FIND2_INDEX_APPROX_EXTENSION_H_
 #define SEQAN_INDEX_FIND2_INDEX_APPROX_EXTENSION_H_
 
-// #include <seqan/arg_parse.h>
-// #include <seqan/seq_io.h>
 #include <seqan/index.h>
 #include <sdsl/bit_vectors.hpp>
 #include "common.h"
 #include "common_auxiliary.h"
 #include "find2_index_approx_unidirectional.h"
 
+template <typename TIter>
+struct isBidirectionalIter
+{
+     static constexpr bool VALUE = false;
+};
+
+template <typename TText, typename TIndex, typename TIndexSpec>
+struct isBidirectionalIter<Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > >
+{
+     static constexpr bool VALUE = true;
+};
 
 namespace seqan{
 /*    

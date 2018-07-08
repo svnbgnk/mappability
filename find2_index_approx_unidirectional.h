@@ -229,7 +229,8 @@ inline void _optimalSearchScheme(TDelegate & delegate,
         cout << "UniSearch Hits: "<< (Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ)) << endl;
         }
         cout << "Finished unidirectional Search" << endl;
-        delegate(iter, needle, errors, std::is_same<TDir, Rev>::value);
+        bool reverseDirection = std::is_same<TDir, Rev>::value;
+        delegate(iter, needle, errors, reverseDirection);
     }
     // Exact search in current block.
     else if (maxErrorsLeftInBlock == 0 && needleRightPos - needleLeftPos - 1 != s.blocklength[blockIndex])
@@ -238,19 +239,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     }
     // Approximate search in current block.
     else
-    {
-   /*   
-        //TODO implement faster mod 
-        if((needleRightPos - needleLeftPos - 1) % 4 == 0){
-            //TODO Check if we are Done here?
-            //TODO stop doing on loop to much (enter checkCurrentMappability a second time)
-            bool goToRight2 = std::is_same<TDir, Rev>::value;
-            ReturnCode rcode = checkCurrentMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, goToRight2, TDir());
-            // blockIndex is different here!!! goToRight2 is missing
-            if(rcode == ReturnCode::FINISHED)
-                return;
-        }*/
-        
+    {      
     _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir());
     }
 }    

@@ -235,6 +235,8 @@ void print_search_scheme(std::array<OptimalSearch<nbrBlocks>, N> & searchsscheme
     }
 }
 
+//Code is now located in find2_index_approx_extension.h
+/*
 template <typename TIter>
 struct isBidirectionalIter
 {
@@ -246,6 +248,7 @@ struct isBidirectionalIter<Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTre
 {
      static constexpr bool VALUE = true;
 };
+*/
 
 
 template <typename TText, typename TConfig, typename TIndexSpec>
@@ -254,9 +257,10 @@ void print_genome(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIn
                   int chr)
 {
     if(isBidirectionalIter<decltype(it)>::VALUE){
+        cout << "Bidirectional iter" << endl;
     }else{
         cout << "UniDirectional Iter" << endl;
-    }
+    }/*
     StringSet<DnaString> const & genome = indexText(*it.index);
     ofstream file(output_path, ios::out | ios::binary);
     for(int i = 0; i < chr; ++i){
@@ -269,7 +273,7 @@ void print_genome(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIn
         file << target;
         file << ("\n");
     }
-    file.close();
+    file.close();*/
 }
 
 template <typename TText, typename TIndex, typename TIndexSpec>
@@ -279,7 +283,10 @@ void print_genome(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown
 {
     if(isBidirectionalIter<decltype(it)>::VALUE){
         cout << "Bidirectional Iter" << endl;
+    }else{
+        cout << "UniDirectional Iter" << endl;
     }
+    /*
     StringSet<DnaString> const & genome = indexText(*it.fwdIter.index);
     ofstream file(output_path, ios::out | ios::binary);
     for(int i = 0; i < chr; ++i){
@@ -292,7 +299,7 @@ void print_genome(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown
         file << target;
         file << ("\n");
     }
-    file.close();
+    file.close();*/
 }
 
 
@@ -366,6 +373,22 @@ vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(CharString
     return(bit_vectors);
 }
 
+
+template <typename TText, typename TConfig, typename TIndexSpec>
+TText getUniIndexGenome(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > it)
+{
+    auto const & rgenome = indexText(*it.index);
+    return(rgenome);
+}
+
+template <typename TText, typename TIndex, typename TIndexSpec>
+TText getUniIndexGenome(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it){
+    cout << "This thing should not be executed" << endl;
+    exit(0);
+    auto const & rgenome = indexText(*it.revIter.index);
+    return(rgenome);
+}
+
 int main(int argc, char *argv[])
 {
     ArgumentParser parser("Search");
@@ -432,7 +455,8 @@ int main(int argc, char *argv[])
     Iter<Index<TText, TIndexConfig>, VSTree<TopDown<> > > it(index);
     auto iter = it.revIter;
 
-//     print_genome(iter, outputpath, 1);
+    print_genome(it, outputpath, 1);
+    print_genome(iter, outputpath, 1);
     
 //      open(index, toCString("/home/sven/devel/Data/hg38_test_index/index"), OPEN_RDONLY);
     cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
@@ -476,33 +500,43 @@ int main(int argc, char *argv[])
     std::vector<readOcc> readOccs;
     std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hits;
     std::vector<uint8_t> errors_v;
-//     std::vector<DnaString> reps;  
+    
     //TODO correct hit also for only reverse index
     
- /* 
-    auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors)
+/* 
+    auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors,  bool const rev)
     {
         for (auto occ : getOccurrences(iter)){
             hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
             errors_v.push_back(errors);
         }
 //         reps.push_back(representative(iter));
-    };
-*/
+    };*/
+
 
     auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
     {
+        cout << "delegate Call: " << endl;
         if(isBidirectionalIter<decltype(it)>::VALUE)
         {
+            cout << "Is bidirectional Iter" << endl;
             for (auto occ : getOccurrences(iter)){
                 hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
                 errors_v.push_back(errors);
             }
         }else{
-            auto const & rgenome = indexText(*iter.index);
+            cout << "Is UniDirectional Iter" << endl;
+            auto const & rgenome = getUniIndexGenome(iter);
             for (auto occ : getOccurrences(iter)){
-                if(rev)
-                    occ = seqan::length(rgenome[occ.i1]) - occ.i2 - length(needle);
+                cout << "rev case" << endl;
+                if(rev){
+                    cout << "Seq Size: " << endl;
+                    cout << seqan::length(rgenome[occ.i1]);
+                    cout << endl;
+                    cout << "Occ: "  << occ.i2 << endl;
+                    occ.i2 = seqan::length(rgenome[occ.i1]) - occ.i2 - length(needle);
+                    cout << "Occ after: "  << occ.i2 << endl;
+                }
                 hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
                 errors_v.push_back(errors);
             }
@@ -512,7 +546,7 @@ int main(int argc, char *argv[])
       
     std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hitsD;
     std::vector<uint8_t> errors_vD;
-    auto delegateDirect = [&hitsD, &errors_vD](vector<Pair<uint16_t, uint32_t>> poss, DnaString const & needle, vector<uint8_t> errors, bool const /*DIR*/)
+    auto delegateDirect = [&hitsD, &errors_vD](vector<Pair<uint16_t, uint32_t>> poss, DnaString const & needle, vector<uint8_t> errors)
     {
         for (int i = 0; i < poss.size(); ++i){
             hitsD.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, poss[i]));
