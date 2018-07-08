@@ -251,8 +251,8 @@ struct isBidirectionalIter<Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTre
 */
 
 
-template <typename TText, typename TConfig, typename TIndexSpec>
-void print_genome(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > it,
+// template <typename TText, typename TConfig, typename TIndexSpec>
+void print_genome(auto it,//Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > it,
                   string const & output_path, 
                   int chr)
 {
@@ -276,8 +276,9 @@ void print_genome(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIn
     file.close();*/
 }
 
-template <typename TText, typename TIndex, typename TIndexSpec>
-void print_genome(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it,
+/*
+// template <typename TText, typename TIndex, typename TIndexSpec>
+void print_genome(auto it, //Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it,
                   string const & output_path, 
                   int chr)
 {
@@ -300,7 +301,7 @@ void print_genome(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown
         file << ("\n");
     }
     file.close();*/
-}
+//}
 
 
 vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(CharString const bitvectorpath, const int K){
