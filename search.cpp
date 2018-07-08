@@ -479,7 +479,7 @@ int main(int argc, char *argv[])
 //     std::vector<DnaString> reps;  
     //TODO correct hit also for only reverse index
     
-  
+ /* 
     auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors)
     {
         for (auto occ : getOccurrences(iter)){
@@ -488,20 +488,18 @@ int main(int argc, char *argv[])
         }
 //         reps.push_back(representative(iter));
     };
+*/
 
-/*
-    auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors, TDir const & )
+    auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
     {
         if(isBidirectionalIter<decltype(it)>::VALUE)
         {
-            auto const & rgenome = indexText(*iter.index);
             for (auto occ : getOccurrences(iter)){
-                if(std::is_same<TDir, Rev>::value)
-                    occ = seqan::length(rgenome[occ.i1]) - occ.i2 - length(needle);
                 hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
                 errors_v.push_back(errors);
-        }
+            }
         }else{
+            auto const & rgenome = indexText(*iter.index);
             for (auto occ : getOccurrences(iter)){
                 if(rev)
                     occ = seqan::length(rgenome[occ.i1]) - occ.i2 - length(needle);
@@ -511,10 +509,10 @@ int main(int argc, char *argv[])
         }
     };
     
-      */
+      
     std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hitsD;
     std::vector<uint8_t> errors_vD;
-    auto delegateDirect = [&hitsD, &errors_vD](vector<Pair<uint16_t, uint32_t>> poss, DnaString const & needle, vector<uint8_t> errors)
+    auto delegateDirect = [&hitsD, &errors_vD](vector<Pair<uint16_t, uint32_t>> poss, DnaString const & needle, vector<uint8_t> errors, bool const /*DIR*/)
     {
         for (int i = 0; i < poss.size(); ++i){
             hitsD.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, poss[i]));

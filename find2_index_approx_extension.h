@@ -686,6 +686,7 @@ ReturnCode checkMappability(TDelegate & delegate,
             return ReturnCode::FINISHED;
         }
         //TODO check if we are in unidirection case in this case COMPMAPPABLE should no be used
+        /*
         if(rcode == ReturnCode::COMPMAPPABLE){
             if(std::is_same<TDir, Rev>::value){
                 if (goToRight2)
@@ -709,7 +710,7 @@ ReturnCode checkMappability(TDelegate & delegate,
                 }
             }
             return ReturnCode::FINISHED;
-        }
+        }*/
         if(rcode == ReturnCode::UNIDIRECTIONAL){
             if(goToRight2){
                 filter_interval(delegate, delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, Rev());
@@ -899,14 +900,14 @@ inline void _optimalSearchScheme(TDelegate & delegate,
 
 //     cout << "Step: " << needleRightPos - needleLeftPos - 1 << "    ss: "; printv(s.pi); cout << endl;
     // Done. (Last step)
-    cout << "Check bidirectional Search is Finished" << endl;
     if (minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1)
     {
         for (auto occ : getOccurrences(iter)){
         cout << "BiSearch Hits: "<< (Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ)) << endl;
         }
         cout << "Finished bidirectional Search" << endl;
-        delegate(iter, needle, errors);
+        //last input only matters for unidirectional search
+        delegate(iter, needle, errors, false);
     }
     // Exact search in current block.
     else if (maxErrorsLeftInBlock == 0 && needleRightPos - needleLeftPos - 1 != s.blocklength[blockIndex])
