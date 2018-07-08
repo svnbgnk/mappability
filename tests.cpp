@@ -8,6 +8,7 @@
 
 #include "common.h"
 #include "algo1.hpp"
+#include "algo1_approx.hpp"
 #include "algo2.hpp"
 
 using namespace seqan;
@@ -27,12 +28,13 @@ int main(int argc, char *argv[])
     std::cout << "Seed: " << seed << '\n';
     std::mt19937_64 rng(seed);
 
-    unsigned const threads = omp_get_num_threads();
-    constexpr unsigned errors = 1;
+    unsigned const threads = 1;//omp_get_num_threads();
+    constexpr unsigned errors = 0;
+    unsigned threshold = 999;
 
     while (true)
     {
-        unsigned textLength = 100000 + (rng() % 13);
+        unsigned textLength = 10000;
 
         DnaString genome;
         randText(genome, rng, textLength);
@@ -40,37 +42,56 @@ int main(int argc, char *argv[])
         indexCreate(index, FibreSALF());
         auto & text = indexText(index);
 
-        for (unsigned j = 0; j < 100; ++j)
+        for (unsigned j = 2; j < 3; ++j)
         {
-            unsigned length = (rng() % 25) + 4;
+            unsigned length = j;
 
-            sdsl::int_vector<16> c1(seqan::length(text) - length + 1);
+            std::vector<uint8_t> c1(seqan::length(text) - length + 1);
             runAlgoTrivial<errors>(index, genome, length, c1, 0, threads);
 
-            for (unsigned overlap = 0; overlap <= length - errors - 2; ++overlap) // because there have to be enough characters for the infix using search schemes
-            {
-                sdsl::int_vector<16> c2(seqan::length(text) - length + 1);
-                runAlgo2<errors>(index, genome, length, c2, length - overlap, threads);
+            std::vector<uint8_t> c2(seqan::length(text) - length + 1);
+            runAlgo1_approx<errors>(index, genome, length, c2, threads, threshold);
 
+            if (c1 != c2)
+            {
+                std::cout << "L : " << length << '\n';
+                std::cout << "T : " << genome << '\n';
+
+                std::cout << "c1: ";
                 for (unsigned i = 0; i < c1.size(); ++i)
-                {
-                    if (c1[i] != c2[i])
-                    {
-                        std::cout << "\nOverlap: " << overlap << ", Length: " << length << '\n';
-                        for (unsigned j = 0; j < seqan::length(genome); ++j)
-                            std::cout << genome[j] << ' ';
-                        std::cout << '\n';
-                        for (unsigned j = 0; j < c1.size(); ++j)
-                            std::cout << c1[j] << ' ';
-                        std::cout << '\n';
-                        for (unsigned j = 0; j < c2.size(); ++j)
-                            std::cout << c2[j] << ' ';
-                        std::cout << '\n';
-                        exit(1);
-                    }
-                }
-                std::cout << "." << std::flush;
+                    std::cout << (unsigned)c1[i] << ' ';
+                std::cout << "\nc2: ";
+                for (unsigned i = 0; i < c2.size(); ++i)
+                    std::cout << (unsigned)c2[i] << ' ';
+                std::cout << '\n';
+                exit(1);
             }
+            std::cout << "." << std::flush;
+
+            // for (unsigned overlap = 0; overlap <= length - errors - 2; ++overlap) // because there have to be enough characters for the infix using search schemes
+            // {
+            //     sdsl::int_vector<16> c2(seqan::length(text) - length + 1);
+            //     runAlgo2<errors>(index, genome, length, c2, length - overlap, threads);
+            //
+            //     for (unsigned i = 0; i < c1.size(); ++i)
+            //     {
+            //         if (c1[i] != c2[i])
+            //         {
+            //             std::cout << "\nOverlap: " << overlap << ", Length: " << length << '\n';
+            //             for (unsigned j = 0; j < seqan::length(genome); ++j)
+            //                 std::cout << genome[j] << ' ';
+            //             std::cout << '\n';
+            //             for (unsigned j = 0; j < c1.size(); ++j)
+            //                 std::cout << c1[j] << ' ';
+            //             std::cout << '\n';
+            //             for (unsigned j = 0; j < c2.size(); ++j)
+            //                 std::cout << c2[j] << ' ';
+            //             std::cout << '\n';
+            //             exit(1);
+            //         }
+            //     }
+            //     std::cout << "." << std::flush;
+            // }
         }
     }
 }
