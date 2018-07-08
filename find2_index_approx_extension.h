@@ -516,8 +516,6 @@ ReturnCode check_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree
 //     if(ivalOne == (brange.i2.i2 - brange.i2.i1))
 //         return ReturnCode::COMPMAPPABLE;
     
-  
-    
     
 //TODO put into new function
     //equal or more than half zeroes     
