@@ -137,12 +137,10 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
         //TODO remove goToRight2 and input should be TDIR 
         if (goToRight2)
         {
-            cout << "Start Next Function with Block Index (Rev): " << blockIndex2 << endl;
             _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, blockIndex2, Rev());
         }
         else
         {
-            cout << "Start Next Function with Block Index (Fwd): " << blockIndex2 << endl;
             _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, blockIndex2, Fwd());
         }
     }
@@ -229,8 +227,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
         cout << "UniSearch Hits: "<< (Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ)) << endl;
         }
         cout << "Finished unidirectional Search" << endl;
-        bool reverseDirection = std::is_same<TDir, Rev>::value;
-        delegate(iter, needle, errors, reverseDirection);
+        delegate(iter, needle, errors, std::is_same<TDir, Rev>::value, true);
     }
     // Exact search in current block.
     else if (maxErrorsLeftInBlock == 0 && needleRightPos - needleLeftPos - 1 != s.blocklength[blockIndex])

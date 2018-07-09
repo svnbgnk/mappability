@@ -87,7 +87,7 @@ bool occ_smaller(const readOcc& x, const readOcc& y)
         return x.hit.i2.i1 < y.hit.i2.i1;
 }
 
-std::vector<readOcc> print_readocc_sorted(std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hits, std::vector<uint8_t> errors_v)
+std::vector<readOcc> print_readocc_sorted(std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hits, std::vector<uint8_t> errors_v, auto const & genome, bool const occEnabled)
 {
     std::vector<readOcc> readOccs;
     for(int i = 0; i < hits.size(); ++i){
@@ -103,6 +103,9 @@ std::vector<readOcc> print_readocc_sorted(std::vector<Pair<DnaString, Pair <unsi
     for(int i = 0; i < readOccs.size(); ++i){
         cout << "Errors: "<< (int)readOccs[i].errors;
         cout << "   " << readOccs[i].hit << endl;
+        if(occEnabled)
+            cout << infix(genome[readOccs[i].hit.i2.i1], readOccs[i].hit.i2.i2, readOccs[i].hit.i2.i2 + 100) << endl;
+        
     }
     return(readOccs);
 }
@@ -515,10 +518,10 @@ int main(int argc, char *argv[])
     };*/
 
 
-    auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
+    auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors, bool const rev, bool const uni)
     {
         cout << "delegate Call: " << endl;
-        if(isBidirectionalIter<decltype(it)>::VALUE)
+        if(!uni/*isBidirectionalIter<decltype(it)>::VALUE*/)
         {
             cout << "Is bidirectional Iter" << endl;
             for (auto occ : getOccurrences(iter)){
@@ -529,12 +532,12 @@ int main(int argc, char *argv[])
             cout << "Is UniDirectional Iter" << endl;
             auto const & rgenome = getUniIndexGenome(iter);
             for (auto occ : getOccurrences(iter)){
-                cout << "rev case" << endl;
-                if(rev){
-                    cout << "Seq Size: " << endl;
-                    cout << seqan::length(rgenome[occ.i1]);
-                    cout << endl;
-                    cout << "Occ: "  << occ.i2 << endl;
+                cout << "Seq Size: " << endl;
+                cout << seqan::length(rgenome[occ.i1]);
+                cout << endl;
+                cout << "Occ: "  << occ.i2 << endl;
+                 if(rev){
+                    cout << "rev case" << endl;
                     occ.i2 = seqan::length(rgenome[occ.i1]) - occ.i2 - length(needle);
                     cout << "Occ after: "  << occ.i2 << endl;
                 }
@@ -589,7 +592,7 @@ int main(int argc, char *argv[])
     for(int i = 0; i < readOccs.size(); ++i){
         cout << "Errors: "<< (int)readOccs[i].errors;
         cout << "   "  << readOccs[i].hit << endl;
-//         cout << infix(genome[readOccs[i].hit.i2.i1], readOccs[i].hit.i2.i2, readOccs[i].hit.i2.i2 + 100) << endl;
+        cout << infix(genome[readOccs[i].hit.i2.i1], readOccs[i].hit.i2.i2, readOccs[i].hit.i2.i2 + 100) << endl;
         
     }
 
@@ -625,7 +628,7 @@ int main(int argc, char *argv[])
         cout << "Errors: "<< (int)readOccsDe[i].errors;
         cout << "   " << readOccsDe[i].hit << endl;
     }*/
-    std::vector<readOcc> readOccsDe = print_readocc_sorted(hitsDe, errors_vDe);
+    std::vector<readOcc> readOccsDe = print_readocc_sorted(hitsDe, errors_vDe, genome, true);
 
 
 
