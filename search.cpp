@@ -684,7 +684,7 @@ int main(int argc, char *argv[])
 
 
 //     int threshold = 11; 
-    int threshold = 7; 
+    int threshold = 2; 
     cout << "Test if default and my version are the same: " << endl;
     bool same = compare(index, threshold, readOccs, readOccsDe);
     cout << endl << same << endl;

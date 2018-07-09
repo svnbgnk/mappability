@@ -614,6 +614,7 @@ ReturnCode checkCurrentMappability(TDelegate & delegate,
     if(rcode == ReturnCode::DIRECTSEARCH){
         //search directly in Genome
         //TODO I only need left value for rev and right value for fwd so delte one input?
+        //TODO need needle positions from before???
         directSearch(delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir());
         return ReturnCode::FINISHED;
     }
@@ -644,8 +645,6 @@ ReturnCode checkMappability(TDelegate & delegate,
                             Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                             TNeedle const & needle,
                             vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,    
-                            uint32_t const needleLeftPos,
-                            uint32_t const needleRightPos,
                             uint32_t const current_needleLeftPos,
                             uint32_t const current_needleRightPos,
                             uint8_t const errors,
@@ -680,16 +679,16 @@ ReturnCode checkMappability(TDelegate & delegate,
         }
         if(rcode == ReturnCode::DIRECTSEARCH){
             cout << "DIRECTSEARCHDIRECTSEARCHDIRECTSEARCHDIRECTSEARCHDIRECTSEARCHDIRECTSEARCH" << endl;
-            cout << "NLP: " << needleLeftPos << endl;
-            cout << "NRP: " << needleRightPos << endl;
+            cout << "NLP: " << current_needleLeftPos << endl;
+            cout << "NRP: " << current_needleRightPos << endl;
             //search directly in Genome
             //TODO I only need left value for rev and right value for fwd so delte one input?
             // search in the next blocks only therefore need current error count
             if(goToRight2){
-                directSearch(delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, Rev());
+                directSearch(delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, Rev());
 //                 directSearchDummy(delegateDirect, iter.fwdIter, iter, needle, bitvectors, needleLeftPos , infixPosRight + 2, errors, s, blockIndex, bit_interval, Rev());
             }else{
-                directSearch(delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, Fwd());
+                directSearch(delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, Fwd());
 //                 directSearchDummy(delegateDirect, iter.fwdIter, iter, needle, bitvectors, infixPosLeft , needleRightPos, errors, s, blockIndex, bit_interval, Fwd());
             }
             return ReturnCode::FINISHED;
@@ -775,7 +774,7 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
                 bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
                 
                 cout << "checkMappability Call from Children" << endl;
-                ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, goToRight2, TDir());
+                ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, goToRight2, TDir());
                 if(rcode == ReturnCode::FINISHED)
                     return;
                 
@@ -835,7 +834,7 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
         //TODO Check if we are Done here?
         //TODO does something go wrong in checkMappability if blockIndex is not increased by one? then do Todo before
         cout << "checkMappability Rev Index" << endl;
-        ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, needleLeftPos, infixPosRight + 2, errors, s, blockIndex2, goToRight2, TDir());
+        ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, blockIndex2, goToRight2, TDir());
         //TDir() is in this case Rev() ...
         if(rcode == ReturnCode::FINISHED)
             return;            
@@ -870,7 +869,7 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
 
         //TODO Check if we are Done here?
         cout << "checkMappability Fwd Index" << endl;
-        ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, infixPosLeft, needleRightPos, errors, s, blockIndex2, goToRight2, TDir());
+        ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, infixPosLeft, needleRightPos, errors, s, blockIndex2, goToRight2, TDir());
         //TDir() is in this case Fwd() ...
         if(rcode == ReturnCode::FINISHED)
             return;
