@@ -152,7 +152,7 @@ bool compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
         cout << "MyVersion has: " << x.size() << "hits while default version has: " << y.size() << " hits" << endl;
     }   
     int offset = 0;
-    for(int i = 0; i < y.size() + offset; ++i){
+    for(int i = 0; i + offset < y.size(); ++i){
         same = false;
         same = (i < x.size() && x[i].hit.i2.i1 == y[i + offset].hit.i2.i1 && x[i].hit.i2.i2 == y[i + offset].hit.i2.i2);
         while(!same && i + offset < y.size()){
@@ -161,15 +161,18 @@ bool compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
             cout << "default version has: " << y[i + offset].hit.i2 << endl;
 //             cout << y[i + offset].hit.i1 << endl;
             int nhits = testread<0, 2>(index, y[i + offset]);
-            if(nhits <= n){
+            if(nhits < n){
                 cout << "To few hits should have found this part!!!!" << endl;
+//                 --offset;
+//                 break;
                 exit(0);
             }
             ++offset;
             same = (i < x.size() && x[i].hit.i2.i1 == y[i + offset].hit.i2.i1 && x[i].hit.i2.i2 == y[i + offset].hit.i2.i2);
         }
-        if(i == x.size() - 1 && y.size() - 1 == i + offset){
-            cout << "MyVersion is correct!" << endl;
+//         cout << "I: " << i << "IO:" << i + offset << "  x" << x.size() << "  y" << y.size() << endl;
+        if(i == x.size() && y.size() == i + offset){
+            cout << "MyVersion is still correct!" << endl;
             return(true);
         }
     }
@@ -387,11 +390,51 @@ TText getUniIndexGenome(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDo
 
 template <typename TText, typename TIndex, typename TIndexSpec>
 TText getUniIndexGenome(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it){
-    cout << "This thing should not be executed" << endl;
+    cout << "This thing should not be executed getUniIndexGenome" << endl;
     exit(0);
     auto const & rgenome = indexText(*it.revIter.index);
     return(rgenome);
 }
+
+
+
+
+template <typename TText, typename TIndex, typename TIndexSpec>
+Pair<uint32_t, uint32_t> getUniRange(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it){
+    cout << "This thing should not be executed getUniRange" << endl;
+    exit(0);
+    Pair<uint32_t, uint32_t> r = it.fwdIter.vDesc.range;
+    return(r);
+}
+
+// template <typename TText, typename TSpec, typename TConfig>
+template <typename TText, typename TConfig, typename TIndexSpec>
+Pair<uint32_t, uint32_t> getUniRange(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > it){
+    Pair<uint32_t, uint32_t> r = it.vDesc.range;
+    return(r);
+}
+
+
+
+template <typename TText, typename TIndex, typename TIndexSpec>
+String<unsigned> getUniSa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it){
+    cout << "This thing should not be executed getUniSa" << endl;
+    exit(0);
+    auto const & sa = it.fwdIter.index->sa;
+    return(sa);
+}
+
+// template <typename TText, typename TSpec, typename TConfig>
+template <typename TText, typename TConfig, typename TIndexSpec>
+String<unsigned> getUniSa(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > it){
+    String<unsigned> const & sa = it.index->sa;
+    return(sa);
+}
+
+
+
+// getUniRange
+
 
 int main(int argc, char *argv[])
 {
@@ -521,7 +564,7 @@ int main(int argc, char *argv[])
     auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors, bool const rev, bool const uni)
     {
         cout << "delegate Call: " << endl;
-        if(!uni/*isBidirectionalIter<decltype(it)>::VALUE*/)
+        if(!uni)
         {
             cout << "Is bidirectional Iter" << endl;
             for (auto occ : getOccurrences(iter)){
@@ -531,6 +574,12 @@ int main(int argc, char *argv[])
         }else{
             cout << "Is UniDirectional Iter" << endl;
             auto const & rgenome = getUniIndexGenome(iter);
+            cout << "Ranges: " << endl;
+            cout << getUniRange(iter) << endl;
+            auto r = getUniRange(iter);
+            cout << "First Occurrence: " << endl;
+//             iter.index->sa[r];
+
             for (auto occ : getOccurrences(iter)){
                 cout << "Seq Size: " << endl;
                 cout << seqan::length(rgenome[occ.i1]);
@@ -540,6 +589,8 @@ int main(int argc, char *argv[])
                     cout << "rev case" << endl;
                     occ.i2 = seqan::length(rgenome[occ.i1]) - occ.i2 - length(needle);
                     cout << "Occ after: "  << occ.i2 << endl;
+                }else{
+                    cout << "fwd case" << endl;
                 }
                 hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
                 errors_v.push_back(errors);
@@ -632,12 +683,12 @@ int main(int argc, char *argv[])
 
 
 
-    int threshold = 10; 
+//     int threshold = 11; 
+    int threshold = 7; 
     cout << "Test if default and my version are the same: " << endl;
     bool same = compare(index, threshold, readOccs, readOccsDe);
     cout << endl << same << endl;
     
-    cout << "Test if my version is still ok:" << endl;
     
     
     

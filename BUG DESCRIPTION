@@ -1,0 +1,6 @@
+
+./search -I ../Data/chr13_index/index -B ../Data/chr13_mappa/ -R ../Data/reads/chr13_2error_1v3.fa -O ../Data/chr13_mappa/ -K 100 > test
+
+
+
+getOccurrences(iter.fwdIter) reports Occurrence 6887748, but it should have been 91095277

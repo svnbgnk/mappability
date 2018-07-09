@@ -414,6 +414,7 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval_inside(Iter<Index
                                         TDir const & /**/) 
 {
     cout << "Get Inside bitvector Interval" << endl;
+    cout << "bitvector_interval blockIndex: " << (int)blockIndex << endl;
     cout << ((std::is_same<TDir, Rev>::value) ? "reverse Index" : "forward index") << endl;
     Pair<uint32_t, uint32_t> dirrange = (std::is_same<TDir, Rev>::value) ? range(iter.revIter) : range(iter.fwdIter);
     uint8_t needed_bitvector;
@@ -446,7 +447,7 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval(Iter<Index<TText,
                                         TDir const & /**/) 
 {
 //     printv(s.pi);
-    
+    cout << "bitvector_interval blockIndex: " << (int)blockIndex << endl;
     Pair<uint32_t, uint32_t> dirrange = (std::is_same<TDir, Rev>::value) ? range(iter.fwdIter) : range(iter.revIter);
     uint8_t needed_bitvector;
     uint8_t bitvsize = bitvectors.size();
@@ -574,6 +575,7 @@ ReturnCode check_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree
         if(ivalSize * flipDensity - 1 > static_cast<float>(count)){
             cout << "Continue UNIDIRECTIONAL" << endl;
             brange.i1 = bit_interval.i1;
+            cout << "New selected bitvector by inside function: " << (int)bit_interval.i1 << endl;
             brange.i2.i1 = startPos;
             brange.i2.i2 = endPos;
             return ReturnCode::UNIDIRECTIONAL;
@@ -812,7 +814,7 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
                                       TDir const & /**/)
 {
     // not in last block and next Block is larger then current block
-    bool goToRight2 = (blockIndex < s.pi.size() - 1) && s.pi[blockIndex + 1] > s.pi[blockIndex];
+    bool goToRight2 = (blockIndex < s.pi.size() - 1) ? s.pi[blockIndex + 1] > s.pi[blockIndex] : s.pi[blockIndex] > s.pi[blockIndex - 1];
     uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
     if (std::is_same<TDir, Rev>::value)
     {

@@ -102,7 +102,16 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
     cout << "blockIndex: " << (int)blockIndex << endl;
     
     // not in last block and next Block is larger then current block
+    
+//     bool goToRight2 = (blockIndex < s.pi.size() - 1) ? s.pi[blockIndex + 1] > s.pi[blockIndex] : s.pi[blockIndex] > s.pi[blockIndex - 1];
+/*    
     bool goToRight2 = (blockIndex < s.pi.size() - 1) && s.pi[blockIndex + 1] > s.pi[blockIndex];
+    if((blockIndex < s.pi.size() - 1))
+        s.pi[blockIndex + 1] > s.pi[blockIndex];
+    else
+        s.pi[blockIndex] > s.pi[blockIndex - 1];*/
+    bool goToRight2 = (blockIndex < s.pi.size() - 1) ? s.pi[blockIndex + 1] > s.pi[blockIndex] : s.pi[blockIndex] > s.pi[blockIndex - 1];
+    
         //sanity check
     if((blockIndex < s.pi.size() - 1) && !(std::is_same<TDir, Rev>::value ^ !goToRight2)){
         cout << "switching direction in unidirectional function" << endl;
