@@ -942,7 +942,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
         }
         cout << "Finished bidirectional Search" << endl;
         //last input only matters for unidirectional search
-        delegate(iter, needle, errors, false, false);
+        delegate(iter, needle, errors, false);
     }
     // Exact search in current block.
     else if (maxErrorsLeftInBlock == 0 && needleRightPos - needleLeftPos - 1 != s.blocklength[blockIndex])

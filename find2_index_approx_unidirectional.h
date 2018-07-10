@@ -236,7 +236,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
         cout << "UniSearch Hits: "<< (Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ)) << endl;
         }
         cout << "Finished unidirectional Search" << endl;
-        delegate(iter, needle, errors, std::is_same<TDir, Rev>::value, true);
+        delegate(iter, needle, errors, std::is_same<TDir, Rev>::value);
     }
     // Exact search in current block.
     else if (maxErrorsLeftInBlock == 0 && needleRightPos - needleLeftPos - 1 != s.blocklength[blockIndex])

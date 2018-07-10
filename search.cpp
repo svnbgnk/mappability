@@ -560,25 +560,19 @@ int main(int argc, char *argv[])
     };*/
 
 
-    auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors, bool const rev, bool const uni)
+    auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
     {
         cout << "delegate Call: " << endl;
-        if(!uni)
+        if(!rev /* workaround check iter later*/)
         {
-            cout << "Is bidirectional Iter" << endl;
+//             cout << "Is bidirectional Iter" << endl;
             for (auto occ : getOccurrences(iter)){
                 hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
                 errors_v.push_back(errors);
             }
         }else{
-            cout << "Is UniDirectional Iter" << endl;
+//             cout << "Is UniDirectional Iter" << endl;
             auto const & rgenome = getUniIndexGenome(iter);
-            cout << "Ranges: " << endl;
-            cout << getUniRange(iter) << endl;
-            auto r = getUniRange(iter);
-            cout << "First Occurrence: " << endl;
-//             iter.index->sa[r];
-
             for (auto occ : getOccurrences(iter)){
                 cout << "Seq Size: " << endl;
                 cout << seqan::length(rgenome[occ.i1]);
@@ -588,9 +582,9 @@ int main(int argc, char *argv[])
                     cout << "rev case" << endl;
                     occ.i2 = seqan::length(rgenome[occ.i1]) - occ.i2 - length(needle);
                     cout << "Occ after: "  << occ.i2 << endl;
-                }else{
+                }/*else{
                     cout << "fwd case" << endl;
-                }
+                }*/
                 hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
                 errors_v.push_back(errors);
             }
