@@ -130,8 +130,8 @@ int testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
     StringSet<DnaString> testocc;
     DnaString part = infix(genome[readOcc.hit.i2.i1], readOcc.hit.i2.i2, readOcc.hit.i2.i2 + 100);
     appendValue(testocc, part);
-    cout << "Search occ: " << readOcc.hit.i2.i2 << " which has seq: " << endl;
-    cout << part << endl;
+    cout << "Search occ: " << (int)readOcc.hit.i2.i2 << " which has seq: " << endl;
+//     cout << part << endl; //TODO revert this
 
     find<minErrors, maxErrors>(delegate, index, testocc, HammingDistance());
 //        print_readocc_sorted(hite, errors_v);
@@ -157,10 +157,9 @@ vector<int> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
         same = false;
         same = (i < x.size() && x[i].hit.i2.i1 == y[i + offset].hit.i2.i1 && x[i].hit.i2.i2 == y[i + offset].hit.i2.i2);
         while(!same && i + offset < y.size()){
-            if(i < x.size())
-                cout << "MyVersion has: " << x[i].hit.i2 << " while " ;
-            cout << "default version has: " << y[i + offset].hit.i2 << endl;
-//             cout << y[i + offset].hit.i1 << endl;
+//             if(i < x.size())//TODO revert this
+//                 cout << "MyVersion has: " << x[i].hit.i2 << " while " ; //TODO revert this
+//             cout << "default version has: " << y[i + offset].hit.i2 << endl;//TODO revert this
             int nhits = testread<0, 2>(index, y[i + offset]);
             if(nhits < n){
                 cout << "To few hits should have found this part!!!!" << endl;
@@ -172,7 +171,6 @@ vector<int> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
             ++offset;
             same = (i < x.size() && x[i].hit.i2.i1 == y[i + offset].hit.i2.i1 && x[i].hit.i2.i2 == y[i + offset].hit.i2.i2);
         }
-//         cout << "I: " << i << "IO:" << i + offset << "  x" << x.size() << "  y" << y.size() << endl;
         if(i == x.size() && y.size() == i + offset){
             return(wrongHitCount);
         }
@@ -484,7 +482,7 @@ int main(int argc, char *argv[])
     readRecords(ids, reads, seqFileIn);
     int nreads = seqan::length(reads);
     cout << "Loaded reads: " << nreads << endl;
-    if(r >= nreads){
+    if(r > nreads){
         cout << "not enought reads" << endl;
         exit(0);
     }
@@ -617,7 +615,7 @@ int main(int argc, char *argv[])
     std::cout.clear();
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finish - start;
-    cout << "Finished elapsed: " << elapsed.count() << "s" << endl;
+    cout << "Finished My Search" << endl;
     
     for(int i = 0; i < hits.size(); ++i){
         readOcc readOcc;
@@ -662,8 +660,7 @@ int main(int argc, char *argv[])
     start = std::chrono::high_resolution_clock::now();
     find<0, 2>(delegateDe, index, reads, HammingDistance());
     finish = std::chrono::high_resolution_clock::now();
-    elapsed = finish - start;
-    cout << "Finished elapsed: " << elapsed.count() << "s" << endl;
+
 /*    
     for(int i = 0; i < hitsDe.size(); ++i){
         readOcc readOcc;
@@ -680,22 +677,27 @@ int main(int argc, char *argv[])
         cout << "   " << readOccsDe[i].hit << endl;
     }*/
     std::vector<readOcc> readOccsDe = print_readocc_sorted(hitsDe, errors_vDe, genome, true);
-
-
+    
+    cout << "MyVersion elapsed: " << elapsed.count() << "s" << endl;
+    elapsed = finish - start;
+    cout << "Default Version elapsed: " << elapsed.count() << "s" << endl;
 
 //     int threshold = 11; 
     int threshold = 10; 
     cout << "Test if default and my version are the same: " << endl;
+    cout.setstate(std::ios_base::failbit);
     vector<int> whitcount = compare(index, threshold, readOccs, readOccsDe);
+    std::cout.clear();
     
     if(whitcount.size() == 0)
         cout << "MyVersion is still correct!" << endl;
     else{
         cout << "Missed hits mappability" << endl;
     }
-    
+    cout << endl;
+    cout << "M: " << endl;
     for(int i = 0; i < whitcount.size(); ++i)
-        cout << whitcount[i] << " ";
+        cout << whitcount[i] << endl;
     cout << endl;
     
  
