@@ -250,7 +250,6 @@ void filter_interval(TDelegate & delegate,
     cout << "In filterInterval" << endl;
     printbit(bitvectors, inside_bit_interval);
     
-    cout << "Print reverse index" << endl;
     if(std::is_same<TDir, Rev>::value)
         print_sa(iter, bitvectors, true);
     else
@@ -282,21 +281,23 @@ void filter_interval(TDelegate & delegate,
          printPair(consOnes[i]);
          cout << endl;
         if (std::is_same<TDir, Rev>::value){
-            cout << "reverse case inside" << endl;
-            cout << "Print SA: " << endl;
-            print_sa(iter, bitvectors, false);
             //TODO call DirectSearch here if the interval is to small also use block Index ....?
             iter.revIter.vDesc.range.i1 = consOnes[i].first + noi;
             iter.revIter.vDesc.range.i2 = consOnes[i].second + noi;
             _optimalSearchScheme(delegate, delegateDirect, iter.revIter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Rev());
+            cout << "reverse case inside" << endl;
+            cout << "Print SA: " << endl;
+            print_sa(iter, bitvectors, false);
         }
         else
         {
-            cout << "forward case inside" << endl;
             //TODO does it everything above work for reverse?
             iter.fwdIter.vDesc.range.i1 = consOnes[i].first + noi;
             iter.fwdIter.vDesc.range.i2 = consOnes[i].second + noi;
             _optimalSearchScheme(delegate, delegateDirect, iter.fwdIter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Fwd());
+            cout << "forward case inside" << endl;
+            cout << "Print SA: " << endl;
+            print_sa(iter, bitvectors, true);
         }
     } 
 }
@@ -789,9 +790,7 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
             if (needleRightPos - needleLeftPos == s.blocklength[blockIndex])
             {
                 uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
-//                 bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
-                bool goToRight2 = (blockIndex2 < s.pi.size() - 1) ? s.pi[blockIndex2 + 1] > s.pi[blockIndex2] : s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
-                
+                bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];                
                 cout << "checkMappability Call from Children" << endl;
                 ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, goToRight2, TDir());
                 if(rcode == ReturnCode::FINISHED)

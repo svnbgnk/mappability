@@ -140,11 +140,12 @@ int testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
 }
 
 template <typename TText, typename TIndexSpec>
-bool compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+vector<int> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
              int n,
              std::vector<readOcc> x,
              std::vector<readOcc> y)
 {
+    vector<int> wrongHitCount; 
     bool same2 = true;
     bool same = true;
     if(!(x.size() == y.size())){
@@ -163,21 +164,20 @@ bool compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
             int nhits = testread<0, 2>(index, y[i + offset]);
             if(nhits < n){
                 cout << "To few hits should have found this part!!!!" << endl;
+                wrongHitCount.push_back(nhits);
 //                 --offset;
 //                 break;
-                exit(0);
+//                 exit(0);
             }
             ++offset;
             same = (i < x.size() && x[i].hit.i2.i1 == y[i + offset].hit.i2.i1 && x[i].hit.i2.i2 == y[i + offset].hit.i2.i2);
         }
 //         cout << "I: " << i << "IO:" << i + offset << "  x" << x.size() << "  y" << y.size() << endl;
         if(i == x.size() && y.size() == i + offset){
-            cout << "MyVersion is still correct!" << endl;
-            return(true);
+            return(wrongHitCount);
         }
     }
-        
-    return(false);
+    return(wrongHitCount);
 }
 
 void printPair(pair<uint32_t, uint32_t> p){
@@ -612,10 +612,9 @@ int main(int argc, char *argv[])
         
     cout << "Start My Search!" << endl;
     auto start = std::chrono::high_resolution_clock::now();
-//     cout.setstate(std::ios_base::failbit);
+    cout.setstate(std::ios_base::failbit);
     find<0, 2>(delegate, delegateDirect, index, reads, bit_vectors);
-    //     std::cout.clear();
-    cout << endl;
+    std::cout.clear();
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finish - start;
     cout << "Finished elapsed: " << elapsed.count() << "s" << endl;
@@ -685,12 +684,21 @@ int main(int argc, char *argv[])
 
 
 //     int threshold = 11; 
-    int threshold = 6; 
+    int threshold = 10; 
     cout << "Test if default and my version are the same: " << endl;
-    bool same = compare(index, threshold, readOccs, readOccsDe);
-    cout << endl << same << endl;
+    vector<int> whitcount = compare(index, threshold, readOccs, readOccsDe);
     
+    if(whitcount.size() == 0)
+        cout << "MyVersion is still correct!" << endl;
+    else{
+        cout << "Missed hits mappability" << endl;
+    }
     
+    for(int i = 0; i < whitcount.size(); ++i)
+        cout << whitcount[i] << " ";
+    cout << endl;
+    
+ 
     
     
 //    appendValue(testocc, "TGAGCGTAATTGTGTCGCGCGCACTGCCTGACTTTTGTT");
