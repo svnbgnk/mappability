@@ -361,7 +361,7 @@ void loadIndex(bitvectors & b, CharString const indexPath)
     for(int i = 1; i < ssize; ++i)
         sequenceLengths[i] += (sequenceLengths[i - 1]);
     cout << "Sequence Lengths:" << endl;
-    for(int i = 0; i < ssize; ++i){
+    for(int i = 1; i < ssize; ++i){
         cout << sequenceLengths[i] << endl;        
     }
 

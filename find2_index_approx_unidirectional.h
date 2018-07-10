@@ -60,7 +60,7 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
                 cout << "checkMappability Call from Children" << endl;
                 ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, goToRight2, TDir());
                 if(rcode == ReturnCode::FINISHED)
-                    return;*/
+                    continue;*/
                 //TODO remove goToRight2 and input should be TDIR 
                 if (goToRight2)
                 {

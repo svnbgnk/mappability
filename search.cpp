@@ -381,6 +381,7 @@ vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(CharString
 }
 
 
+
 template <typename TText, typename TConfig, typename TIndexSpec>
 TText getUniIndexGenome(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > it)
 {
@@ -415,7 +416,7 @@ Pair<uint32_t, uint32_t> getUniRange(Iter<Index<TText, FMIndex<void, TConfig> >,
 }
 
 
-
+//TODO fix this
 template <typename TText, typename TIndex, typename TIndexSpec>
 String<unsigned> getUniSa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it){
     cout << "This thing should not be executed getUniSa" << endl;
@@ -684,7 +685,7 @@ int main(int argc, char *argv[])
 
 
 //     int threshold = 11; 
-    int threshold = 2; 
+    int threshold = 6; 
     cout << "Test if default and my version are the same: " << endl;
     bool same = compare(index, threshold, readOccs, readOccsDe);
     cout << endl << same << endl;
