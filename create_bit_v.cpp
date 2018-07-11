@@ -134,6 +134,9 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
     _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
     _optimalSearchSchemeSetMapParams(scheme);
     auto s = scheme[0];
+    for(int i = 0; i < s.pi.size(); ++i)
+        cout << (int)s.revChronBL[i] << endl;
+    
     sdsl::bit_vector righti (mappability.size() + len - 1, 0);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
     #pragma omp parallel for schedule(static)   
@@ -148,7 +151,7 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
     b.names.push_back("r_bit_vector_" + to_string(len) + "_" + to_string(e) + "_shift_0");
     b.fwdd.push_back(true);
 
-    uint8_t blocks = errors + 2;
+    uint8_t blocks = s.pi.size();
     if(errors != 0){
         for(int i = 0; i < blocks - 1; ++i){
             sdsl::bit_vector newright(mappability.size() + len - 1, 0); //TODO think 0 or 1 in edge cases
@@ -213,27 +216,22 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int le
         int pos = s.pi[0];
         cout << pos << endl;
         cout << "Direction forward " << fwd << endl;
-        uint8_t const blocks = errors + 2;
-        switch (pos)
-        {
-            case 1:
+        uint8_t blocks = s.pi.size();
+        if(pos == 1)
             {
                 b.bv.push_back(righti);
                 b.names.push_back("right_bit_vector_" + to_string(len) + "_" + to_string(e));
                 b.fwdd.push_back(true);
-                cout << "case1" << endl;
-                break;
-                
+                cout << "case1" << endl;                
             }
-            case blocks:
+        else if(pos == blocks)
             {
                 b.bv.push_back(lefti);
                 b.names.push_back("left_bit_vector_" + to_string(len) + "_" + to_string(e));
                 b.fwdd.push_back(false);
                 cout << "case2" << endl;
-                break;
             }
-            default :
+        else
             {
                 if(fwd){
                     sdsl::bit_vector newright(mappability.size() + len - 1, 0); //TODO think 0 or 1 in edge cases
@@ -261,7 +259,6 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int le
                     b.fwdd.push_back(false);
                 }
             }
-        }
     }
     return(b);
 }

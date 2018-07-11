@@ -181,9 +181,9 @@ vector<int> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
         same = false;
         same = (i < x.size() && x[i].hit.i2.i1 == y[i + offset].hit.i2.i1 && x[i].hit.i2.i2 == y[i + offset].hit.i2.i2);
         while(!same && i + offset < y.size()){
-//             if(i < x.size())//TODO revert this
-//                 cout << "MyVersion has: " << x[i].hit.i2 << " while " ; //TODO revert this
-//             cout << "default version has: " << y[i + offset].hit.i2 << endl;//TODO revert this
+            if(i < x.size())//TODO revert this
+                cout << "MyVersion has: " << x[i].hit.i2 << " while " ; //TODO revert this
+            cout << "default version has: " << y[i + offset].hit.i2 << endl;//TODO revert this
             int nhits = testread(0, errors, index, y[i + offset]);
             if(nhits < threshold){
                 cout << "To few hits should have found this part!!!!" << endl;
@@ -334,7 +334,7 @@ void print_genome(auto it, //Iter<Index<TText, BidirectionalIndex<TIndex> >, VST
 
 vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(CharString const bitvectorpath, const int K, const int errors){
     vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bit_vectors;
-    if(file_exists(string("") + toCString(bitvectorpath) + "l_bit_vector_" + to_string(K) + "_shift_" + to_string(0)))
+    if(file_exists(string("") + toCString(bitvectorpath) + "l_bit_vector_" + to_string(K) + "_" + to_string(errors) + "_shift_" + to_string(0)))
     {
     cout << "Load the following Bitvectors:" << endl;
     for(int i = 0; i < 10; ++i){
@@ -395,6 +395,8 @@ vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(CharString
     }
         
     if(bit_vectors.size() != 3){
+        cout << (string("") + toCString(bitvectorpath) + "l_bit_vector_" + to_string(K) + "_" + to_string(errors) + "_shift_" + to_string(0)) << endl;
+        cout << "was not found in the first place maybe wrong k-mer length?" << endl;
         exit(0);
     }
         
@@ -529,8 +531,8 @@ int main(int argc, char *argv[])
     Iter<Index<TText, TIndexConfig>, VSTree<TopDown<> > > it(index);
     auto iter = it.revIter;
 
-    print_genome(it, outputpath, 1);
-    print_genome(iter, outputpath, 1);
+//     print_genome(it, outputpath, 1); //TODO find solution for bidrectional iter test
+//     print_genome(iter, outputpath, 1);
     
 //      open(index, toCString("/home/sven/devel/Data/hg38_test_index/index"), OPEN_RDONLY);
     cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
@@ -632,9 +634,9 @@ int main(int argc, char *argv[])
         
     cout << "Start My Search!" << endl;
     auto start = std::chrono::high_resolution_clock::now();
-    cout.setstate(std::ios_base::failbit);
+//     cout.setstate(std::ios_base::failbit);
     find(0, nerrors, delegate, delegateDirect, index, reads, bit_vectors);
-    std::cout.clear();
+//     std::cout.clear();
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finish - start;
     cout << "Finished My Search" << endl;
@@ -705,11 +707,11 @@ int main(int argc, char *argv[])
     cout << "Default Version elapsed: " << elapsed.count() << "s" << endl;
 
 //     int threshold = 11; 
-    int threshold = 10; 
+    int threshold = 3; 
     cout << "Test if default and my version are the same: " << endl;
-    cout.setstate(std::ios_base::failbit);
+//     cout.setstate(std::ios_base::failbit); //TODO revert this
     vector<int> whitcount = compare(index, nerrors, threshold, readOccs, readOccsDe);
-    std::cout.clear();
+//     std::cout.clear();  //TODO revert this
     
     if(whitcount.size() == 0)
         cout << "MyVersion is still correct!" << endl;

@@ -1015,6 +1015,7 @@ find(TDelegate & delegate,
     auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
     _optimalSearchSchemeComputeFixedBlocklength(scheme, length(needle));
     _optimalSearchSchemeSetMapParams(scheme);
+    print_search_scheme(scheme); //TODO revert this
     Iter<Index<TText, BidirectionalIndex<TIndexSpec> >, VSTree<TopDown<> > > it(index);
     _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, scheme);
 }
