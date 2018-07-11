@@ -396,7 +396,7 @@ vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(CharString
         
     if(bit_vectors.size() != 3){
         cout << (string("") + toCString(bitvectorpath) + "l_bit_vector_" + to_string(K) + "_" + to_string(errors) + "_shift_" + to_string(0)) << endl;
-        cout << "was not found in the first place maybe wrong k-mer length?" << endl;
+        cout << "was not found in the first place maybe wrong K or E parameter?" << endl;
         exit(0);
     }
         

@@ -928,7 +928,8 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     cout << "Error: " << (int)errors << endl;
     cout << "SS: ";
     printv(s.pi);
-    cout << "RangeSize: " << iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 << endl;
+    if(needleRightPos - needleLeftPos > 1)
+        cout << "RangeSize: " << iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 << endl;
     
     uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
     uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
