@@ -23,6 +23,7 @@ struct Options
     unsigned threads;
     bool mmap;
     bool indels;
+    bool knut;
     bool singleIndex;
     seqan::CharString indexPath;
     seqan::CharString outputPath;
@@ -88,7 +89,7 @@ inline void run(TIndex & index, TText const & text, Options const & opt, signed 
     //                  exit(1);
     //     }
     // }
-    /*else*/ if (opt.overlap > 0 && opt.threshold == 0)
+    /*else*/ if (opt.overlap > 0 && opt.threshold == 0 && opt.knut)
     {
         switch (opt.errors)
         {
@@ -101,6 +102,24 @@ inline void run(TIndex & index, TText const & text, Options const & opt, signed 
             case 3: runAlgo3<3>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
                     break;
             case 4: runAlgo3<4>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
+                    break;
+            default: cerr << "E = " << opt.errors << " not yet supported.\n";
+                     exit(1);
+        }
+    }
+    else if (opt.overlap > 0 && opt.threshold == 0 && !opt.knut)
+    {
+        switch (opt.errors)
+        {
+            case 0: runAlgo2<0>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
+                    break;
+            case 1: runAlgo2<1>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
+                    break;
+            case 2: runAlgo2<2>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
+                    break;
+            case 3: runAlgo2<3>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
+                    break;
+            case 4: runAlgo2<4>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
                     break;
             default: cerr << "E = " << opt.errors << " not yet supported.\n";
                      exit(1);
@@ -216,6 +235,8 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("i", "indels", "Turns on indels (EditDistance). "
         "If not selected, only mismatches will be considered."));
 
+    addOption(parser, ArgParseOption("z", "knut", "Turns on knuts trick."));
+
     addOption(parser, ArgParseOption("o", "overlap", "Length of overlap region (o + 1 Strings will be searched at once beginning with their overlap region)", ArgParseArgument::INTEGER, "INT"));
     // setRequired(parser, "overlap");
 
@@ -243,6 +264,7 @@ int main(int argc, char *argv[])
     getOptionValue(opt.outputPath, parser, "output");
     opt.mmap = isSet(parser, "mmap");
     opt.indels = isSet(parser, "indels");
+    opt.knut = isSet(parser, "knut");
 
     if (isSet(parser, "overlap"))
         getOptionValue(opt.overlap, parser, "overlap");
