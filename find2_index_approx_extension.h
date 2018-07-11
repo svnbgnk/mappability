@@ -1059,5 +1059,53 @@ find(TDelegate & delegate,
 }
 
 }
+template <typename TDelegate, typename TDelegateD,
+          typename TText, typename TIndexSpec,
+          typename TNeedle, typename TStringSetSpec>
+void find(const int minErrors,
+     const int maxErrors,
+     TDelegate & delegate,
+     TDelegateD & delegateDirect,
+     Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+     StringSet<TNeedle, TStringSetSpec> const & needles,
+     vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors)
+{
+    switch (maxErrors)
+    {
+        case 1: find<0, 1>(delegate, delegateDirect, index, needles, bitvectors);
+                break;
+        case 2: find<0, 2>(delegate, delegateDirect, index, needles, bitvectors);
+                break;
+        case 3: find<0, 3>(delegate, delegateDirect, index, needles, bitvectors);
+                break;
+        default: cerr << "E = " << maxErrors << " not yet supported.\n";
+                exit(1);
+    }
+}
+
+template <typename TDelegate,
+          typename TText, typename TIndexSpec,
+          typename TNeedle, typename TStringSetSpec,
+          typename TDistanceTag>
+void find(const int minErrors,
+     const int maxErrors,
+     TDelegate & delegate,
+     Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+     StringSet<TNeedle, TStringSetSpec> const & needles,
+     TDistanceTag const & /**/)
+{
+    switch (maxErrors)
+    {
+        case 1: find<0, 1>(delegate, index, needles, TDistanceTag());
+                break;
+        case 2: find<0, 2>(delegate, index, needles, TDistanceTag());
+                break;
+        case 3: find<0, 3>(delegate, index, needles, TDistanceTag());
+                break;
+        default: cerr << "E = " << maxErrors << " not yet supported.\n";
+                exit(1);
+    }
+}
+
 
 #endif

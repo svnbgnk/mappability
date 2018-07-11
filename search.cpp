@@ -111,6 +111,7 @@ std::vector<readOcc> print_readocc_sorted(std::vector<Pair<DnaString, Pair <unsi
 }
 
 
+
 template <size_t minErrors, size_t maxErrors,
           typename TText, typename TIndexSpec>
 int testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
@@ -140,10 +141,33 @@ int testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
 }
 
 template <typename TText, typename TIndexSpec>
+int testread(int minErrors, int maxErrors, Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+              readOcc readOcc){
+    int nhits;
+    switch (maxErrors)
+    {
+        case 1: nhits = testread<0, 1>(index, readOcc);
+                break;
+        case 2: nhits = testread<0, 2>(index, readOcc);
+                break;
+        case 3: nhits = testread<0, 3>(index, readOcc);
+                break;
+        default: cerr << "E = " << maxErrors << " not yet supported.\n";
+                exit(1);
+    }
+    return(nhits);
+}
+
+
+
+
+
+template <typename TText, typename TIndexSpec>
 vector<int> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
-             int n,
-             std::vector<readOcc> x,
-             std::vector<readOcc> y)
+                    int errors,
+                    int threshold,
+                    std::vector<readOcc> x,
+                    std::vector<readOcc> y)
 {
     vector<int> wrongHitCount; 
     bool same2 = true;
@@ -160,8 +184,8 @@ vector<int> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
 //             if(i < x.size())//TODO revert this
 //                 cout << "MyVersion has: " << x[i].hit.i2 << " while " ; //TODO revert this
 //             cout << "default version has: " << y[i + offset].hit.i2 << endl;//TODO revert this
-            int nhits = testread<0, 2>(index, y[i + offset]);
-            if(nhits < n){
+            int nhits = testread(0, errors, index, y[i + offset]);
+            if(nhits < threshold){
                 cout << "To few hits should have found this part!!!!" << endl;
                 wrongHitCount.push_back(nhits);
 //                 --offset;
@@ -308,13 +332,13 @@ void print_genome(auto it, //Iter<Index<TText, BidirectionalIndex<TIndex> >, VST
 //}
 
 
-vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(CharString const bitvectorpath, const int K){
+vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(CharString const bitvectorpath, const int K, const int errors){
     vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bit_vectors;
     if(file_exists(string("") + toCString(bitvectorpath) + "l_bit_vector_" + to_string(K) + "_shift_" + to_string(0)))
     {
     cout << "Load the following Bitvectors:" << endl;
     for(int i = 0; i < 10; ++i){
-        string file_name = string("") + toCString(bitvectorpath) + "r_bit_vector_" + to_string(K) + "_shift_" + to_string(i);
+        string file_name = string("") + toCString(bitvectorpath) + "r_bit_vector_" + to_string(K) + "_" + to_string(errors) + "_shift_" + to_string(i);
         if(file_exists(file_name)){
             sdsl::bit_vector b;
             cout << "Filename: " << file_name << endl;
@@ -326,7 +350,7 @@ vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(CharString
     }
     
     for(int i = 0; i < 10; ++i){
-         string file_name = string("") + toCString(bitvectorpath) + "l_bit_vector_" + to_string(K) + "_shift_" + to_string(i);
+         string file_name = string("") + toCString(bitvectorpath) + "l_bit_vector_" + to_string(K) + "_" + to_string(errors) + "_shift_" + to_string(i);
          if(file_exists(file_name)){
              sdsl::bit_vector b;
              cout << "Filename: " << file_name << endl;
@@ -337,7 +361,7 @@ vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(CharString
          }
     }
     }else{
-    string file_name = string("") + toCString(bitvectorpath) + "right_bit_vector_" + to_string(K);
+    string file_name = string("") + toCString(bitvectorpath) + "right_bit_vector_" + to_string(K) + "_" + to_string(errors);
     if(file_exists(file_name)){
         sdsl::bit_vector b;
         cout << "Filename: " << file_name << endl;
@@ -348,7 +372,7 @@ vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(CharString
             cerr << file_name << " not found" <<  "\n";
         }
 
-    file_name = string("") + toCString(bitvectorpath) + "middle_bit_vector_" + to_string(K);
+    file_name = string("") + toCString(bitvectorpath) + "middle_bit_vector_" + to_string(K) + "_" + to_string(errors);
     if(file_exists(file_name)){
         sdsl::bit_vector b;
         cout << "Filename: " << file_name << endl;
@@ -359,7 +383,7 @@ vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(CharString
         cerr << file_name << " not found" <<  "\n";
     }
         
-    file_name = string("") + toCString(bitvectorpath) + "left_bit_vector_" + to_string(K);
+    file_name = string("") + toCString(bitvectorpath) + "left_bit_vector_" + to_string(K) + "_" + to_string(errors);
     if(file_exists(file_name)){
         sdsl::bit_vector b;
         cout << "Filename: " << file_name << endl;
@@ -456,6 +480,9 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("K", "length", "Length of k-mers", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "length");
     
+    addOption(parser, ArgParseOption("E", "errors", "Max errors allowed during mapping", ArgParseArgument::INTEGER, "INT"));
+    setRequired(parser, "errors");
+    
     addOption(parser, ArgParseOption("r", "r", "number of reads to test ", ArgParseArgument::INTEGER, "INT"));
 
     
@@ -466,12 +493,13 @@ int main(int argc, char *argv[])
     
     CharString indexPath, bitvectorpath, readspath;
     string outputpath;
-    int K, r = 0;
+    int K, nerrors, r = 0;
     getOptionValue(indexPath, parser, "index");
     getOptionValue(bitvectorpath, parser, "ibitvector");
     getOptionValue(readspath, parser, "ireads");
     getOptionValue(outputpath, parser, "output");
     getOptionValue(K, parser, "length");
+    getOptionValue(nerrors, parser, "errors");
     getOptionValue(r, parser, "r");
     
     //load reads
@@ -510,7 +538,7 @@ int main(int argc, char *argv[])
     
     // load bitvectors
     
-    vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bit_vectors = loadBitvectors(bitvectorpath, K);
+    vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bit_vectors = loadBitvectors(bitvectorpath, K, nerrors);
     cout << "Bit vectors loaded. Number: " << bit_vectors.size() << endl;
     
     
@@ -605,7 +633,7 @@ int main(int argc, char *argv[])
     cout << "Start My Search!" << endl;
     auto start = std::chrono::high_resolution_clock::now();
     cout.setstate(std::ios_base::failbit);
-    find<0, 2>(delegate, delegateDirect, index, reads, bit_vectors);
+    find(0, nerrors, delegate, delegateDirect, index, reads, bit_vectors);
     std::cout.clear();
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finish - start;
@@ -652,7 +680,7 @@ int main(int argc, char *argv[])
         }
     };
     start = std::chrono::high_resolution_clock::now();
-    find<0, 2>(delegateDe, index, reads, HammingDistance());
+    find(0, nerrors, delegateDe, index, reads, HammingDistance());
     finish = std::chrono::high_resolution_clock::now();
 
 /*    
@@ -680,7 +708,7 @@ int main(int argc, char *argv[])
     int threshold = 10; 
     cout << "Test if default and my version are the same: " << endl;
     cout.setstate(std::ios_base::failbit);
-    vector<int> whitcount = compare(index, threshold, readOccs, readOccsDe);
+    vector<int> whitcount = compare(index, nerrors, threshold, readOccs, readOccsDe);
     std::cout.clear();
     
     if(whitcount.size() == 0)

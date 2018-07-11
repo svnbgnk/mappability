@@ -129,7 +129,7 @@ template <unsigned errors>
 bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const int len, double threshold){
     bitvectors b;
     int th = round(1/threshold);
-    
+    int e = errors;    
     auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
     _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
     _optimalSearchSchemeSetMapParams(scheme);
@@ -145,7 +145,7 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
  
     
     b.bv.push_back(righti);
-    b.names.push_back("r_bit_vector_" + to_string(len) + "_shift_0");
+    b.names.push_back("r_bit_vector_" + to_string(len) + "_" + to_string(e) + "_shift_0");
     b.fwdd.push_back(true);
 
     uint8_t blocks = errors + 2;
@@ -160,7 +160,7 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
                     newright[j] = righti[j - shift];
             }
             b.bv.push_back(newright);
-            b.names.push_back("r_bit_vector_" + to_string(len) + "_shift_" + to_string(i + 1));
+            b.names.push_back("r_bit_vector_" + to_string(len) + "_" + to_string(e) + "_shift_" + to_string(i + 1));
             b.fwdd.push_back(true);
         }
         
@@ -174,13 +174,13 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
                     newleft[j] = lefti[j + shift];
             }
             b.bv.push_back(newleft);
-            b.names.push_back("l_bit_vector_" + to_string(len) + "_shift_" + to_string(i));
+            b.names.push_back("l_bit_vector_" + to_string(len) + "_" + to_string(e) + "_shift_" + to_string(i));
             b.fwdd.push_back(false);
         }
     }
     
     b.bv.push_back(lefti);
-    b.names.push_back("l_bit_vector_" + to_string(len) + "_shift_0");
+    b.names.push_back("l_bit_vector_" + to_string(len) + "_" + to_string(e) + "_shift_0");
     b.fwdd.push_back(false);
     return(b);
 }
@@ -189,6 +189,7 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
 template <unsigned errors>
 bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int len, double threshold){
 
+    int e = errors;
     cout << "Create minimum amount of bitvectors" << endl;
     int th = round(1/threshold);     
     bitvectors b;
@@ -218,7 +219,7 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int le
             case 1:
             {
                 b.bv.push_back(righti);
-                b.names.push_back("right_bit_vector_" + to_string(len));
+                b.names.push_back("right_bit_vector_" + to_string(len) + "_" + to_string(e));
                 b.fwdd.push_back(true);
                 cout << "case1" << endl;
                 break;
@@ -227,7 +228,7 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int le
             case blocks:
             {
                 b.bv.push_back(lefti);
-                b.names.push_back("left_bit_vector_" + to_string(len));
+                b.names.push_back("left_bit_vector_" + to_string(len) + "_" + to_string(e));
                 b.fwdd.push_back(false);
                 cout << "case2" << endl;
                 break;
@@ -244,7 +245,7 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int le
                             newright[j] = righti[j - shift];
                     }
                     b.bv.push_back(newright);
-                    b.names.push_back("middle_bit_vector_" + to_string(len));
+                    b.names.push_back("middle_bit_vector_" + to_string(len) + "_" + to_string(e));
                     b.fwdd.push_back(true);
                 }else{
                     sdsl::bit_vector newleft(mappability.size() + len - 1, 0);//TODO think 0 or 1 in edge cases
@@ -256,7 +257,7 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int le
                             newleft[j] = lefti[j + shift];
                     }
                     b.bv.push_back(newleft);
-                    b.names.push_back("middle_bit_vector_" + to_string(len));
+                    b.names.push_back("middle_bit_vector_" + to_string(len) + "_" + to_string(e));
                     b.fwdd.push_back(false);
                 }
             }
