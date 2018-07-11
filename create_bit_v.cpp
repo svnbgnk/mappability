@@ -47,82 +47,8 @@ vector<uint8_t> read(const string mappability_path){
         file.close();
         cout << "Load successful" << endl;
         }
-//     for(vector<float>::iterator it = mappability.begin(); mappability.end() != it; ++it)
-//         *it = static_cast<float>(1) / *it;
     return(mappability_int); 
 }
-
-/*
-bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const int len, double threshold, const int errors){
-    bitvectors b;
-    int th = round(1/threshold);    
-    uint8_t blocks = errors + 2;
-    uint32_t blocklength = len / blocks;
-    uint8_t rest = len - blocks * blocklength;
-    std::vector<uint32_t> blocklengths;
-    std::vector<uint32_t> revBlocklengths(4, 0);
-    for (uint8_t i = 0; i < blocks; ++i)
-        blocklengths.push_back(blocklength + (i < rest));
-    
-    revBlocklengths[blocks - 1] = blocklengths[blocks - 1];    
-    for(int8_t i = blocks - 2; i >= 0; --i)
-        revBlocklengths[i] += blocklengths[i] + revBlocklengths[i + 1];
-       
-    for(uint8_t i = 1; i < blocks; ++i)
-        blocklengths[i] += blocklengths[i - 1];
-    
-    sdsl::bit_vector righti (mappability.size() + len - 1, 0);
-    sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
-    #pragma omp parallel for schedule(static)   
-    for(unsigned i = 0; i < mappability.size(); ++i){
-        lefti[i + len - 1] = (mappability[i] <= th);
-        righti[i] = (mappability[i] <= th);
-//         cout << righti[i];
-    }
-//     cout << endl;
-    cout << "Finished Default Bit Vectors.  Length: " << righti.size() << endl;
- 
-    
-    b.bv.push_back(righti);
-    b.names.push_back("r_bit_vector_" + to_string(len) + "_shift_0");
-    b.fwdd.push_back(true);
-
-    
-    if(errors != 0){
-        for(int i = 0; i < blocks - 1; ++i){
-            sdsl::bit_vector newright(mappability.size() + len - 1, 0); //TODO think 0 or 1 in edge cases
-            int shift = blocklengths[i];
-            cout << "shift for r_bit  " << shift << endl;
-            cout << "name:  " << i + 1 << endl; 
-            for(int j = 0; j < righti.size(); ++j){
-                if(j - shift >= 0)
-                    newright[j] = righti[j - shift];
-            }
-            b.bv.push_back(newright);
-            b.names.push_back("r_bit_vector_" + to_string(len) + "_shift_" + to_string(i + 1));
-            b.fwdd.push_back(true);
-        }
-        
-        for(int i = 1; i < blocks; ++i){
-            sdsl::bit_vector newleft(mappability.size() + len - 1, 0);//TODO think 0 or 1 in edge cases
-            int shift = revBlocklengths[i];
-            cout << "shift for l_bit  " << shift << endl;
-            cout << "name:  " << blocks - i << endl; 
-            for(int j = 0; j < righti.size(); ++j){
-                if(j + shift < lefti.size() - 1)
-                    newleft[j] = lefti[j + shift];
-            }
-            b.bv.push_back(newleft);
-            b.names.push_back("l_bit_vector_" + to_string(len) + "_shift_" + to_string(blocks - i));
-            b.fwdd.push_back(false);
-        }
-    }
-    
-    b.bv.push_back(lefti);
-    b.names.push_back("l_bit_vector_" + to_string(len) + "_shift_0");
-    b.fwdd.push_back(false);
-    return(b);
-}*/
 
 
 template <unsigned errors>

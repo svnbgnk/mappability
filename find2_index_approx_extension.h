@@ -51,7 +51,7 @@ struct OptimalSearchSchemes<0, 2, TVoidType>
 };
     */
 enum class ReturnCode {
-	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, ONEDIRECTION, MAPPABLE, FINISHED, UNIDIRECTIONAL, SUSPECTEUNIDIRECTIONAL, ERROR
+	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, ONEDIRECTION, MAPPABLE, FINISHED, UNIDIRECTIONAL, SUSPECTUNIDIRECTIONAL, ERROR
 };
 
 enum class BV {
@@ -163,7 +163,7 @@ bool filterCurrent_interval(TDelegate & delegate,
             --endPos;
         }
         if(startPos > endPos)
-            cout << "Error bit vector has only zeroes this should have been checked by check_interval" << endl; 
+            cout << "Error bit vector has only zeroes this should have been checked by checkInterval" << endl; 
         cout << "Size: " << endPos - startPos << endl;
         cout << "startPos: " << startPos << " endPos: " << endPos << endl;
         
@@ -494,30 +494,85 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval(Iter<Index<TText,
 }
 
 template<typename TText, typename TIndex, typename TIndexSpec, size_t nbrBlocks>
-ReturnCode check_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+ReturnCode testUnidirectional(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                           vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
                           Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
                           OptimalSearch<nbrBlocks> const & s,
                           uint8_t const blockIndex,
                           bool const goToRight2)
 {
+    
+    // allowd flips per intervalSize
+    float flipDensity = 1/static_cast<float>(2);
+    
+    // need bitinterval from inside the pattern to filter according to the mappability form
+    //therefore i also need to acces the block before because of that block i got mappability of both sides
+    auto bit_interval = get_bitvector_interval_inside(iter, bitvectors, s, blockIndex, goToRight2);
+    sdsl::bit_vector & b2 = bitvectors[bit_interval.i1].first;
+    
+    //squas interval
+    uint32_t startPos = bit_interval.i2.i1, endPos = bit_interval.i2.i2;
+    
+    for(uint32_t i = startPos; i < endPos; ++i){
+        if(b2[i] != 0)
+            break; 
+        ++startPos;
+    }
+    for(uint32_t i = endPos - 1; i >= startPos; --i){
+        if(b2[i] != 0)
+            break;
+        --endPos;
+    }
+    
+    if(startPos > endPos){
+        cout << "Error bit vector has only zeroes this should have been checked by checkinterval" << endl;
+        cout << "Size: " << endPos - startPos << endl;
+        exit(0);
+    }
+    // order of bits
+    bool last = b2[startPos];
+    uint32_t pos = startPos;
+    uint32_t count = 0; 
+    while(pos < endPos){
+        if(b2[pos] != last){
+            ++count;
+            last = !last;
+        }
+        ++pos;
+    }  
+    float ivalSize = brange.i2.i2 - brange.i2.i1;
+    // if next condition is true then brange will be modified!!!!
+    // it will contain mappability of the bitvector from the other side of already searched needle
+    
+    // only interested in changes inside the supinterval (startPos - endPos)
+    // if 0 got Cutoff that means more changes but is at the same time also good
+    // therefore ignore them
+    cout << "Test flipdensitey " << endl;
+    cout << ivalSize * flipDensity - 1 << endl;
+    cout << "count: " << count << endl;
+
+    if(ivalSize * flipDensity - 1 > static_cast<float>(count)){
+        cout << "Continue UNIDIRECTIONAL" << endl;
+        brange.i1 = bit_interval.i1;
+        cout << "New selected bitvector by inside function: " << (int)bit_interval.i1 << endl;
+        brange.i2.i1 = startPos;
+        brange.i2.i2 = endPos;
+        return ReturnCode::UNIDIRECTIONAL;
+    }
+    return ReturnCode::MAPPABLE;
+}
+
+template<size_t nbrBlocks>
+ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
+                          Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
+                          OptimalSearch<nbrBlocks> const & s,
+                          uint8_t const blockIndex)
+{
+    float filter_threshold = 0.5; 
     sdsl::bit_vector & b = bitvectors[brange.i1].first;
     sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second; 
     rb.set_vector(&b);
     
-/*    
-    srand (time(0));
-    cout << "Print random generated bit vector:" << endl;
-    for(int i = brange.i2.i1; i < brange.i2.i2; ++i){
-        if((rand() % 2) == 0){
-            b[i] = 0;
-        }
-        cout << i << "  Bitt: " << b[i] << endl;
-    }
-    sdsl::rank_support_v<> rb(&b);
-    bitvectors[brange.i1].first = b;
-    bitvectors[brange.i1].second = rb;  */ 
-   
     uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
     if(ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
@@ -526,74 +581,13 @@ ReturnCode check_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree
         return ReturnCode::DIRECTSEARCH;
     }
     
-//     if(ivalOne == (brange.i2.i2 - brange.i2.i1))
+//     if(ivalOne == (brange.i2.i2 - brange.i2.i1)) //maybe allow some zeroes
 //         return ReturnCode::COMPMAPPABLE;
-    
-    
-//TODO put into new function
     //equal or more than half zeroes     
-    float filter_threshold = 0.5; 
-    // allowd flips per intervalSize
-    float flipDensity = 1/static_cast<float>(2);
     float ivalSize = brange.i2.i2 - brange.i2.i1;
-    //TODO check if we are in a block this can only be used between to blocks
     if(s.startUniDir <= blockIndex && ivalOne/ ivalSize <= filter_threshold){
-        // need bitinterval from inside the pattern to filter according to the mappability form
-        //therefore i also need to acces the block before because of that block i got mappability of both sides
-        auto bit_interval = get_bitvector_interval_inside(iter, bitvectors, s, blockIndex, goToRight2);
-        sdsl::bit_vector & b2 = bitvectors[bit_interval.i1].first;
-        
-        
-        //squas interval
-        uint32_t startPos = bit_interval.i2.i1, endPos = bit_interval.i2.i2;
-        
-        for(uint32_t i = startPos; i < endPos; ++i){
-            if(b2[i] != 0)
-                break; 
-            ++startPos;
-        }
-        for(uint32_t i = endPos - 1; i >= startPos; --i){
-            if(b2[i] != 0)
-                break;
-            --endPos;
-        }
-        
-        if(startPos > endPos){
-            cout << "Error bit vector has only zeroes this should have been checked by check_interval" << endl;
-            cout << "Size: " << endPos - startPos << endl;
-            exit(0);
-        }
-        // order of bits
-        bool last = b2[startPos];
-        uint32_t pos = startPos;
-        uint32_t count = 0; 
-        while(pos < endPos){
-            if(b2[pos] != last){
-                ++count;
-                last = !last;
-            }
-            ++pos;
-        }  
-// if next condition is true then brange will be modified!!!!
-// it will contain mappability of the bitvector from the other side of already searched needle
-    
-// only interested in changes inside the supinterval (startPos - endPos)
-// if 0 got Cutoff that means more changes but is at the same time also good
-// therefore ignore them
-        cout << "Test flipdensitey " << endl;
-        cout << ivalSize * flipDensity - 1 << endl;
-        cout << "count: " << count << endl;
-        if(ivalSize * flipDensity - 1 > static_cast<float>(count)){
-            cout << "Continue UNIDIRECTIONAL" << endl;
-            brange.i1 = bit_interval.i1;
-            cout << "New selected bitvector by inside function: " << (int)bit_interval.i1 << endl;
-            brange.i2.i1 = startPos;
-            brange.i2.i2 = endPos;
-            return ReturnCode::UNIDIRECTIONAL;
-        }
+        return ReturnCode::SUSPECTUNIDIRECTIONAL;
     }
-    
-    
     return ReturnCode::MAPPABLE;
 }
 
@@ -616,8 +610,7 @@ ReturnCode checkCurrentMappability(TDelegate & delegate,
 {
     Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval(iter, s, blockIndex, TDir());
     //TODO fix last bool
-    ReturnCode rcode = check_interval(iter, bitvectors, bit_interval, s, blockIndex, true);
-    //TODO create function for case SUSPECTEUNIDIRECTIONAL
+    ReturnCode rcode = checkInterval(bitvectors, bit_interval, s, blockIndex);
 //   cout << "Return code: " << (int)rcode << endl;
         
     if(rcode == ReturnCode::NOMAPPABILITY)
@@ -682,9 +675,8 @@ ReturnCode checkMappability(TDelegate & delegate,
             print_sa(iter, bitvectors, false);
         printbit(bitvectors, bit_interval);
         cout << "Printend" << endl;
-        ReturnCode rcode = check_interval(iter, bitvectors, bit_interval, s, blockIndex, goToRight2);
+        ReturnCode rcode = checkInterval(bitvectors, bit_interval, s, blockIndex);
 //      cout << "Return code: " << (int)rcode << endl;
-        
         if(rcode == ReturnCode::NOMAPPABILITY){
             cout << "NOMAPPABILITYNOMAPPABILITYNOMAPPABILITYNOMAPPABILITYNOMAPPABILITYNOMAPPABILITY" << endl;
             return ReturnCode::FINISHED;        
@@ -732,7 +724,12 @@ ReturnCode checkMappability(TDelegate & delegate,
             }
             return ReturnCode::FINISHED;
         }*/
+        
+        if(rcode == ReturnCode::SUSPECTUNIDIRECTIONAL)
+            rcode == testUnidirectional(iter, bitvectors, bit_interval, s, blockIndex, goToRight2);
+        
         if(rcode == ReturnCode::UNIDIRECTIONAL){
+            //range on iter was changed in function before
             if(goToRight2){
                 filter_interval(delegate, delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, Rev());
             }
@@ -953,17 +950,15 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     // Approximate search in current block.
     else
     {
-   /*   
-        //TODO implement faster mod 
-        if((needleRightPos - needleLeftPos - 1) % 4 == 0){
-            //TODO Check if we are Done here?
-            //TODO stop doing on loop to much (enter checkCurrentMappability a second time)
-            bool goToRight2 = std::is_same<TDir, Rev>::value;
-            ReturnCode rcode = checkCurrentMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, goToRight2, TDir());
-            // blockIndex is different here!!! goToRight2 is missing
-            if(rcode == ReturnCode::FINISHED)
-                return;
-        }*/
+/*      
+    //TODO implement faster mod   ((temp3 ) == 0)
+    if((needleRightPos - needleLeftPos - 1) & (0b11) == 0){
+        //TODO Check if we are Done here?
+        //TODO stop doing on loop to much (enter checkCurrentMappability a second time)
+        ReturnCode rcode = checkCurrentMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir());
+        if(rcode == ReturnCode::FINISHED)
+            return;
+    }*/
         
         _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir());
     }
