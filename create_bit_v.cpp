@@ -60,8 +60,8 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
     _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
     _optimalSearchSchemeSetMapParams(scheme);
     auto s = scheme[0];
-    for(int i = 0; i < s.pi.size(); ++i)
-        cout << (int)s.revChronBL[i] << endl;
+//     for(int i = 0; i < s.pi.size(); ++i)
+//         cout << (int)s.revChronBL[i] << endl;
     
     sdsl::bit_vector righti (mappability.size() + len - 1, 0);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
@@ -84,6 +84,7 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
             int shift = s.chronBL[i];
             cout << "shift for r_bit  " << shift << endl;
             cout << "name:  " << i + 1 << endl; 
+            //TODO add parallization here
             for(int j = 0; j < righti.size(); ++j){
                 if(j - shift >= 0)
                     newright[j] = righti[j - shift];
@@ -98,6 +99,7 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
             int shift = s.revChronBL[blocks - i];
             cout << "shift for l_bit  " << shift << endl;
             cout << "name:  " << i << endl; 
+            //TODO add parallization here
             for(int j = 0; j < righti.size(); ++j){
                 if(j + shift < lefti.size() - 1)
                     newleft[j] = lefti[j + shift];
