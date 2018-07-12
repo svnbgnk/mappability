@@ -25,6 +25,11 @@ void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIn
               bool const fwd);
 
 template <typename TText, typename TIndex, typename TIndexSpec>
+void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+              int const number_of_indeces,
+              bool const fwd);
+
+template <typename TText, typename TIndex, typename TIndexSpec>
 void print_fullsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
               vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
               bool const fwd);

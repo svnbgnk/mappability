@@ -6,6 +6,7 @@
 #include "common.h"
 #include "common_auxiliary.h"
 #include "find2_index_approx_unidirectional.h"
+#include "find2_index_approx_compmappable.h"
 
 template <typename TIter>
 struct isBidirectionalIter
@@ -322,7 +323,7 @@ void directSearch(TDelegateD & delegateDirect,
     cout << "errors:  " <<  (int)errors <<  endl;
     vector<Pair<uint16_t, uint32_t>> hitsv;
     vector<uint8_t> errorsv;
-    if(std::is_same<TDir, Rev>::value){
+//     if(std::is_same<TDir, Rev>::value){
         auto const & genome = indexText(*iter.fwdIter.index);
         for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
             if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
@@ -346,7 +347,7 @@ void directSearch(TDelegateD & delegateDirect,
                     
                     if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd){
                         cout << "changing Blockstart, should only happen (once) when we come from checkcurrentmappability!!" << endl;
-                        blockStart = needleRightPos;
+                        blockStart = needleRightPos - 1;
                         cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
                     }
                     
@@ -372,6 +373,7 @@ void directSearch(TDelegateD & delegateDirect,
                 }
             }
         }
+        
     }
     else
     {
@@ -398,14 +400,15 @@ void directSearch(TDelegateD & delegateDirect,
                     cout << endl;
                     if(needleLeftPos < length(needle) - blockStart && needleLeftPos > length(needle) - blockEnd){
                         cout << "changing Blockstart, should only happen (once) when we come from checkcurrentmappability!!" << endl;
-                        blockStart = needleLeftPos;
-                        cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
+                        blockStart = length(needle) - needleLeftPos; //- 1 + 1
+                        cout << "searching Parts:" << blockStart << " - " << blockEnd << "; " << endl;
                     }
                     for(int k = blockStart; k < blockEnd; ++k){
                         if(needle[length(needle) - k - 1] != rgenome[sa_info.i1][startPos + k])
                             ++errors2;
                         
                     }
+                    cout << "Errors until now: " << (int)errors2 << endl;
                     if(errors2 < s.l[j] || errors2 > s.u[j]){
                         cout << "Triggered: " << (int)errors2 << endl;
                         valid = false;
@@ -579,6 +582,7 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
                           uint8_t const blockIndex)
 {
     float filter_threshold = 0.5; 
+    int directSearchTrigger = 2;
     sdsl::bit_vector & b = bitvectors[brange.i1].first;
     sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second; 
     rb.set_vector(&b);
@@ -587,12 +591,12 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
     if(ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
 
-    if(ivalOne < 4){ //TODO add additional constrains from chris? //incorparated blockIndex (s.pi.size() - blockIndex - 1) * 2
+    if(ivalOne < (s.pi.size() - blockIndex - 1) * directSearchTrigger){ //<4 TODO add additional constrains from chris? //incorparated blockIndex 
         return ReturnCode::DIRECTSEARCH;
     }
     
-//     if(ivalOne == (brange.i2.i2 - brange.i2.i1)) //maybe allow some zeroes
-//         return ReturnCode::COMPMAPPABLE;
+    if(ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
+        return ReturnCode::COMPMAPPABLE;
     //equal or more than half zeroes     
     float ivalSize = brange.i2.i2 - brange.i2.i1;
     if(s.startUniDir <= blockIndex && ivalOne/ ivalSize <= filter_threshold){
@@ -714,32 +718,23 @@ ReturnCode checkMappability(TDelegate & delegate,
             }
             return ReturnCode::FINISHED;
         }
+        
         //TODO check if we are in unidirection case in this case COMPMAPPABLE should no be used
-        /*
         if(rcode == ReturnCode::COMPMAPPABLE){
-            if(std::is_same<TDir, Rev>::value){
-                if (goToRight2)
-                {
-                    _optimalSearchScheme(delegate, iter, needle, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, Rev(), HammingDistance());
-                }
-                else
-                {
-                    _optimalSearchScheme(delegate, iter, needle, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, Fwd(), HammingDistance());
-                }
+            cout << "COMPMAPPABLECOMPMAPPABLECOMPMAPPABLECOMPMAPPABLECOMPMAPPABLE" << endl;
+            cout << "NLP: " << current_needleLeftPos << endl;
+            cout << "NRP: " << current_needleRightPos << endl;
+            cout << "errors: " << (int)errors << endl;
+            if (goToRight2)
+            {
+                _optimalSearchScheme(delegate, delegateDirect, iter, needle, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, Rev(), HammingDistance());
             }
             else
-            { 
-                if (goToRight2)
-                {
-                    _optimalSearchScheme(delegate, iter, needle, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, Rev(), HammingDistance());
-                }
-                else
-                {
-                    _optimalSearchScheme(delegate, iter, needle, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, Fwd(), HammingDistance());
-                }
+            {
+                _optimalSearchScheme(delegate, delegateDirect, iter, needle, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, Fwd(), HammingDistance());
             }
             return ReturnCode::FINISHED;
-        }*/
+        }
         
         if(rcode == ReturnCode::SUSPECTUNIDIRECTIONAL)
             rcode == testUnidirectional(iter, bitvectors, bit_interval, s, blockIndex, goToRight2);
@@ -1034,6 +1029,10 @@ find(TDelegate & delegate,
 {
     auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
     _optimalSearchSchemeComputeFixedBlocklength(scheme, length(needle));
+    cout << "New Needle:" << endl;
+    for(int i = 0; i < length(needle); ++i)
+        cout << needle[i];
+    cout << endl;
     _optimalSearchSchemeSetMapParams(scheme);
     print_search_scheme(scheme); //TODO revert this
     Iter<Index<TText, BidirectionalIndex<TIndexSpec> >, VSTree<TopDown<> > > it(index);

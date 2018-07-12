@@ -46,7 +46,33 @@ void print_fullsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown
     }
 }
 
+template <typename TText, typename TIndex, typename TIndexSpec>
+void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+              int const number_of_indeces,
+              bool const fwd)
+{
+    Pair<uint32_t, uint32_t> dirrange = (fwd) ? range(iter.fwdIter) : range(iter.revIter);
+    vector<int> sequenceLengths(number_of_indeces + 1, 0);
+    for(int i = 0; i < number_of_indeces; ++i)
+        sequenceLengths[iter.fwdIter.index->sa[i].i1 + 1] = iter.fwdIter.index->sa[i].i2;
+        // cumulative sum seq
+    for(int i = 1; i < sequenceLengths.size(); ++i)
+        sequenceLengths[i] += (sequenceLengths[i - 1]);
+    if(fwd){
+        for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
+            int seq = iter.fwdIter.index->sa[i].i1;
+            int sa = iter.fwdIter.index->sa[i].i2;
+            cout << i << ": " << sa + sequenceLengths[seq] << endl;
+        }
+    }else{
+        for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
+            int seq = iter.revIter.index->sa[i].i1;
+            int sa = iter.revIter.index->sa[i].i2;
+            cout << i << ": " << sequenceLengths[seq + 1] - sa - 1 << endl;
+        }
 
+    }
+}
 
 template <typename TText, typename TIndex, typename TIndexSpec>
 void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
@@ -184,8 +210,8 @@ vector<int> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
             if(i < x.size())//TODO revert this
                 cout << "MyVersion has: " << x[i].hit.i2 << " while " ; //TODO revert this
             cout << "default version has: " << y[i + offset].hit.i2 << endl;//TODO revert this
-            int nhits = testread(0, errors, index, y[i + offset]);
-            if(nhits < threshold){
+            int nhits = testread(0, errors, index, y[i + offset]); //TODO  3 lines down
+            if(nhits < threshold){      //TODO //3 lines down
                 cout << "To few hits should have found this part!!!!" << endl;
                 wrongHitCount.push_back(nhits);
 //                 --offset;
@@ -597,6 +623,7 @@ int main(int argc, char *argv[])
         {
 //             cout << "Is bidirectional Iter" << endl;
             for (auto occ : getOccurrences(iter)){
+                cout << "Occ: "  << occ.i2 << endl;
                 hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
                 errors_v.push_back(errors);
             }
@@ -604,8 +631,6 @@ int main(int argc, char *argv[])
 //             cout << "Is UniDirectional Iter" << endl;
             auto const & rgenome = getUniIndexGenome(iter);
             for (auto occ : getOccurrences(iter)){
-                cout << "Seq Size: " << endl;
-                cout << seqan::length(rgenome[occ.i1]);
                 cout << endl;
                 cout << "Occ: "  << occ.i2 << endl;
                  if(rev){
