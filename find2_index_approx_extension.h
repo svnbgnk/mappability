@@ -317,17 +317,16 @@ void directSearch(TDelegateD & delegateDirect,
                   Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
                   TDir const & /**/)
 {
-    cout << "directSearch " <<  endl;
+    cout << "directSearchdefault " <<  endl;
     cout << "NLP: " <<  needleLeftPos <<  endl;
     cout << "NRP: " <<  needleRightPos <<  endl;
     cout << "errors:  " <<  (int)errors <<  endl;
     vector<Pair<uint16_t, uint32_t>> hitsv;
     vector<uint8_t> errorsv;
-    if(std::is_same<TDir, Rev>::value){
+//     if(std::is_same<TDir, Rev>::value){
         auto const & genome = indexText(*iter.fwdIter.index);
         for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
             if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
-                cout << "Direct Search Rev" << endl;
                 cout << "blockIndex: " << (int)blockIndex << endl;
                 
                 uint8_t errors2 = errors;
@@ -344,11 +343,18 @@ void directSearch(TDelegateD & delegateDirect,
                     cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
                     cout << endl;
                     // compare bases to needle
-                    
-                    if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd){
-                        cout << "changing Blockstart, should only happen (once) when we come from checkcurrentmappability!!" << endl;
-                        blockStart = needleRightPos - 1;
-                        cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
+                    if(std::is_same<TDir, Rev>::value){
+                        if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd){
+                            cout << "changing Blockstart, should only happen (once) when we come from checkcurrentmappability!!" << endl;
+                            blockStart = needleRightPos - 1;
+                            cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
+                        }
+                    }else{
+                        if(needleLeftPos > blockStart && needleLeftPos < blockEnd){
+                            cout << "changing Blockend fwd" << endl;
+                            blockEnd = needleLeftPos;
+                            cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
+                        }
                     }
                     
                     for(int k = blockStart; k <  blockEnd; ++k){
@@ -373,7 +379,7 @@ void directSearch(TDelegateD & delegateDirect,
                 }
             }
         }
-        
+      /*  
     }
     else
     {
@@ -426,7 +432,7 @@ void directSearch(TDelegateD & delegateDirect,
                 
             }
         }
-    }
+    }*/
     delegateDirect(hitsv, needle, errorsv);
 }
 

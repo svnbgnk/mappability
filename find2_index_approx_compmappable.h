@@ -208,7 +208,6 @@ void directSearch(TDelegateD & delegateDirect,
     if(std::is_same<TDir, Rev>::value){
         auto const & genome = indexText(*iter.fwdIter.index);
         for(int i = iter.fwdIter.vDesc.range.i1; i < iter.fwdIter.vDesc.range.i2; ++i){
-            cout << "Direct Search Rev" << endl;
             cout << "blockIndex: " << (int)blockIndex << endl;
             uint8_t errors2 = errors;
             bool valid = true;
@@ -222,13 +221,20 @@ void directSearch(TDelegateD & delegateDirect,
                 int blockEnd = s.chronBL[s.pi[j] - 1];
                 cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
                 cout << endl;
-                // compare bases to needle
-                
-                if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd){
-                    cout << "changing Blockstart, should only happen (once) when we come from checkcurrentmappability!!" << endl;
-                    blockStart = needleRightPos - 1;
-                    cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
-                }
+                // compare bases to needle                
+                if(std::is_same<TDir, Rev>::value){
+                        if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd){
+                            cout << "changing Blockstart rev" << endl;
+                            blockStart = needleRightPos - 1;
+                            cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
+                        }
+                    }else{
+                        if(needleLeftPos > blockStart && needleLeftPos < blockEnd){
+                            cout << "changing Blockend fwd" << endl;
+                            blockEnd = needleLeftPos;
+                            cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
+                        }
+                    }
                 for(int k = blockStart; k <  blockEnd; ++k){
                     //                     if(needle[k] != it)
                     if(needle[k] != genome[sa_info.i1][startPos + k])
@@ -253,7 +259,6 @@ void directSearch(TDelegateD & delegateDirect,
     }
     else
     {
-//         StringSet<DnaString>
         auto const & rgenome = indexText(*iter.revIter.index);
         for(int i = iter.revIter.vDesc.range.i1; i < iter.revIter.vDesc.range.i2; ++i){
             cout << "Direct Search FWD" << endl;
