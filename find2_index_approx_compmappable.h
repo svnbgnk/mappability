@@ -210,9 +210,11 @@ void directSearch(TDelegateD & delegateDirect,
         cout << "blockIndex: " << (int)blockIndex << endl;
         uint8_t errors2 = errors;
         bool valid = true;
-        Pair<uint16_t, uint32_t> sa_info= iter.fwdIter.index->sa[i];
-        uint32_t startPos = sa_info.i2 - needleLeftPos;
-//         cout <<  "Sa info" <<  sa_info <<  endl; //TODO redo this
+        Pair<uint16_t, uint32_t> sa_info;
+        uint32_t startPos;
+        //dont need look at the reverse index in this case since i dont use mappability
+        sa_info = iter.fwdIter.index->sa[i];
+        startPos = sa_info.i2 - needleLeftPos;
         cout << "StartPos " << startPos << endl;
         //search remaining blocks (also finished the current block if neede)
         for(int j = blockIndex; j < s.pi.size(); ++j){

@@ -130,7 +130,7 @@ std::vector<readOcc> print_readocc_sorted(std::vector<Pair<DnaString, Pair <unsi
         cout << "Errors: "<< (int)readOccs[i].errors;
         cout << "   " << readOccs[i].hit << endl;
         if(occEnabled)
-            cout << infix(genome[readOccs[i].hit.i2.i1], readOccs[i].hit.i2.i2, readOccs[i].hit.i2.i2 + 100) << endl;
+            cout << infix(genome[readOccs[i].hit.i2.i1], readOccs[i].hit.i2.i2, readOccs[i].hit.i2.i2 + seqan::length(readOccs[i].hit.i1)) << endl;
         
     }
     return(readOccs);
@@ -155,10 +155,10 @@ int testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
     };
     
     StringSet<DnaString> testocc;
-    DnaString part = infix(genome[readOcc.hit.i2.i1], readOcc.hit.i2.i2, readOcc.hit.i2.i2 + 100);
+    DnaString part = infix(genome[readOcc.hit.i2.i1], readOcc.hit.i2.i2, readOcc.hit.i2.i2 + seqan::length(readOcc.hit.i1));
     appendValue(testocc, part);
     cout << "Search occ: " << (int)readOcc.hit.i2.i2 << " which has seq: " << endl;
-//     cout << part << endl; //TODO revert this
+    cout << part << endl; //TODO revert this
 
     find<minErrors, maxErrors>(delegate, index, testocc, HammingDistance());
 //        print_readocc_sorted(hite, errors_v);
@@ -690,7 +690,7 @@ int main(int argc, char *argv[])
     for(int i = 0; i < readOccs.size(); ++i){
         cout << "Errors: "<< (int)readOccs[i].errors;
         cout << "   "  << readOccs[i].hit << endl;
-        cout << infix(genome[readOccs[i].hit.i2.i1], readOccs[i].hit.i2.i2, readOccs[i].hit.i2.i2 + 100) << endl;
+        cout << infix(genome[readOccs[i].hit.i2.i1], readOccs[i].hit.i2.i2, readOccs[i].hit.i2.i2 + seqan::length(readOccs[i].hit.i1)) << endl;
         
     }
 

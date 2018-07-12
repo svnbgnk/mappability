@@ -325,14 +325,25 @@ void directSearch(TDelegateD & delegateDirect,
     vector<uint8_t> errorsv;
     auto const & genome = indexText(*iter.fwdIter.index);
     for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
+        cout << "I: " << i << endl;
         if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
             cout << "blockIndex: " << (int)blockIndex << endl;
             uint8_t errors2 = errors;
             bool valid = true;
-            Pair<uint16_t, uint32_t> sa_info= iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
-            uint32_t startPos = sa_info.i2 - needleLeftPos;
-
-//           cout <<  "Sa info" <<  sa_info <<  endl; //TODO redo this
+            Pair<uint16_t, uint32_t> sa_info;
+            uint32_t startPos;
+            // mappability information is in reverse index order if we use the forward index
+            if(std::is_same<TDir, Rev>::value){
+                cout << "rev" << endl;
+                sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
+                startPos = sa_info.i2 - needleLeftPos;
+            }
+            else{
+                cout << "fwd" << endl;
+                sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
+                //calculate correct starting position of the needle  on the forward index
+                startPos = seqan::length(genome[sa_info.i1]) - sa_info.i2 - needleRightPos + 1;
+            }
             cout << "StartPos " << startPos << endl;
             //search remaining blocks
             for(int j = blockIndex; j < s.pi.size(); ++j){
@@ -636,6 +647,10 @@ ReturnCode checkMappability(TDelegate & delegate,
         else
             bit_interval = get_bitvector_interval(iter, bitvectors, s, blockIndex, Fwd());
         
+        ReturnCode rcode = checkInterval(bitvectors, bit_interval, s, blockIndex);
+//      cout << "Return code: " << (int)rcode << endl;
+        
+        
         cout << "Printttt" << endl;
         if(goToRight2)
             print_sa(iter, bitvectors, true);
@@ -643,8 +658,7 @@ ReturnCode checkMappability(TDelegate & delegate,
             print_sa(iter, bitvectors, false);
         printbit(bitvectors, bit_interval);
         cout << "Printend" << endl;
-        ReturnCode rcode = checkInterval(bitvectors, bit_interval, s, blockIndex);
-//      cout << "Return code: " << (int)rcode << endl;
+        
         if(rcode == ReturnCode::NOMAPPABILITY){
             cout << "NOMAPPABILITYNOMAPPABILITYNOMAPPABILITYNOMAPPABILITYNOMAPPABILITYNOMAPPABILITY" << endl;
             return ReturnCode::FINISHED;        
@@ -653,6 +667,10 @@ ReturnCode checkMappability(TDelegate & delegate,
             cout << "DIRECTSEARCHDIRECTSEARCHDIRECTSEARCHDIRECTSEARCHDIRECTSEARCHDIRECTSEARCH" << endl;
             cout << "NLP: " << current_needleLeftPos << endl;
             cout << "NRP: " << current_needleRightPos << endl;
+            if(std::is_same<TDir, Rev>::value)
+                cout << "Iter start pos fwd" << iter.fwdIter.vDesc.range.i1 << endl;
+            else
+                cout << "Iter start pos rev" << iter.revIter.vDesc.range.i1 << endl;
             cout << "errors: " << (int)errors << endl;
             //search directly in Genome
             //TODO I only need left value for rev and right value for fwd so delte one input?
