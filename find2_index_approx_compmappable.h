@@ -235,7 +235,6 @@ void directSearch(TDelegateD & delegateDirect,
                     }
                 }
             for(int k = blockStart; k <  blockEnd; ++k){
-                //                     if(needle[k] != it)
                 if(needle[k] != genome[sa_info.i1][startPos + k])
                     ++errors2;
             }
