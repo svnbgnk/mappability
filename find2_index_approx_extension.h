@@ -323,7 +323,7 @@ void directSearch(TDelegateD & delegateDirect,
     cout << "errors:  " <<  (int)errors <<  endl;
     vector<Pair<uint16_t, uint32_t>> hitsv;
     vector<uint8_t> errorsv;
-//     if(std::is_same<TDir, Rev>::value){
+    if(std::is_same<TDir, Rev>::value){
         auto const & genome = indexText(*iter.fwdIter.index);
         for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
             if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){

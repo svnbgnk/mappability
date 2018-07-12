@@ -205,7 +205,7 @@ void directSearch(TDelegateD & delegateDirect,
     cout << "errors:  " <<  (int)errors <<  endl;
     vector<Pair<uint16_t, uint32_t>> hitsv;
     vector<uint8_t> errorsv;
-//     if(std::is_same<TDir, Rev>::value){
+    if(std::is_same<TDir, Rev>::value){
         auto const & genome = indexText(*iter.fwdIter.index);
         for(int i = iter.fwdIter.vDesc.range.i1; i < iter.fwdIter.vDesc.range.i2; ++i){
             cout << "Direct Search Rev" << endl;
@@ -249,7 +249,7 @@ void directSearch(TDelegateD & delegateDirect,
                 errorsv.push_back(errors2);
             }
         }
-        
+    
     }
     else
     {
@@ -300,6 +300,7 @@ void directSearch(TDelegateD & delegateDirect,
     }
     delegateDirect(hitsv, needle, errorsv);
     cout << "compdirectSearchEnd " <<  endl;
+    
 }
 
 }
