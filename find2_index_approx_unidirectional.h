@@ -245,7 +245,20 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     }
     // Approximate search in current block.
     else
-    {      
+    {
+        /*
+        //TODO test for directSearch
+        cout << "Test for uniDirectSearch:" << endl;
+        cout << "PrintSA:" << endl;
+        
+        int directSearchTrigger = 2;
+        if(iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1) * directSearchTrigger){
+            cout << "Current Range: " << (int)(iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1) << endl;
+            //TODO need to fix directSearch for reverse index case and only one index!!!! use old DS function as template
+            directSearch(delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir());
+            return;
+        }
+        */
     _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir());
     }
 }    

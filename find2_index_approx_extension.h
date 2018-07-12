@@ -102,114 +102,6 @@ constexpr inline void _optimalSearchSchemeSetMapParams(std::array<OptimalSearch<
     }
 }
 
-/*    
-template< size_t N>
-uint8_t mymin(std::array <uint8_t, N> v, uint8_t end)
-{
-    uint8_t min = v[0];
-    for(uint8_t i = 1; i < end; ++i){
-        if(v[i] < min)
-            min = v[i];
-    }
-    return min;
-}
-
-template< size_t N>
-uint8_t mymax(std::array <uint8_t, N> v, uint8_t end){
-    uint8_t max = v[0];
-    for(uint8_t i = 1; i < end; ++i)
-    {
-        if(v[i] > max)
-            max = v[i];
-    }
-    return max;
-}*/
-
-template <typename TDelegate, typename TDelegateD,
-          typename TText, typename TIndex, typename TIndexSpec,
-          typename TNeedle,
-          size_t nbrBlocks,
-          typename TDir>
-bool filterCurrent_interval(TDelegate & delegate,
-                     TDelegateD & delegateDirect,
-                     Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-                     TNeedle const & needle,
-                     vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
-                     uint32_t const needleLeftPos,
-                     uint32_t const needleRightPos,
-                     uint8_t const errors,
-                     OptimalSearch<nbrBlocks> const & s,
-                     uint8_t const blockIndex,
-                     Pair<uint8_t, Pair<uint32_t, uint32_t>> const  & brange,
-                     TDir const & /**/)
-{
-    uint32_t intervalfilter_size = 3;
-    float threshold = 0.5;  //equal or more than half zeroes  
-    uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
-    sdsl::bit_vector & b = bitvectors[brange.i1].first;
-    sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second;
-    rb.set_vector(&b);
-    
-    if(rb(rb.size()) / static_cast<float>(rb.size() - 1) <= threshold){
-        uint32_t startPos = brange.i2.i1, endPos = brange.i2.i2;
-        for(uint32_t i = startPos; i < endPos; ++i){
-            if(b[i] != 0)
-                break; 
-            ++startPos;
-        }
-        for(uint32_t i = startPos; i < endPos; ++i){
-            if(b[endPos - 1 - i] != 0)
-                break;
-            --endPos;
-        }
-        if(startPos > endPos)
-            cout << "Error bit vector has only zeroes this should have been checked by checkInterval" << endl; 
-        cout << "Size: " << endPos - startPos << endl;
-        cout << "startPos: " << startPos << " endPos: " << endPos << endl;
-        
-        vector<pair<uint32_t, uint32_t>> consOnes;
-        uint32_t k = startPos;
-        uint32_t startOneInterval = startPos;
-        while(k < endPos){
-            uint32_t interval = 0;
-            //TODO delete second condition it should end with 1
-            while(b[k + interval] == 0 && (k + interval) < endPos){
-                ++interval;
-            }
-            if(interval >= intervalfilter_size){
-                consOnes.push_back(make_pair(startOneInterval, k));
-                startOneInterval = k + interval;
-            }
-            k += interval;
-            interval = 0;
-            ++k;
-        }
-        consOnes.push_back(make_pair(startOneInterval, k));
-        
-        for(int i = 0; i < consOnes.size(); ++i){
-            printPair(consOnes[i]);
-            if (std::is_same<TDir, Rev>::value){
-                iter.revIter.vDesc.range.i1 = consOnes[i].first;
-                iter.revIter.vDesc.range.i2 = consOnes[i].second;
-                //TODO call function with unidirectional iter
-                _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir());
-            }
-            else
-            {
-                iter.fwdIter.vDesc.range.i1 = consOnes[i].first;
-                iter.fwdIter.vDesc.range.i2 = consOnes[i].second;
-                _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir());
-            }
-        }
-        cout << endl;
-        return(true);
-    }
-    else
-    {
-        return(false);
-    }    
-}
-
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
@@ -541,7 +433,7 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
                           uint8_t const blockIndex)
 {
     float filter_threshold = 0.5; 
-    int directSearchTrigger = 2;
+    int directSearch_Threshold = 2;
     sdsl::bit_vector & b = bitvectors[brange.i1].first;
     sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second; 
     rb.set_vector(&b);
@@ -550,7 +442,7 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
     if(ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
 
-    if(ivalOne < (s.pi.size() - blockIndex - 1) * directSearchTrigger){ //<4 TODO add additional constrains from chris? //incorparated blockIndex 
+    if(ivalOne < (s.pi.size() - blockIndex - 1) * directSearch_Threshold){ //<4 TODO add additional constrains from chris? //incorparated blockIndex 
         return ReturnCode::DIRECTSEARCH;
     }
     
@@ -610,7 +502,7 @@ ReturnCode checkCurrentMappability(TDelegate & delegate,
 
     if(rcode == ReturnCode::COMPMAPPABLE){
         uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
-        _optimalSearchSchemeChildren(delegate, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), HammingDistance());
+        _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), HammingDistance());
         return ReturnCode::FINISHED;
     }
  */
@@ -995,7 +887,7 @@ find(TDelegate & delegate,
 {
     auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
     _optimalSearchSchemeComputeFixedBlocklength(scheme, length(needle));
-    cout << "New Needle:" << endl;
+    cout << "New Needle:" << endl; //TODO revert this
     for(int i = 0; i < length(needle); ++i)
         cout << needle[i];
     cout << endl;
