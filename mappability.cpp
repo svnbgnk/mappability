@@ -99,6 +99,8 @@ inline void run(TIndex & index, TText const & text, Options const & opt, signed 
                     break;
             case 2: runAlgo2<2>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
                     break;
+            case 3: runAlgo2<3>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
+                    break;
             default: cerr << "E = " << opt.errors << " not yet supported.\n";
                      exit(1);
         }
