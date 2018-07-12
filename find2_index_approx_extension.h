@@ -323,116 +323,58 @@ void directSearch(TDelegateD & delegateDirect,
     cout << "errors:  " <<  (int)errors <<  endl;
     vector<Pair<uint16_t, uint32_t>> hitsv;
     vector<uint8_t> errorsv;
-//     if(std::is_same<TDir, Rev>::value){
-        auto const & genome = indexText(*iter.fwdIter.index);
-        for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
-            if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
-                cout << "blockIndex: " << (int)blockIndex << endl;
-                
-                uint8_t errors2 = errors;
-                bool valid = true;
-                Pair<uint16_t, uint32_t> sa_info= iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
-                uint32_t startPos = sa_info.i2 - needleLeftPos;
+    auto const & genome = indexText(*iter.fwdIter.index);
+    for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
+        if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
+            cout << "blockIndex: " << (int)blockIndex << endl;
+            uint8_t errors2 = errors;
+            bool valid = true;
+            Pair<uint16_t, uint32_t> sa_info= iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
+            uint32_t startPos = sa_info.i2 - needleLeftPos;
 
-//                 cout <<  "Sa info" <<  sa_info <<  endl; //TODO redo this
-                cout << "StartPos " << startPos << endl;
-                //search remaining blocks
-                for(int j = blockIndex; j < s.pi.size(); ++j){
-                    int blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
-                    int blockEnd = s.chronBL[s.pi[j] - 1];
-                    cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
-                    cout << endl;
-                    // compare bases to needle
-                    if(std::is_same<TDir, Rev>::value){
-                        if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd){
-                            cout << "changing Blockstart, should only happen (once) when we come from checkcurrentmappability!!" << endl;
-                            blockStart = needleRightPos - 1;
-                            cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
-                        }
-                    }else{
-                        if(needleLeftPos > blockStart && needleLeftPos < blockEnd){
-                            cout << "changing Blockend fwd" << endl;
-                            blockEnd = needleLeftPos;
-                            cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
-                        }
-                    }
-                    
-                    for(int k = blockStart; k <  blockEnd; ++k){
-                        //                     if(needle[k] != it)
-                        if(needle[k] != genome[sa_info.i1][startPos + k])
-                            ++errors2;
-
-                    }
-                    if(errors2 < s.l[j] || errors2 > s.u[j]){
-                        cout << "Triggered: " << (int)errors2 << endl;
-                        valid = false;
-                        break;
-                    }
-                }
-                if(valid){
-                    cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
-                    cout << (int)errors2 << endl;
-                    uint32_t occ = startPos;
-                    hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
-                    cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
-                    errorsv.push_back(errors2);
-                }
-            }
-        }
-      /*  
-    }
-    else
-    {
-//         StringSet<DnaString>
-        auto const & rgenome = indexText(*iter.revIter.index);
-        for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
-            if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
-                cout << "Direct Search FWD" << endl;
-                cout << "blockIndex: " << (int)blockIndex << endl;
-                
-                uint8_t errors2 = errors;
-                bool valid = true;
-                Pair<uint16_t, uint32_t> sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
-                uint32_t startPos = sa_info.i2 - (length(needle) - needleRightPos + 1);
-                // iter.fwdIter.vDesc.range.i1 is not the same brange.i2.i1 since sentinels are at the beginning!!!
-//                 cout <<  "Sa info" <<  sa_info <<  endl; //TODO redo this
-                cout << "StartPos " << startPos << endl;
-                //search remaining blocks             
-                uint8_t blocks = s.pi.size();
-                for(int j = blockIndex; j < s.pi.size(); ++j){
-                    int blockStart = (s.pi[j] == s.pi.size()) ? 0 : s.revChronBL[s.pi[j]];
-                    int blockEnd = s.revChronBL[s.pi[j] - 1];
-                    cout << "searching Parts:" << length(needle) - blockStart << " - " << length(needle) - blockEnd << "; ";
-                    cout << endl;
-                    if(needleLeftPos < length(needle) - blockStart && needleLeftPos > length(needle) - blockEnd){
+//           cout <<  "Sa info" <<  sa_info <<  endl; //TODO redo this
+            cout << "StartPos " << startPos << endl;
+            //search remaining blocks
+            for(int j = blockIndex; j < s.pi.size(); ++j){
+                int blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
+                int blockEnd = s.chronBL[s.pi[j] - 1];
+                cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
+                cout << endl;
+                // compare bases to needle
+                if(std::is_same<TDir, Rev>::value){
+                    if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd){
                         cout << "changing Blockstart, should only happen (once) when we come from checkcurrentmappability!!" << endl;
-                        blockStart = length(needle) - needleLeftPos; //- 1 + 1
-                        cout << "searching Parts:" << blockStart << " - " << blockEnd << "; " << endl;
+                        blockStart = needleRightPos - 1;
+                        cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
                     }
-                    for(int k = blockStart; k < blockEnd; ++k){
-                        if(needle[length(needle) - k - 1] != rgenome[sa_info.i1][startPos + k])
-                            ++errors2;
-                        
-                    }
-                    cout << "Errors until now: " << (int)errors2 << endl;
-                    if(errors2 < s.l[j] || errors2 > s.u[j]){
-                        cout << "Triggered: " << (int)errors2 << endl;
-                        valid = false;
-                        break;
+                }else{
+                    if(needleLeftPos > blockStart && needleLeftPos < blockEnd){
+                        cout << "changing Blockend fwd" << endl;
+                        blockEnd = needleLeftPos;
+                        cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
                     }
                 }
-                if(valid){
-                    cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
-                    cout << (int)errors2 << endl;
-                    uint32_t occ = seqan::length(rgenome[sa_info.i1]) - startPos - length(needle);
-                    hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
-                    cout << "Hit occ FWD Index: " << hitsv[hitsv.size() - 1] << endl;
-                    errorsv.push_back(errors2);
+                for(int k = blockStart; k <  blockEnd; ++k){
+                    //                     if(needle[k] != it)
+                    if(needle[k] != genome[sa_info.i1][startPos + k])
+                        ++errors2;
                 }
-                
+                if(errors2 < s.l[j] || errors2 > s.u[j]){
+                    cout << "Triggered: " << (int)errors2 << endl;
+                    valid = false;
+                    break;
+                }
+            }
+            if(valid){
+                cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
+                cout << (int)errors2 << endl;
+                uint32_t occ = startPos;
+                hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
+                cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
+                errorsv.push_back(errors2);
             }
         }
-    }*/
+    }
     delegateDirect(hitsv, needle, errorsv);
 }
 
