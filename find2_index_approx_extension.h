@@ -191,6 +191,62 @@ void filter_interval(TDelegate & delegate,
         }
     } 
 }
+/*
+template <typename TNeedle,
+          size_t nbrBlocks,
+          typename TDir>
+void genomeSearch(TNeedle const & needle,
+                  uint32_t const needleLeftPos,
+                  uint32_t const needleRightPos,
+                   uint8_t errors,
+                  OptimalSearch<nbrBlocks> const & s,
+                  uint8_t const blockIndex,
+                  auto const & genome,
+                  uint32_t const startPos,
+                  vector<Pair<uint16_t, uint32_t>> hitsOutput,
+                  vector<uint8_t> errorsvOutput )
+{
+    uint8_t errors;
+    bool valid = true;
+    for(int j = blockIndex; j < s.pi.size(); ++j){
+        int blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
+        int blockEnd = s.chronBL[s.pi[j] - 1];
+        cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
+        cout << endl;
+        // compare bases to needle
+        if(std::is_same<TDir, Rev>::value){
+            if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd){
+                cout << "changing Blockstart, should only happen (once) when we come from checkcurrentmappability!!" << endl;
+                blockStart = needleRightPos - 1;
+                cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
+            }
+        }else{
+            if(needleLeftPos > blockStart && needleLeftPos < blockEnd){
+                cout << "changing Blockend fwd" << endl;
+                blockEnd = needleLeftPos;
+                cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
+            }
+        }
+        for(int k = blockStart; k <  blockEnd; ++k){
+            //                     if(needle[k] != it)
+            if(needle[k] != genome[sa_info.i1][startPos + k])
+                ++errors;
+        }
+        if(errors < s.l[j] || errors > s.u[j]){
+            cout << "Triggered: " << (int)errors << endl;
+            valid = false;
+            break;
+        }
+    }
+    if(valid){
+        cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
+        cout << (int)errors << endl;
+        uint32_t occ = startPos;
+        hitsOutput.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
+        cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
+        errorsvOutput.push_back(errors);
+    }
+}*/
 
 template <typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
@@ -220,8 +276,7 @@ void directSearch(TDelegateD & delegateDirect,
         cout << "I: " << i << endl;
         if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
             cout << "blockIndex: " << (int)blockIndex << endl;
-            uint8_t errors2 = errors;
-            bool valid = true;
+            
             Pair<uint16_t, uint32_t> sa_info;
             uint32_t startPos;
             // mappability information is in reverse index order if we use the forward index
@@ -236,8 +291,11 @@ void directSearch(TDelegateD & delegateDirect,
                 //calculate correct starting position of the needle  on the forward index
                 startPos = seqan::length(genome[sa_info.i1]) - sa_info.i2 - needleRightPos + 1;
             }
+            
             cout << "StartPos " << startPos << endl;
             //search remaining blocks
+            uint8_t errors2 = errors;
+            bool valid = true;
             for(int j = blockIndex; j < s.pi.size(); ++j){
                 int blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
                 int blockEnd = s.chronBL[s.pi[j] - 1];
@@ -423,6 +481,7 @@ ReturnCode testUnidirectional(Iter<Index<TText, BidirectionalIndex<TIndex> >, VS
         brange.i2.i2 = endPos;
         return ReturnCode::UNIDIRECTIONAL;
     }
+    cout << "Do not continue UNIDIRECTIONAL" << endl;
     return ReturnCode::MAPPABLE;
 }
 
@@ -471,6 +530,7 @@ ReturnCode checkCurrentMappability(TDelegate & delegate,
                             uint8_t const errors,
                             OptimalSearch<nbrBlocks> const & s,
                             uint8_t const blockIndex,
+                            uint8_t const minErrorsLeftInBlock,
                             TDir const & /**/)
 {
     cout << "checkCurrentMappability:" << endl;
@@ -498,14 +558,12 @@ ReturnCode checkCurrentMappability(TDelegate & delegate,
         directSearch(delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir());
         return ReturnCode::FINISHED;
     }
- /*   
-
+    
     if(rcode == ReturnCode::COMPMAPPABLE){
-        uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
         _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), HammingDistance());
         return ReturnCode::FINISHED;
     }
- */
+ 
  
     return ReturnCode::MAPPABLE;
 }
@@ -594,11 +652,13 @@ ReturnCode checkMappability(TDelegate & delegate,
             return ReturnCode::FINISHED;
         }
         
-        if(rcode == ReturnCode::SUSPECTUNIDIRECTIONAL)
-            rcode == testUnidirectional(iter, bitvectors, bit_interval, s, blockIndex, goToRight2);
+        if(rcode == ReturnCode::SUSPECTUNIDIRECTIONAL){
+            rcode = testUnidirectional(iter, bitvectors, bit_interval, s, blockIndex, goToRight2);
+        }
         
         if(rcode == ReturnCode::UNIDIRECTIONAL){
             //range on iter was changed in function before
+            cout << "Call function filter_interval" << endl;
             if(goToRight2){
                 filter_interval(delegate, delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, Rev());
             }
@@ -833,7 +893,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     if(((step & 0b11) == 0) && needleRightPos - needleLeftPos - 1 + dfbe < s.blocklength[blockIndex] && needleRightPos - needleLeftPos - 1 - dfbe > pblocklength){
         cout << "Checking" << endl;
         //TODO stop doing on loop to much (enter checkCurrentMappability a second time)
-        ReturnCode rcode = checkCurrentMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir());
+        ReturnCode rcode = checkCurrentMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir());
         if(rcode == ReturnCode::FINISHED)
             return;
     }

@@ -7,6 +7,132 @@
 
 namespace seqan{
 
+//TODO load bitvectors inside a struct to make accessing the correct bitvector easier
+template <typename TText, typename TConfig, typename TIndexSpec,
+          typename TDir,
+          size_t nbrBlocks>
+Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval_inside(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
+                                        vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,    
+                                        OptimalSearch<nbrBlocks> const & s,
+                                        uint8_t const blockIndex,
+                                        TDir const & /**/) 
+{
+    cout << "Get Inside bitvector Interval unidirectional" << endl;
+    cout << "bitvector_interval blockIndex: " << (int)blockIndex << endl;
+    cout << ((std::is_same<TDir, Rev>::value) ? "reverse Index" : "forward index") << endl;
+    Pair<uint32_t, uint32_t> dirrange = range(iter);
+    uint8_t needed_bitvector;
+    uint8_t size = s.pi.size();
+    uint8_t bitvsize = bitvectors.size();
+    cout << "max: " << (int)s.max[blockIndex - 1] << endl;
+    cout << "bitvsize: " << (int)bitvsize << "end bitvector size" << endl;
+    if (std::is_same<TDir, Rev>::value)
+        needed_bitvector = bitvsize - s.max[blockIndex - 1];      
+    else
+        needed_bitvector = s.min[blockIndex - 1] - 1;
+
+
+    uint32_t number_of_indeces = seqan::length(iter.index->sa) - bitvectors[needed_bitvector].first.size();
+    cout << "selected bitvector inside: " << (int)needed_bitvector << endl;
+//     cout << "Sa Range: " << dirrange << endl;  
+    dirrange.i1 = dirrange.i1 - number_of_indeces;
+    dirrange.i2 = dirrange.i2 - number_of_indeces;
+//     cout << "Bit Range: " << dirrange << endl;  
+    
+    Pair<uint8_t, Pair<uint32_t, uint32_t>> brange(needed_bitvector, dirrange);
+    return brange;
+}
+    
+    
+//TODO not used remove?
+template <typename TDelegateD,
+          typename TText, typename TConfig, typename TIndexSpec,
+          typename TNeedle,
+          size_t nbrBlocks,
+          typename TDir>
+void directSearch(TDelegateD & delegateDirect,
+                  Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
+                  TNeedle const & needle,
+                  vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors, 
+                  uint32_t const needleLeftPos,
+                  uint32_t const needleRightPos,
+                  uint8_t const errors,
+                  OptimalSearch<nbrBlocks> const & s,
+                  uint8_t const blockIndex,
+                  Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
+                  TDir const & /**/)
+{
+    cout << "directSearch unidirectional " <<  endl;
+    cout << "NLP: " <<  needleLeftPos <<  endl;
+    cout << "NRP: " <<  needleRightPos <<  endl;
+    cout << "errors:  " <<  (int)errors <<  endl;
+    vector<Pair<uint16_t, uint32_t>> hitsv;
+    vector<uint8_t> errorsv;
+    auto const & genome = indexText(*iter.index);
+    for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
+        cout << "I: " << i << endl;
+        if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
+            cout << "blockIndex: " << (int)blockIndex << endl;
+            uint8_t errors2 = errors;
+            bool valid = true;
+            Pair<uint16_t, uint32_t> sa_info;
+            uint32_t startPos;
+            // mappability information is in reverse index order if we use the forward index
+            if(std::is_same<TDir, Rev>::value){
+                cout << "rev" << endl;
+                sa_info = iter.index->sa[iter.vDesc.range.i1 + i];
+                startPos = sa_info.i2 - needleLeftPos;
+            }
+            else{
+                cout << "fwd" << endl;
+                sa_info = iter.index->sa[iter.vDesc.range.i1 + i];
+                //calculate correct starting position of the needle  on the forward index
+                startPos = seqan::length(genome[sa_info.i1]) - sa_info.i2 - needleRightPos + 1;
+            }
+            cout << "StartPos " << startPos << endl;
+            //search remaining blocks
+            for(int j = blockIndex; j < s.pi.size(); ++j){
+                int blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
+                int blockEnd = s.chronBL[s.pi[j] - 1];
+                cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
+                cout << endl;
+                // compare bases to needle
+                if(std::is_same<TDir, Rev>::value){
+                    if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd){
+                        cout << "changing Blockstart, should only happen (once) when we come from checkcurrentmappability!!" << endl;
+                        blockStart = needleRightPos - 1;
+                        cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
+                    }
+                }else{
+                    if(needleLeftPos > blockStart && needleLeftPos < blockEnd){
+                        cout << "changing Blockend fwd" << endl;
+                        blockEnd = needleLeftPos;
+                        cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
+                    }
+                }
+                for(int k = blockStart; k <  blockEnd; ++k){
+                    //                     if(needle[k] != it)
+                    if(needle[k] != genome[sa_info.i1][startPos + k])
+                        ++errors2;
+                }
+                if(errors2 < s.l[j] || errors2 > s.u[j]){
+                    cout << "Triggered: " << (int)errors2 << endl;
+                    valid = false;
+                    break;
+                }
+            }
+            if(valid){
+                cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
+                cout << (int)errors2 << endl;
+                uint32_t occ = startPos;
+                hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
+                cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
+                errorsv.push_back(errors2);
+            }
+        }
+    }
+    delegateDirect(hitsv, needle, errorsv);
+}
     
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TConfig, typename TIndexSpec,
@@ -56,11 +182,7 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
                         printv(s.pi);
                         exit(0);
                     }
-  /*              
-                cout << "checkMappability Call from Children" << endl;
-                ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, goToRight2, TDir());
-                if(rcode == ReturnCode::FINISHED)
-                    continue;*/
+
                 //TODO remove goToRight2 and input should be TDIR 
                 if (goToRight2)
                 {
@@ -100,16 +222,7 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
     cout << "_optimalSearchSchemeExact" << endl;
     cout << "Error: " << (int)errors << endl;
     cout << "blockIndex: " << (int)blockIndex << endl;
-    
-    // not in last block and next Block is larger then current block
-    
-//     bool goToRight2 = (blockIndex < s.pi.size() - 1) ? s.pi[blockIndex + 1] > s.pi[blockIndex] : s.pi[blockIndex] > s.pi[blockIndex - 1];
-/*    
-    bool goToRight2 = (blockIndex < s.pi.size() - 1) && s.pi[blockIndex + 1] > s.pi[blockIndex];
-    if((blockIndex < s.pi.size() - 1))
-        s.pi[blockIndex + 1] > s.pi[blockIndex];
-    else
-        s.pi[blockIndex] > s.pi[blockIndex - 1];*/
+
     bool goToRight2 = (blockIndex < s.pi.size() - 1) ? s.pi[blockIndex + 1] > s.pi[blockIndex] : s.pi[blockIndex] > s.pi[blockIndex - 1];
     
         //sanity check
@@ -136,14 +249,7 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
         
         if (!goDown(iter, infix(needle, infixPosLeft, infixPosRight + 1)))
             return;
- /*       
-        //TODO does something go wrong in checkMappability if blockIndex is not increased by one? then do Todo before
-        cout << "checkMappability Rev Index" << endl;
-        ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, needleLeftPos, infixPosRight + 2, errors, s, blockIndex2, goToRight2, TDir());
-        //TDir() is in this case Rev() ...
-        if(rcode == ReturnCode::FINISHED)
-            return;     */ 
-        //TODO remove goToRight2 and input should be TDIR 
+        
         if (goToRight2)
         {
             _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, blockIndex2, Rev());
@@ -172,13 +278,7 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
                 return;
             --infixPosRight;
         }
-/*
-        cout << "checkMappability Fwd Index" << endl;
-        ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, infixPosLeft, needleRightPos, errors, s, blockIndex2, goToRight2, TDir());
-        //TDir() is in this case Fwd() ...
-        if(rcode == ReturnCode::FINISHED)
-            return;
-        */
+        
         if (goToRight2)
         {
             _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, infixPosLeft, needleRightPos, errors, s, blockIndex2, Rev());
@@ -225,151 +325,94 @@ inline void _optimalSearchScheme(TDelegate & delegate,
 //     cout << "SaRange: " << iter.vDesc.range << endl;
 //     cout << "Reached End" << endl;
 
+
+//     int directSearchThreshold = 2;
+
+
     uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
     uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
-
-//     cout << "Step: " << needleRightPos - needleLeftPos - 1 << "    ss: "; printv(s.pi); cout << endl;
-    // Done. (Last step)
-    if (minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1)
-    {
-        for (auto occ : getOccurrences(iter)){
-        cout << "UniSearch Hits: "<< (Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ)) << endl;
+    
+    
+    if(needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex]){
+        Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval_inside(iter, bitvectors, s, blockIndex + 1, TDir());
+        sdsl::bit_vector & b = bitvectors[bit_interval.i1].first;
+        sdsl::rank_support_v<> & rb = bitvectors[bit_interval.i1].second;
+        rb.set_vector(&b);
+        
+        cout << "at blockend with blockIndex: " << (int)blockIndex << " " << s.blocklength[blockIndex]   << endl;
+        cout << "PrintUNI" << endl;
+        printbit(bitvectors, bit_interval);
+        cout << "PrintUend" << endl;
+    
+        if(rb(bit_interval.i2.i2) - rb(bit_interval.i2.i1) == 0){
+            cout << "This is very unlikly depending on parameters" << endl;
+            return;
         }
-        cout << "Finished unidirectional Search" << endl;
-        delegate(iter, needle, errors, std::is_same<TDir, Rev>::value);
+        cout << "Iter Range: " << iter.vDesc.range.i2 - iter.vDesc.range.i1 << endl;
+
+        // Done. (Last step)
+        if (minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1)
+        {
+            cout << "All Unidirectional occs: " << endl;
+            for (auto occ : getOccurrences(iter))
+            {                
+                cout << occ.i2 << endl;
+                if(std::is_same<TDir, Rev>::value)
+                    cout << "still need to calc for fwd Index" << endl;
+            }
+            //TODO disable true statement to allowed cheap repeats 
+            if(rb(bit_interval.i2.i2) - rb(bit_interval.i2.i1) < bit_interval.i2.i2 - bit_interval.i2.i1)
+            {
+                uint32_t rangeStart = iter.vDesc.range.i1;
+                uint32_t rangeEnd = iter.vDesc.range.i2;
+                int lastStart = 0;
+                for(int i = 0; i < rangeEnd - rangeStart; ++i)
+                {
+                    if(bitvectors[bit_interval.i1].first[bit_interval.i2.i1 + i] == 0)
+                    {
+                        if(i != lastStart){
+                            cout << "Called delegate on the following range:" << endl;
+                            iter.vDesc.range.i1 = rangeStart + lastStart;
+                            iter.vDesc.range.i2 = rangeStart + i - 1;
+                            cout << iter.vDesc.range.i1 << " - " << iter.vDesc.range.i2;
+                            delegate(iter, needle, errors, std::is_same<TDir, Rev>::value);
+                        }
+                        lastStart = i + 1;
+                    }
+                }
+            }
+            else
+            {
+                cout << "CompMappableInterval" << endl;
+                delegate(iter, needle, errors, std::is_same<TDir, Rev>::value);
+            }
+            cout << "Finished unidirectional Search" << endl;
+            return; 
+        }
     }
+    
+  /*  
+     //very unlikly
+    else if(needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex] && iter.vDesc.range.i2 - iter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1) * directSearchThreshold){
+        cout << "start direct Search Unidirectional" << endl;
+//         bit_interval = get_bitvector_interval_inside(iter, bitvectors, s, blockIndex, TDir());
+        directSearch(delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir());
+        return;
+    }
+    
+    */
+    
     // Exact search in current block.
-    else if (maxErrorsLeftInBlock == 0 && needleRightPos - needleLeftPos - 1 != s.blocklength[blockIndex])
+    if (maxErrorsLeftInBlock == 0 && needleRightPos - needleLeftPos - 1 != s.blocklength[blockIndex])
     {
         _optimalSearchSchemeExact(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir());
     }
     // Approximate search in current block.
     else
     {
-        /*
-        //TODO test for directSearch
-        cout << "Test for uniDirectSearch:" << endl;
-        cout << "PrintSA:" << endl;
-        
-        int directSearchTrigger = 2;
-        if(iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1) * directSearchTrigger){
-            cout << "Current Range: " << (int)(iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1) << endl;
-            //TODO need to fix directSearch for reverse index case and only one index!!!! use old DS function as template
-            directSearch(delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir());
-            return;
-        }
-        */
     _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir());
     }
 }    
     
-    
-    
-template <typename TDelegateD,
-          typename TText, typename TConfig, typename TIndexSpec,
-          typename TNeedle, typename TIndex,
-          size_t nbrBlocks,
-          typename TDir>
-void directSearchDummy(TDelegateD & delegateDirect,
-                  Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
-                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > olditer,
-                  TNeedle const & needle,
-                  vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors, 
-                  uint32_t const needleLeftPos,
-                  uint32_t const needleRightPos,
-                  uint8_t const errors,
-                  OptimalSearch<nbrBlocks> const & s,
-                  uint8_t const blockIndex,
-                  Pair<uint8_t, Pair<uint32_t, uint32_t>> brange,
-                  TDir const & /**/)
-{
-    cout << "Test Dummy Function: " << endl;
-    
-//     for(int i = 0; i < seqan::length(iter.index->sa); ++i)
-//         cout << iter.index->sa[i] << endl; 
-    
-//     cout << "Length of Sequences" << endl;
-//     for(int i = 0; i < 4; ++i)
-//         cout << olditer.fwdIter.index->sa[i] << endl;
-    cout << "Ranges" << endl;
-    cout <<  iter.vDesc.range << endl;
-    cout << "Old Iter ranges" << endl;
-    cout << olditer.fwdIter.vDesc.range << endl;
-    cout << "Reverse" << endl;
-    cout << olditer.revIter.vDesc.range << endl;
-        //TODO dont care about different sequences in the index in the moment
-    int needleSize = needleRightPos- needleLeftPos - 1;
-    cout << "Size of searched needle: " << needleSize << endl;
-    vector<int> saveOppositePositions;
-
-    
-    int number_of_indeces = seqan::length(olditer.fwdIter.index->sa) - bitvectors[0].first.size();
-    vector<int> sequenceLengths(number_of_indeces, 0); 
-    for(int i = 0; i < number_of_indeces; ++i)
-        sequenceLengths[olditer.fwdIter.index->sa[i].i1] = olditer.fwdIter.index->sa[i].i2;
-    
-    printv(sequenceLengths);
-    
-    auto fwdr = olditer.fwdIter.vDesc.range;
-    auto revr = olditer.revIter.vDesc.range;
-    
-    if(std::is_same<TDir, Rev>::value){
-        cout << "Reverse case therefore need to save fwd sa position" << endl;
-        for(int i = fwdr.i1; i < fwdr.i2; ++i){
-            cout << olditer.fwdIter.index->sa[i] << endl;
-        }
-        cout << "other sa" << endl;
-        for(int i = revr.i1; i < revr.i2; ++i){
-            cout << olditer.revIter.index->sa[i] << endl;
-        }
-        
-        for(int i = revr.i1; i < revr.i2; ++i){
-            int seq = olditer.revIter.index->sa[i].i1;
-            cout << "Seq Length" << sequenceLengths[seq] << endl;
-            int findn = sequenceLengths[seq] - static_cast<int>(olditer.revIter.index->sa[i].i2) - needleSize;
-            cout << "findn  " << findn << endl;
-            int k = fwdr.i1;
-            while(k < fwdr.i2){
-                if(findn == olditer.fwdIter.index->sa[k].i2)
-                    break;
-                ++k;
-            }
-            saveOppositePositions.push_back(k);
-        }     
-    }else{
-        cout << "Forward case therefore need to save rev sa position" << endl;
-        for(int i = revr.i1; i < revr.i2; ++i){
-            cout << olditer.revIter.index->sa[i] << endl;
-        }
-        cout << "other sa" << endl;
-        for(int i = fwdr.i1; i < fwdr.i2; ++i){
-            cout << olditer.fwdIter.index->sa[i] << endl;
-        }
-        
-        for(int i = fwdr.i1; i < fwdr.i2; ++i){
-            int seq = olditer.fwdIter.index->sa[i].i1;
-            int findn = sequenceLengths[seq] - olditer.fwdIter.index->sa[i].i2 - needleSize;
-            cout << olditer.fwdIter.index->sa[i].i2 << " equivalent to  " << findn << endl;
-            int k = revr.i1;
-            while(k < revr.i2){
-                if(findn == olditer.revIter.index->sa[k].i2)
-                    break;
-                ++k;
-            }
-            saveOppositePositions.push_back(k);
-        }
-    }
-        
-        
-    cout << "Saved Positions" << endl;
-    for(int i = 0; i < saveOppositePositions.size(); ++i)
-        cout << saveOppositePositions[i] << endl;
-    cout << "End" << endl;
-    
-}
-
-
-
-
 }
 #endif

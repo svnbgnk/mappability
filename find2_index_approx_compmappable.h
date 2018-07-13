@@ -208,15 +208,15 @@ void directSearch(TDelegateD & delegateDirect,
     auto const & genome = indexText(*iter.fwdIter.index);
     for(int i = iter.fwdIter.vDesc.range.i1; i < iter.fwdIter.vDesc.range.i2; ++i){
         cout << "blockIndex: " << (int)blockIndex << endl;
-        uint8_t errors2 = errors;
-        bool valid = true;
         Pair<uint16_t, uint32_t> sa_info;
         uint32_t startPos;
         //dont need look at the reverse index in this case since i dont use mappability
         sa_info = iter.fwdIter.index->sa[i];
         startPos = sa_info.i2 - needleLeftPos;
         cout << "StartPos " << startPos << endl;
-        //search remaining blocks (also finished the current block if neede)
+        //search remaining blocks (also finished the current block if needed)
+        uint8_t errors2 = errors;
+        bool valid = true;
         for(int j = blockIndex; j < s.pi.size(); ++j){
             int blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
             int blockEnd = s.chronBL[s.pi[j] - 1];

@@ -207,6 +207,8 @@ vector<int> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
         same = false;
         same = (i < x.size() && x[i].hit.i2.i1 == y[i + offset].hit.i2.i1 && x[i].hit.i2.i2 == y[i + offset].hit.i2.i2);
         while(!same && i + offset < y.size()){
+            if(wrongHitCount.size() > 0)
+                cout << "Something went wrong" << endl;
             if(i < x.size())//TODO revert this
                 cout << "MyVersion has: " << x[i].hit.i2 << " while " ; //TODO revert this
             cout << "default version has: " << y[i + offset].hit.i2 << endl;//TODO revert this
@@ -659,9 +661,9 @@ int main(int argc, char *argv[])
         
     cout << "Start My Search!" << endl;
     auto start = std::chrono::high_resolution_clock::now();
-    cout.setstate(std::ios_base::failbit);
+//     cout.setstate(std::ios_base::failbit);
     find(0, nerrors, delegate, delegateDirect, index, reads, bit_vectors);
-    std::cout.clear();
+//     std::cout.clear();
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finish - start;
     cout << "Finished My Search" << endl;
