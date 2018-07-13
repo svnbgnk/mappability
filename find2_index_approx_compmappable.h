@@ -212,48 +212,8 @@ void directSearch(TDelegateD & delegateDirect,
         uint32_t startPos;
         //dont need look at the reverse index in this case since i dont use mappability
         sa_info = iter.fwdIter.index->sa[i];
-        startPos = sa_info.i2 - needleLeftPos;
-        cout << "StartPos " << startPos << endl;
-        //search remaining blocks (also finished the current block if needed)
-        uint8_t errors2 = errors;
-        bool valid = true;
-        for(int j = blockIndex; j < s.pi.size(); ++j){
-            int blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
-            int blockEnd = s.chronBL[s.pi[j] - 1];
-            cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
-            cout << endl;
-            // compare bases to needle                
-            if(std::is_same<TDir, Rev>::value){
-                    if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd){
-                        cout << "changing Blockstart rev" << endl;
-                        blockStart = needleRightPos - 1;
-                        cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
-                    }
-                }else{
-                    if(needleLeftPos > blockStart && needleLeftPos < blockEnd){
-                        cout << "changing Blockend fwd" << endl;
-                        blockEnd = needleLeftPos;
-                        cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
-                    }
-                }
-            for(int k = blockStart; k <  blockEnd; ++k){
-                if(needle[k] != genome[sa_info.i1][startPos + k])
-                    ++errors2;
-            }
-            if(errors2 < s.l[j] || errors2 > s.u[j]){
-                cout << "Triggered: " << (int)errors2 << endl;
-                valid = false;
-                break;
-            }
-        }
-        if(valid){
-            cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
-            cout << (int)errors2 << endl;
-            uint32_t occ = startPos;
-            hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
-            cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
-            errorsv.push_back(errors2);
-        }
+        sa_info.i2 = sa_info.i2 - needleLeftPos;
+        genomeSearch(needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info, hitsv, errorsv);
     }
     delegateDirect(hitsv, needle, errorsv);
     cout << "compdirectSearchEnd " <<  endl;

@@ -191,22 +191,23 @@ void filter_interval(TDelegate & delegate,
         }
     } 
 }
-/*
+
 template <typename TNeedle,
           size_t nbrBlocks,
           typename TDir>
 void genomeSearch(TNeedle const & needle,
                   uint32_t const needleLeftPos,
                   uint32_t const needleRightPos,
-                   uint8_t errors,
+                  uint8_t errors,
                   OptimalSearch<nbrBlocks> const & s,
                   uint8_t const blockIndex,
+                  TDir const & /**/,
                   auto const & genome,
-                  uint32_t const startPos,
-                  vector<Pair<uint16_t, uint32_t>> hitsOutput,
-                  vector<uint8_t> errorsvOutput )
+                  Pair<uint16_t, uint32_t> const & sa_info,
+                  vector<Pair<uint16_t, uint32_t>> & hitsvOutput,
+                  vector<uint8_t> & errorsvOutput)
 {
-    uint8_t errors;
+    cout << "StartPos " << sa_info.i2 << endl;
     bool valid = true;
     for(int j = blockIndex; j < s.pi.size(); ++j){
         int blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
@@ -229,7 +230,7 @@ void genomeSearch(TNeedle const & needle,
         }
         for(int k = blockStart; k <  blockEnd; ++k){
             //                     if(needle[k] != it)
-            if(needle[k] != genome[sa_info.i1][startPos + k])
+            if(needle[k] != genome[sa_info.i1][sa_info.i2 + k])
                 ++errors;
         }
         if(errors < s.l[j] || errors > s.u[j]){
@@ -241,12 +242,12 @@ void genomeSearch(TNeedle const & needle,
     if(valid){
         cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
         cout << (int)errors << endl;
-        uint32_t occ = startPos;
-        hitsOutput.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
-        cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
+        uint32_t occ = sa_info.i2;
+        hitsvOutput.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
+        cout << "Hit occ: " << hitsvOutput[hitsvOutput.size() - 1] << endl;
         errorsvOutput.push_back(errors);
     }
-}*/
+}
 
 template <typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
@@ -283,57 +284,18 @@ void directSearch(TDelegateD & delegateDirect,
             if(std::is_same<TDir, Rev>::value){
                 cout << "rev" << endl;
                 sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
-                startPos = sa_info.i2 - needleLeftPos;
+                sa_info.i2 = sa_info.i2 - needleLeftPos;
             }
             else{
                 cout << "fwd" << endl;
                 sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
                 //calculate correct starting position of the needle  on the forward index
-                startPos = seqan::length(genome[sa_info.i1]) - sa_info.i2 - needleRightPos + 1;
+                sa_info.i2 = seqan::length(genome[sa_info.i1]) - sa_info.i2 - needleRightPos + 1;
             }
             
-            cout << "StartPos " << startPos << endl;
+            
             //search remaining blocks
-            uint8_t errors2 = errors;
-            bool valid = true;
-            for(int j = blockIndex; j < s.pi.size(); ++j){
-                int blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
-                int blockEnd = s.chronBL[s.pi[j] - 1];
-                cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
-                cout << endl;
-                // compare bases to needle
-                if(std::is_same<TDir, Rev>::value){
-                    if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd){
-                        cout << "changing Blockstart, should only happen (once) when we come from checkcurrentmappability!!" << endl;
-                        blockStart = needleRightPos - 1;
-                        cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
-                    }
-                }else{
-                    if(needleLeftPos > blockStart && needleLeftPos < blockEnd){
-                        cout << "changing Blockend fwd" << endl;
-                        blockEnd = needleLeftPos;
-                        cout << "searching Parts:" << blockStart << " - " << blockEnd << "; ";
-                    }
-                }
-                for(int k = blockStart; k <  blockEnd; ++k){
-                    //                     if(needle[k] != it)
-                    if(needle[k] != genome[sa_info.i1][startPos + k])
-                        ++errors2;
-                }
-                if(errors2 < s.l[j] || errors2 > s.u[j]){
-                    cout << "Triggered: " << (int)errors2 << endl;
-                    valid = false;
-                    break;
-                }
-            }
-            if(valid){
-                cout << "Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
-                cout << (int)errors2 << endl;
-                uint32_t occ = startPos;
-                hitsv.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
-                cout << "Hit occ: " << hitsv[hitsv.size() - 1] << endl;
-                errorsv.push_back(errors2);
-            }
+            genomeSearch(needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info, hitsv, errorsv);
         }
     }
     delegateDirect(hitsv, needle, errorsv);
@@ -540,14 +502,15 @@ ReturnCode checkCurrentMappability(TDelegate & delegate,
     ReturnCode rcode = checkInterval(bitvectors, bit_interval, s, blockIndex);
 //   cout << "Return code: " << (int)rcode << endl;
     
-    cout << "cPrintttt" << endl;
-    if(std::is_same<TDir, Rev>::value)
-        print_sa(iter, bitvectors, true);
-    else
-        print_sa(iter, bitvectors, false);
-    printbit(bitvectors, bit_interval);
-    cout << "cPrintend" << endl;
-    
+    if(blockIndex > 0){
+        cout << "cPrintttt" << endl;
+        if(std::is_same<TDir, Rev>::value)
+            print_sa(iter, bitvectors, true);
+        else
+            print_sa(iter, bitvectors, false);
+        printbit(bitvectors, bit_interval);
+        cout << "cPrintend" << endl;
+    }
     if(rcode == ReturnCode::NOMAPPABILITY){
         cout << "checkCurrentMappability Stopp" << endl;
         return ReturnCode::FINISHED;        
@@ -890,7 +853,8 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     int dfbe = 2; //distanceFromBlockEnd
     //0b11 == 4 parameter
     int pblocklength = (blockIndex > 0) ? s.blocklength[blockIndex - 1] : 0;
-    if(((step & 0b11) == 0) && needleRightPos - needleLeftPos - 1 + dfbe < s.blocklength[blockIndex] && needleRightPos - needleLeftPos - 1 - dfbe > pblocklength){
+    cout << "pblocklength: " << pblocklength << "  compare to  " << static_cast<int>(needleRightPos - needleLeftPos - 1) - dfbe << endl;
+    if(((step & 0b11) == 0) && needleRightPos - needleLeftPos - 1 + dfbe < s.blocklength[blockIndex] && static_cast<int>(needleRightPos - needleLeftPos - 1) - dfbe > pblocklength){
         cout << "Checking" << endl;
         //TODO stop doing on loop to much (enter checkCurrentMappability a second time)
         ReturnCode rcode = checkCurrentMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir());
