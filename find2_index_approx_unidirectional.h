@@ -1,7 +1,7 @@
 #ifndef SEQAN_INDEX_FIND2_INDEX_APPROX_UNIDIRECTIONAL_H_
 #define SEQAN_INDEX_FIND2_INDEX_APPROX_UNIDIRECTIONAL_H_
 
-#include <sdsl/bit_vectors.hpp>
+// #include <sdsl/bit_vectors.hpp>
 #include "common.h"
 #include "common_auxiliary.h"
 

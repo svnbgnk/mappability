@@ -1,13 +1,16 @@
 #ifndef SEQAN_INDEX_FIND2_INDEX_APPROX_EXTENSION_H_
 #define SEQAN_INDEX_FIND2_INDEX_APPROX_EXTENSION_H_
 
-#include <seqan/index.h>
+// #include <seqan/index.h>
 #include <sdsl/bit_vectors.hpp>
 #include "common.h"
 #include "common_auxiliary.h"
 #include "find2_index_approx_unidirectional.h"
 #include "find2_index_approx_compmappable.h"
 #include "find2_index_approx_start_unidirectional.h"
+
+
+extern int global;
 
 template <typename TIter>
 struct isBidirectionalIter
@@ -22,6 +25,12 @@ struct isBidirectionalIter<Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTre
 };
 
 namespace seqan{
+    
+void testglobal(){
+    cout << "nothing" << endl;
+//     cout << global << endl;
+} 
+    
 /*    
 template <size_t N>
 struct OptimalSearch
@@ -434,9 +443,11 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
                           OptimalSearch<nbrBlocks> const & s,
                           uint8_t const blockIndex)
 {
-    //TODO use else if!!!
-    float filter_threshold = 0.5; 
-    int directSearch_Threshold = 2;
+    
+    
+    int directsearch_th = 2;
+    float filter_th = 0.5; 
+    
     sdsl::bit_vector & b = bitvectors[brange.i1].first;
     sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second; 
     rb.set_vector(&b);
@@ -446,7 +457,7 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
     if(ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
     
-    else if(ivalOne < (s.pi.size() - blockIndex - 1) * directSearch_Threshold)
+    else if(ivalOne < (s.pi.size() - blockIndex - 1) * directsearch_th/*params.normal.directsearch_th*/)
         return ReturnCode::DIRECTSEARCH;
     
     else if(ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
@@ -454,7 +465,7 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
     
     //equal or more than half zeroes
     //TODO add more constrains test that im not in the last block
-    else if(s.startUniDir <= blockIndex && ivalOne/ ivalSize <= filter_threshold)
+    else if(s.startUniDir <= blockIndex && ivalOne/ ivalSize <= filter_th/*params.normal.filter_th*/)
         return ReturnCode::SUSPECTUNIDIRECTIONAL;
         
     else

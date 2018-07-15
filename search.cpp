@@ -186,21 +186,6 @@ int main(int argc, char *argv[])
     find(0, nerrors, delegateDe, index, reads, HammingDistance());
     finish = std::chrono::high_resolution_clock::now();
 
-/*    
-    for(int i = 0; i < hitsDe.size(); ++i){
-        readOcc readOcc;
-        readOcc.hit = hitsDe[i];
-        readOcc.errors = errors_vDe[i];
-        readOccsDe.push_back(readOcc);
-    }
-    std::sort(readOccsDe.begin(), readOccsDe.end(), occ_smaller);
-    
-    cout << "Default Hits:" << hitsDe.size() << endl;
-    
-    for(int i = 0; i < readOccsDe.size(); ++i){
-        cout << "Errors: "<< (int)readOccsDe[i].errors;
-        cout << "   " << readOccsDe[i].hit << endl;
-    }*/
     std::vector<readOcc> readOccsDe = print_readocc_sorted(hitsDe, errors_vDe, genome, true);
     
     cout << "MyVersion elapsed: " << elapsed.count() << "s" << endl;
@@ -224,23 +209,6 @@ int main(int argc, char *argv[])
     for(int i = 0; i < whitcount.size(); ++i)
         cout << whitcount[i] << endl;
     cout << endl;
-    
- 
-    
-    
-//    appendValue(testocc, "TGAGCGTAATTGTGTCGCGCGCACTGCCTGACTTTTGTT");
-/*
-        StringSet<DnaString> testocc;
-        DnaString part = infix(genome[readOcc.hit.i2.i1], readOcc.hit.i2.i2, readOcc.hit.i2.i2 + 100);
-        appendValue(testocc, part);
-        cout << "Test occ: " << i << readOcc.hit.i2.i2 << endl;
-        hitsDe.clear();
-        errors_vDe.clear();
-        find<0, 2>(delegateDe, index, testocc, HammingDistance());
-//         print_readocc_sorted(hitsDe, errors_vDe);
-        cout << hitsDe.size() << endl;*/
-    
-    
 
     return 0;
     

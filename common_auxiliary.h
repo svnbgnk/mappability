@@ -9,18 +9,60 @@
 using namespace std;
 using namespace seqan;
 
-struct myGlobalParameters{
-public:
+struct majorCaseParameters{
+    bool nomappability = true;
+    bool directsearch = true;
+    bool compmappable = true;
+    bool suspectunidirectional = true;
+    
+    //binaryNumber
+    int stepcheck = 4;
+    int distancetoblockend = 2;
+    
+    int directsearch_th = 2;
+    float filter_th = 0.5;
+    
     float flipdensity = 0.5;
+    
     int intervalsize = 3;
     
     void print(){
-        cout << flipdensity << "\n" << intervalsize << "\n";
+        cout << "Cases Enabled: " << "\n";
+        cout << nomappability << " " << directsearch << " " << compmappable << " " << suspectunidirectional << "\n";
+        cout << "Params: " << "\n";
+        cout << "stepcheck: " << stepcheck << "\n";
+        cout << "distancetoblockend: " << distancetoblockend << "\n";
+        cout << "directsearch_th: " << directsearch_th << "\n";
+        cout << "filter_th: " << filter_th << "\n";
+        cout << "flipdensity: " << flipdensity << "\n";
+        cout << "intervalsize: " << intervalsize << "\n";
     }
 };
 
+
+struct myGlobalParameters{
+public:
+    bool startUnidirectional = false;
+    majorCaseParameters normal;
+    majorCaseParameters uni;
+    
+    
+    void print(){
+        normal.print();
+        uni.print();
+    }
+};
+
+extern int global;
 extern myGlobalParameters params;
 
+
+
+/*
+struct trackCases{
+public:
+    int returncodes[10];
+};*/
 
 sdsl::bit_vector create_random_bit_v(int length);
 
@@ -41,11 +83,6 @@ template <typename TText, typename TIndex, typename TIndexSpec>
 void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
               int const number_of_indeces,
               bool const fwd);
-/* failed
-template <typename TText, typename TConfig, typename TIndexSpec>
-void print_sa(Iter<Index<TText, BidirectionalIndex<TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
-              int const number_of_indeces,
-              bool const fwd);*/
 
 template <typename TText, typename TIndex, typename TIndexSpec>
 void print_fullsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
@@ -57,6 +94,8 @@ void printbit(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvector
 void printPair(pair<uint32_t, uint32_t> p);
 
 namespace seqan{
+    
+void testglobal();
     
 enum class ReturnCode {
 	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, ONEDIRECTION, MAPPABLE, FINISHED, UNIDIRECTIONAL, SUSPECTUNIDIRECTIONAL, FILTER, ERROR

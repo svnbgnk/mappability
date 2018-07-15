@@ -1,10 +1,14 @@
 #include "common.h"
 #include "common_auxiliary.h"
 #include "auxiliary.h"
+#include "find2_index_approx_extension.h"
 #include <chrono>
 
 using namespace seqan;
 using namespace std;
+
+myGlobalParameters params;
+int global;
 
 int main(int argc, char const ** argv)
 {
@@ -75,6 +79,7 @@ int main(int argc, char const ** argv)
     vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bit_vectors = loadBitvectors(bitvectorpath, K, nerrors);
     cout << "Bit vectors loaded. Number: " << bit_vectors.size() << endl;
     
+    //start of loop
     
     //wrapp delegate into extension.h ?
     std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hits;
@@ -109,6 +114,7 @@ int main(int argc, char const ** argv)
             errors_vD.push_back(errors[i]);
         }
     };
+
     
     auto start = std::chrono::high_resolution_clock::now();
 //     cout.setstate(std::ios_base::failbit);
@@ -118,7 +124,13 @@ int main(int argc, char const ** argv)
     std::chrono::duration<double> elapsed = finish - start;
     cout << "MyVersion elapsed: " << elapsed.count() << "s" << endl;
     
+    params.print();
     
+    global = 10;
+    seqan::testglobal(); 
+    
+    
+
     
     
     
