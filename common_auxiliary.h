@@ -28,6 +28,11 @@ template <typename TText, typename TIndex, typename TIndexSpec>
 void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
               int const number_of_indeces,
               bool const fwd);
+/* failed
+template <typename TText, typename TConfig, typename TIndexSpec>
+void print_sa(Iter<Index<TText, BidirectionalIndex<TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
+              int const number_of_indeces,
+              bool const fwd);*/
 
 template <typename TText, typename TIndex, typename TIndexSpec>
 void print_fullsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,

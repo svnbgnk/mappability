@@ -2,8 +2,11 @@
 #define SEQAN_INDEX_FIND2_INDEX_APPROX_START_UNIDIRECTIONAL_EXTENSION_H_
 
 #include "common_auxiliary.h"
+#include "common.h"
 #include "find2_index_approx_extension.h"
- 
+
+
+
 namespace seqan{
 
     
@@ -149,132 +152,13 @@ bool testFilter(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TInde
     return false;
 }
 
-template <typename TNeedle,
-          size_t nbrBlocks>
-void genomeSearch(bool const unidirectionalOnReverseIndex,
-                  TNeedle const & needle,
-                  uint32_t const needleLeftPos,
-                  uint32_t const needleRightPos,
-                  uint8_t errors,
-                  OptimalSearch<nbrBlocks> const & s,
-                  uint8_t const blockIndex,
-                  auto const & rgenome,
-                  Pair<uint16_t, uint32_t> const & sa_info,
-                  vector<Pair<uint16_t, uint32_t>> & hitsvOutput,
-                  vector<uint8_t> & errorsvOutput)
-{
-    cout << "Search on only reverse index direct" << endl;
-    cout << "StartPos " << sa_info.i2 << endl;
-    bool valid = true;
-    for(int j = blockIndex; j < s.pi.size(); ++j){
-        int blockStart = (s.pi[j] == s.pi.size()) ? 0 : s.revChronBL[s.pi[j]];
-        int blockEnd = s.revChronBL[s.pi[j] - 1];
-        cout << "searching Parts:" << length(needle) - blockStart << " - " << length(needle) - blockEnd << "; ";
-        cout << endl;
-        if(needleLeftPos < length(needle) - blockStart && needleLeftPos > length(needle) - blockEnd){
-            cout << "uni changing Blockstart, should only happen (once) when we come from checkcurrentmappability!!" << endl;
-            blockStart = length(needle) - needleLeftPos; //- 1 + 1
-            cout << "searching Parts:" << blockStart << " - " << blockEnd << "; " << endl;
-        }
-        for(int k = blockStart; k < blockEnd; ++k){
-            if(needle[length(needle) - k - 1] != rgenome[sa_info.i1][sa_info.i2 + k])
-                ++errors;
-        }
-        cout << "Errors until now: " << (int)errors << endl;
-        if(errors < s.l[j] || errors > s.u[j]){
-            cout << "Triggered: " << (int)errors << endl;
-            valid = false;
-            break;
-        }
-    }
-    if(valid){
-        cout << "uni rev Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
-        cout << (int)errors << endl;
-        cout << "Wrong start pos: " << sa_info.i2 << endl;
-        uint32_t occ = seqan::length(rgenome[sa_info.i1]) - sa_info.i2 - length(needle);
-        hitsvOutput.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
-        cout << "Hit occ FWD Index: " << hitsvOutput[hitsvOutput.size() - 1] << endl;
-        errorsvOutput.push_back(errors);
-    }
-}
-
-//TODO calculate the EndPos of the needle maybe than it is easier to merge with the other function
-template <typename TDelegateD,
-          typename TText, typename TConfig, typename TIndexSpec,
-          typename TNeedle,
-          size_t nbrBlocks,
-          typename TDir>
-void uniDirectSearch(TDelegateD & delegateDirect,
-                  Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
-                  TNeedle const & needle,
-                  vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors, 
-                  uint32_t const needleLeftPos,
-                  uint32_t const needleRightPos,
-                  uint8_t const errors,
-                  OptimalSearch<nbrBlocks> const & s,
-                  uint8_t const blockIndex,
-                  Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
-                  TDir const & /**/)
-{
-    cout << "directSearch unidirectional " <<  endl;
-    cout << "NLP: " <<  needleLeftPos <<  endl;
-    cout << "NRP: " <<  needleRightPos <<  endl;
-    cout << "errors:  " <<  (int)errors <<  endl;
-    vector<Pair<uint16_t, uint32_t>> hitsv;
-    vector<uint8_t> errorsv;
-    auto const & genome = indexText(*iter.index);
-    for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
-        cout << "I: " << i << endl;
-        //this time i use the mappability from "inside" the needle since i can garantue i am at a blockend
-        if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
-            cout << "blockIndex: " << (int)blockIndex << endl;
-            uint8_t errors2 = errors;
-            bool valid = true;
-            Pair<uint16_t, uint32_t> sa_info;
-            uint32_t startPos;
-            // mappability information is in reverse index order if we use the forward index
-            if(std::is_same<TDir, Rev>::value){
-                cout << "rev" << endl;
-                sa_info = iter.index->sa[iter.vDesc.range.i1 + i];
-                cout << "Sa current: " << sa_info << endl; //TODO revert this
-                sa_info.i2 = sa_info.i2 - (length(needle) - needleRightPos + 1);
-            }
-            else{
-                cout << "fwd" << endl;
-                sa_info = iter.index->sa[iter.vDesc.range.i1 + i];
-                cout << "Sa current: " << sa_info << endl; //TODO revert this
-                //calculate correct starting position of the needle  on the forward index
-                sa_info.i2 = sa_info.i2 - needleLeftPos;
-//                 sa_info.i2 = sa_info.i2 - (length(needle) - needleRightPos + 1);
-            }
-            
-            cout << "StartPos " << sa_info.i2 << endl;
-            //search remaining blocks
-            int sizebefore = hitsv.size();
-            if(std::is_same<TDir, Rev>::value)
-            {
-                genomeSearch(true, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, genome, sa_info, hitsv, errorsv);
-                if(sizebefore < hitsv.size())
-                    cout << "unidirectional needed forward index Hit occ: " << hitsv[hitsv.size() - 1] << endl;
-            }
-            else
-            {
-                genomeSearch(needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info, hitsv, errorsv);
-                if(sizebefore < hitsv.size())
-                    cout << "unidirectional needed reverse index Hit occ: " << hitsv[hitsv.size() - 1] << endl;
-            }
-        }
-    }
-    delegateDirect(hitsv, needle, errorsv);
-}
-
-
 ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
                           Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
                           uint8_t const blockSize,
                           bool const done,
                           uint8_t const blockIndex)
 {
+    cout << "unicheckInterval" << endl;
     int directSearch_Threshold = 2;
     float filter_threshold = 0.7; //TODO less strict
     sdsl::bit_vector & b = bitvectors[brange.i1].first;
@@ -289,16 +173,17 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
         if(ivalOne < (blockSize - blockIndex - 1) * directSearch_Threshold){ //<4 
             cout << "UNIDIRECTSEARCHDIRECTSEARCHDIRECTSEARCH" << endl;
             return ReturnCode::DIRECTSEARCH;
-        }
-/*    
+        }    
         if(ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
             return ReturnCode::COMPMAPPABLE;
+        /*
         //equal or more than half zeroes     
         float ivalSize = brange.i2.i2 - brange.i2.i1;
         if(ivalOne/ ivalSize <= filter_threshold){
             return ReturnCode::FILTER;
         }*/
     }
+    cout << "MAPPABLEMAPPABLEMAPPABLEMAPPABLEMAPPABLE" << endl;
     return ReturnCode::MAPPABLE;
 }
 
@@ -323,78 +208,110 @@ ReturnCode uniCheckMappability(TDelegate & delegate,
 {
     cout << "uniCheckMappability" << endl;
     
-    Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval_inside(iter, bitvectors, s, blockIndex + 1, TDir());
-        ReturnCode rcode = checkInterval(bitvectors, bit_interval, s.pi.size(), done, blockIndex);
-        /*
-        sdsl::bit_vector & b = bitvectors[bit_interval.i1].first;
-        sdsl::rank_support_v<> & rb = bitvectors[bit_interval.i1].second;
-        rb.set_vector(&b);
-        ivalOne = rb(bit_interval.i2.i2) - rb(bit_interval.i2.i1);*/
-        
-        cout << "at blockend with blockIndex: " << (int)blockIndex << " " << s.blocklength[blockIndex]   << endl;
-        cout << "PrintUNI" << endl;
-        printbit(bitvectors, bit_interval);
-        cout << "PrintUend" << endl;
+    Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval_inside(iter, bitvectors, s, blockIndex + done, TDir());
+    ReturnCode rcode = checkInterval(bitvectors, bit_interval, s.pi.size(), done, blockIndex);
+    /*
+    sdsl::bit_vector & b = bitvectors[bit_interval.i1].first;
+    sdsl::rank_support_v<> & rb = bitvectors[bit_interval.i1].second;
+    rb.set_vector(&b);
+    ivalOne = rb(bit_interval.i2.i2) - rb(bit_interval.i2.i1);*/
     
-        //TODO checkUnidirectionalMappability here
-        if(rcode == ReturnCode::NOMAPPABILITY){
-            cout << "This is very unlikly depending on parameters" << endl;
-            return ReturnCode::FINISHED;
-        }
-        cout << "Iter Range: " << iter.vDesc.range.i2 - iter.vDesc.range.i1 << endl;
+    cout << "at blockend with blockIndex: " << (int)blockIndex << endl;
+    cout << "PrintUNI" << endl;
+    
+    uint32_t number_of_indeces = seqan::length(iter.index->sa) - bitvectors[0].first.size();
+    Pair<uint32_t, uint32_t> dirrange = range(iter);
+    vector<int> sequenceLengths(number_of_indeces + 1, 0);
+    for(int i = 0; i < number_of_indeces; ++i)
+        sequenceLengths[iter.index->sa[i].i1 + 1] = iter.index->sa[i].i2;
+        // cumulative sum seq
+    for(int i = 1; i < sequenceLengths.size(); ++i)
+        sequenceLengths[i] += (sequenceLengths[i - 1]);
 
-        // Done. (Last step)
-        if (done)
+    if(!std::is_same<TDir, Rev>::value){
+        cout << "ForwardIndex" << endl;
+        for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
+            int seq = iter.index->sa[i].i1;
+            int sa = iter.index->sa[i].i2;
+            cout << i << ": " << sa + sequenceLengths[seq] << endl;
+        }  
+    }
+    else{
+        cout << "Rev  Index" << endl;
+        for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
+            int seq = iter.index->sa[i].i1;
+            int sa = iter.index->sa[i].i2;
+            cout << i << ": " << sequenceLengths[seq + 1] - sa - 1 << endl;
+        }
+    }
+       
+    printbit(bitvectors, bit_interval);
+    cout << "PrintUend" << endl;
+    
+    //TODO checkUnidirectionalMappability here
+    if(rcode == ReturnCode::NOMAPPABILITY){
+        cout << "This is very unlikly depending on parameters" << endl;
+        return ReturnCode::FINISHED;
+    }
+    cout << "Iter Range: " << iter.vDesc.range.i2 - iter.vDesc.range.i1 << endl;
+
+    // Done. (Last step)
+    if (done)
+    {
+        bool rev = std::is_same<TDir, Rev>::value;
+        cout << "All Unidirectional occs: " << endl;
+        cout << "Direction during delegate call" << (rev);
+        cout << endl;
+        for (auto occ : getOccurrences(iter))
+        {                
+            cout << occ.i2 << endl;
+            if(rev)
+                cout << "still need to calc for fwd Index" << endl;
+        }
+        //TODO disable true statement to allowed cheap repeats 
+        //
+        if(false) 
         {
-            cout << "All Unidirectional occs: " << endl;
-            for (auto occ : getOccurrences(iter))
-            {                
-                cout << occ.i2 << endl;
-                if(std::is_same<TDir, Rev>::value)
-                    cout << "still need to calc for fwd Index" << endl;
-            }
-            //TODO disable true statement to allowed cheap repeats 
-            if(rcode == ReturnCode::MAPPABLE) //ivalOne < bit_interval.i2.i2 - bit_interval.i2.i1
+            uint32_t rangeStart = iter.vDesc.range.i1;
+            uint32_t rangeEnd = iter.vDesc.range.i2;
+            int lastStart = 0;
+            for(int i = 0; i < rangeEnd - rangeStart; ++i)
             {
-                uint32_t rangeStart = iter.vDesc.range.i1;
-                uint32_t rangeEnd = iter.vDesc.range.i2;
-                int lastStart = 0;
-                for(int i = 0; i < rangeEnd - rangeStart; ++i)
+                if(bitvectors[bit_interval.i1].first[bit_interval.i2.i1 + i] == 0 )
                 {
-                    if(bitvectors[bit_interval.i1].first[bit_interval.i2.i1 + i] == 0)
-                    {
-                        if(i != lastStart){
-                            cout << "Called delegate on the following range:" << endl;
-                            iter.vDesc.range.i1 = rangeStart + lastStart;
-                            iter.vDesc.range.i2 = rangeStart + i - 1;
-                            cout << iter.vDesc.range.i1 << " - " << iter.vDesc.range.i2;
-                            delegate(iter, needle, errors, std::is_same<TDir, Rev>::value);
-                        }
-                        lastStart = i + 1;
+                    if(i != lastStart){
+                        cout << "Called delegate on the following range:" << endl;
+                        iter.vDesc.range.i1 = rangeStart + lastStart;
+                        iter.vDesc.range.i2 = rangeStart + i - 1;
+                        cout << iter.vDesc.range.i1 << " - " << iter.vDesc.range.i2;
+                        delegate(iter, needle, errors, rev);
                     }
+                    lastStart = i + 1;
                 }
             }
-            else
-            {
-                cout << "CompMappableInterval" << endl;
-                delegate(iter, needle, errors, std::is_same<TDir, Rev>::value);
-            }
-            cout << "Finished unidirectional Search" << endl;
-            return ReturnCode::FINISHED; 
-        }else if(rcode == ReturnCode::DIRECTSEARCH){
-            cout << "start direct Search Unidirectional" << endl;
-            uniDirectSearch(delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir());
-        return ReturnCode::FINISHED;
-        }else if(rcode == ReturnCode::FILTER){
-            //test filter also modfied iter range if true;
-            if(testFilter(iter, bitvectors, bit_interval, s, blockIndex, TDir())){
-                cout << "filterstartUniDirectionalInterval" << endl;
-                filter_interval(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir());
-                return(ReturnCode::FINISHED);
-            }
+            iter.vDesc.range.i1 = rangeStart + lastStart;
+            iter.vDesc.range.i2 = rangeStart + rangeEnd - rangeStart;
+            delegate(iter, needle, errors, rev);
         }
-        
-        //TODO implement filter
+        else
+        {
+            cout << "CompMappableInterval" << endl;
+            delegate(iter, needle, errors, rev);
+        }
+        cout << "Finished unidirectional Search" << endl;
+        return ReturnCode::FINISHED; 
+    }else if(rcode == ReturnCode::DIRECTSEARCH){
+        cout << "start direct Search Unidirectional" << endl;
+        uniDirectSearch(delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir());
+        return ReturnCode::FINISHED;
+    }else if(rcode == ReturnCode::FILTER){
+        //test filter also modfied iter range if true;
+        if(testFilter(iter, bitvectors, bit_interval, s, blockIndex, TDir())){
+            cout << "filterstartUniDirectionalInterval" << endl;
+            filter_interval(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir());
+            return(ReturnCode::FINISHED);
+        }
+    }
     return ReturnCode::MAPPABLE;
 }
   

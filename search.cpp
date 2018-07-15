@@ -45,6 +45,35 @@ void print_fullsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown
         }
     }
 }
+/* failed
+template <typename TText, typename TConfig, typename TIndexSpec>
+void print_sa(Iter<Index<TText, BidirectionalIndex<TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
+              int const number_of_indeces,
+              bool const fwd)
+{
+    Pair<uint32_t, uint32_t> dirrange = range(iter);
+    vector<int> sequenceLengths(number_of_indeces + 1, 0);
+    for(int i = 0; i < number_of_indeces; ++i)
+        sequenceLengths[iter.index->sa[i].i1 + 1] = iter.index->sa[i].i2;
+        // cumulative sum seq
+    for(int i = 1; i < sequenceLengths.size(); ++i)
+        sequenceLengths[i] += (sequenceLengths[i - 1]);
+    if(fwd){
+        for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
+            int seq = iter.index->sa[i].i1;
+            int sa = iter.index->sa[i].i2;
+            cout << i << ": " << sa + sequenceLengths[seq] << endl;
+        }
+    }else{
+        for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
+            int seq = iter.index->sa[i].i1;
+            int sa = iter.index->sa[i].i2;
+            cout << i << ": " << sequenceLengths[seq + 1] - sa - 1 << endl;
+        }
+
+    }
+}*/
+
 
 template <typename TText, typename TIndex, typename TIndexSpec>
 void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
