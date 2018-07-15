@@ -7,6 +7,7 @@
 #include "common_auxiliary.h"
 #include "find2_index_approx_unidirectional.h"
 #include "find2_index_approx_compmappable.h"
+#include "find2_index_approx_start_unidirectional.h"
 
 template <typename TIter>
 struct isBidirectionalIter
@@ -51,13 +52,7 @@ struct OptimalSearchSchemes<0, 2, TVoidType>
     }};
 };
     */
-enum class ReturnCode {
-	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, ONEDIRECTION, MAPPABLE, FINISHED, UNIDIRECTIONAL, SUSPECTUNIDIRECTIONAL, ERROR
-};
 
-enum class BV {
-	RIGHT = 0, MIDDLE = 1, LEFT = 2
-};
 
 template <size_t nbrBlocks, size_t N>
 constexpr inline void _optimalSearchSchemeSetMapParams(std::array<OptimalSearch<nbrBlocks>, N> & ss)
@@ -453,6 +448,7 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
                           OptimalSearch<nbrBlocks> const & s,
                           uint8_t const blockIndex)
 {
+    //TODO use else if!!!
     float filter_threshold = 0.5; 
     int directSearch_Threshold = 2;
     sdsl::bit_vector & b = bitvectors[brange.i1].first;
@@ -463,7 +459,7 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
     if(ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
 
-    if(ivalOne < (s.pi.size() - blockIndex - 1) * directSearch_Threshold){ //<4 TODO add additional constrains from chris? //incorparated blockIndex 
+    if(ivalOne < (s.pi.size() - blockIndex - 1) * directSearch_Threshold){ //<4 
         return ReturnCode::DIRECTSEARCH;
     }
     
@@ -472,7 +468,8 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
     //equal or more than half zeroes     
     float ivalSize = brange.i2.i2 - brange.i2.i1;
     if(s.startUniDir <= blockIndex && ivalOne/ ivalSize <= filter_threshold){
-        return ReturnCode::SUSPECTUNIDIRECTIONAL;
+        //TODO add more constrains test that im not in the last block
+        return ReturnCode::UNIDIRECTIONAL;
     }
     return ReturnCode::MAPPABLE;
 }
@@ -877,10 +874,17 @@ inline void _optimalSearchScheme(TDelegate & delegate,
                                  OptimalSearch<nbrBlocks> const & s)
 {
     bool initialDirection = s.pi[1] > s.pi[0];
-    if(initialDirection)
-        _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Rev());
-    else
-        _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Fwd());
+    if(s.startUniDir > 0){ //TODO insert additional param with or
+        if(initialDirection)
+            _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Rev());
+        else
+            _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Fwd());
+    }else{
+        if(initialDirection)
+            _uniOptimalSearchScheme(delegate, delegateDirect, it.revIter, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Rev());
+        else
+            _uniOptimalSearchScheme(delegate, delegateDirect, it.fwdIter, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Fwd());
+    }
 }
 
 template <typename TDelegate, typename TDelegateD,

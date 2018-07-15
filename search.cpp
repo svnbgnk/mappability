@@ -626,11 +626,12 @@ int main(int argc, char *argv[])
 //             cout << "Is bidirectional Iter" << endl;
             for (auto occ : getOccurrences(iter)){
                 cout << "Occ: "  << occ.i2 << endl;
+                //TODO replace with accual occurrence
                 hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
                 errors_v.push_back(errors);
             }
         }else{
-//             cout << "Is UniDirectional Iter" << endl;
+            cout << "Is UniDirectional Iter" << endl;
             auto const & rgenome = getUniIndexGenome(iter);
             for (auto occ : getOccurrences(iter)){
                 cout << endl;
@@ -661,9 +662,9 @@ int main(int argc, char *argv[])
         
     cout << "Start My Search!" << endl;
     auto start = std::chrono::high_resolution_clock::now();
-    cout.setstate(std::ios_base::failbit);
+//     cout.setstate(std::ios_base::failbit);
     find(0, nerrors, delegate, delegateDirect, index, reads, bit_vectors);
-    std::cout.clear();
+//     std::cout.clear();
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finish - start;
     cout << "Finished My Search" << endl;

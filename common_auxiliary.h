@@ -39,6 +39,16 @@ void printbit(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvector
 void printPair(pair<uint32_t, uint32_t> p);
 
 namespace seqan{
+    
+enum class ReturnCode {
+	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, ONEDIRECTION, MAPPABLE, FINISHED, UNIDIRECTIONAL, SUSPECTUNIDIRECTIONAL, DELEGATE, ERROR
+};
+
+enum class BV {
+	RIGHT = 0, MIDDLE = 1, LEFT = 2
+};
+    
+ /*   
 template <typename TDelegateD,
           typename TText, typename TConfig, typename TIndexSpec,
           typename TNeedle, typename TIndex,
@@ -55,7 +65,7 @@ void directSearchDummy(TDelegateD & delegateDirect,
                   OptimalSearch<nbrBlocks> const & s,
                   uint8_t const blockIndex,
                   Pair<uint8_t, Pair<uint32_t, uint32_t>> brange,
-                  TDir const & /**/);
+                  TDir const & );*/
 }
 
 #endif
