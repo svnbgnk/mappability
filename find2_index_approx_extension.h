@@ -117,20 +117,6 @@ void filter_interval(TDelegate & delegate,
 {
     uint32_t intervalfilter_size = 3;      
     sdsl::bit_vector & b = bitvectors[inside_bit_interval.i1].first;
-/*    
- * //TODO need bitvector 
-    int n;
-    if(std::is_same<TDir, Rev>::value)
-        n = 4 + s.max[blockIndex];
-    else
-        n = s.min[blockIndex];
-    uint32_t number_of_indeces = seqan::length(iter.fwdIter.index->sa) - bitvectors[needed_bitvector].first.size();
-    cout << "selected bitvector: " << (int)needed_bitvector << endl;
-//     cout << "Sa Range: " << dirrange << endl;  
-    dirrange.i1 = dirrange.i1 - number_of_indeces;
-    dirrange.i2 = dirrange.i2 - number_of_indeces;
-    //TODO create correct range 
-    */
 
     cout << "In filterInterval" << endl;
     printbit(bitvectors, inside_bit_interval);
