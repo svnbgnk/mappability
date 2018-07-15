@@ -9,6 +9,19 @@
 using namespace std;
 using namespace seqan;
 
+struct myGlobalParameters{
+public:
+    float flipdensity = 0.5;
+    int intervalsize = 3;
+    
+    void print(){
+        cout << flipdensity << "\n" << intervalsize << "\n";
+    }
+};
+
+extern myGlobalParameters params;
+
+
 sdsl::bit_vector create_random_bit_v(int length);
 
 template <typename T> 
@@ -52,6 +65,11 @@ enum class ReturnCode {
 enum class BV {
 	RIGHT = 0, MIDDLE = 1, LEFT = 2
 };
+
+
+typedef String<Dna, Alloc<>> TString;
+typedef StringSet<TString, Owner<ConcatDirect<> > > TText;
+typedef Index<TText, TIndexConfig> MyIndex;
     
  /*   
 template <typename TDelegateD,

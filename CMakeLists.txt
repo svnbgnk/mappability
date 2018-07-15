@@ -35,7 +35,7 @@ include_directories (${SEQAN_INCLUDE_DIRS})
 add_definitions (${SEQAN_DEFINITIONS})
 
 # Add CXX flags found by find_package (SeqAn).
-set (CMAKE_CXX_FLAGS "-std=c++17 -DSEQAN_DISABLE_VERSION_CHECK=YES -I ${CUR_DIR}/sdsl-lite/include ${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
+set (CMAKE_CXX_FLAGS "-std=c++14 -DSEQAN_DISABLE_VERSION_CHECK=YES -I ${CUR_DIR}/sdsl-lite/include ${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
 # set (CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS} -I/home/sven/devel/sdsl-lite/include") # -ldivsufsort -ldivsufsort64
 
 # Add executable and link against SeqAn dependencies.
@@ -56,4 +56,8 @@ target_link_libraries (search ${SEQAN_LIBRARIES})
 
 add_executable (heatmap heatmap.cpp)
 target_link_libraries (heatmap ${SEQAN_LIBRARIES})
+
+add_executable (benchmark benchmark.cpp)
+target_link_libraries (benchmark ${SEQAN_LIBRARIES})
+
 
