@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
         }
     };
     
-    params.startUnidirectional = true;
+    params.startUnidirectional = false;
     
     cout << "Start My Search!" << endl;
     auto start = std::chrono::high_resolution_clock::now();
@@ -183,12 +183,10 @@ int main(int argc, char *argv[])
     elapsed = finish - start;
     cout << "Default Version elapsed: " << elapsed.count() << "s" << endl;
     
+    
     std::vector<readOcc> readOccsDe = print_readocc_sorted(hitsDe, errors_vDe, genome, true);
-
     int threshold = 2; 
     cout << "Test if default and my version are the same: " << endl;
-  
-   
 //     cout.setstate(std::ios_base::failbit); //TODO revert this
     vector<int> whitcount = compare(index, nerrors, threshold, readOccs, readOccsDe);
 //     std::cout.clear();  //TODO revert this
