@@ -51,8 +51,8 @@ target_link_libraries (create_index ${SEQAN_LIBRARIES})
 add_executable (create_bit_v create_bit_v.cpp)
 target_link_libraries (create_bit_v ${SEQAN_LIBRARIES})
 
-add_executable (search search.cpp)
-target_link_libraries (search ${SEQAN_LIBRARIES})
+#add_executable (search search.cpp)
+#target_link_libraries (search ${SEQAN_LIBRARIES})
 
 add_executable (heatmap heatmap.cpp)
 target_link_libraries (heatmap ${SEQAN_LIBRARIES})

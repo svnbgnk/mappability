@@ -1,5 +1,7 @@
 #ifndef SEQAN_INDEX_FIND2_INDEX_APPROX_COMPMAPPLE_H_
 #define SEQAN_INDEX_FIND2_INDEX_APPROX_COMPMAPPLE_H_
+using namespace std;
+
 
 namespace seqan{
     

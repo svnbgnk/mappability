@@ -1,12 +1,11 @@
-#include "common.h"
-#include "common_auxiliary.h"
-#include <iostream>
-#include <fstream>
-#include <iterator> 
-#include <sstream>
-#include <tgmath.h>
 #include <sdsl/bit_vectors.hpp>
-#include "find2_index_approx_extension.h"
+#include <seqan/arg_parse.h>
+#include "auxiliary.h"
+#include "common_auxiliary.h"
+
+using namespace std;
+using namespace seqan;
+
 
 struct bitvectors
 {
@@ -15,9 +14,6 @@ struct bitvectors
     vector<sdsl::bit_vector> bv;
 };
 
-using namespace std;
-// using namespace seqan;
-
 std::vector<int> getInt(std::string const& mappability_str)
 {
   std::istringstream iss(mappability_str);
@@ -25,11 +21,6 @@ std::vector<int> getInt(std::string const& mappability_str)
     std::istream_iterator<int>(iss),
     std::istream_iterator<int>()
   };
-}
-
-inline bool file_exists (const std::string& name) {
-  struct stat buffer;   
-  return (stat (name.c_str(), &buffer) == 0); 
 }
 
 vector<uint8_t> read(const string mappability_path){
@@ -49,7 +40,6 @@ vector<uint8_t> read(const string mappability_path){
         }
     return(mappability_int); 
 }
-
 
 template <unsigned errors>
 bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const int len, double threshold){
@@ -225,6 +215,8 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int le
     }
     return(result);    
 }
+
+
 void print_SA(CharString const indexPath, vector<sdsl::bit_vector> &bit_vectors, CharString const & outputPath, bool const fwd){
     string name = "_SA_debug";
     string dir = (fwd) ? "fwd" : "rev";
@@ -333,6 +325,7 @@ void order_bit_vector(bitvectors & bit_vectors, CharString const indexPath, bool
 
 int main(int argc, char *argv[])
 {
+    
     ArgumentParser parser("Create bit vectors");
     addOption(parser, ArgParseOption("I", "map", "Path to the mappability file (including the number at the end)", ArgParseArgument::INPUT_FILE, "IN"));
     setRequired(parser, "map");
@@ -397,13 +390,10 @@ int main(int argc, char *argv[])
     cout << mytime() << "Program start." << endl;
     vector<uint8_t> mappability = read(mappability_path);
     cout << mytime() << "Loaded Mappability vector. Size: " << mappability.size() << endl;
-//     for(int i = 0; i < mappability.size(); ++i)
-//         cout << (int)mappability[i];
-//     cout << endl;
     
-    
+   
     bitvectors result = create_bit_vectors(mappability, len, threshold, bit3, errors);
-
+ 
     cout << mytime() << "Finished bit vectors." << endl;
 
     if(debug)
@@ -434,5 +424,6 @@ int main(int argc, char *argv[])
     
     cout << mytime() << "Finished saving bit vectors" << endl;
 
+    
     return 0;
 }

@@ -1,12 +1,6 @@
 #ifndef SEQAN_INDEX_FIND2_INDEX_APPROX_START_UNIDIRECTIONAL_H_
 #define SEQAN_INDEX_FIND2_INDEX_APPROX_START_UNIDIRECTIONAL_EXTENSION_H_
 
-#include "common_auxiliary.h"
-#include "common.h"
-// #include "find2_index_approx_extension.h"
-
-
-
 namespace seqan{
 
     

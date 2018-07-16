@@ -2,8 +2,9 @@
 #define SEQAN_INDEX_FIND2_INDEX_APPROX_UNIDIRECTIONAL_H_
 
 // #include <sdsl/bit_vectors.hpp>
-#include "common.h"
-#include "common_auxiliary.h"
+// #include "common.h"
+// #include "common_auxiliary.h"
+using namespace std;
 
 namespace seqan{
 

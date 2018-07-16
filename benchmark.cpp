@@ -3,6 +3,8 @@
 #include "auxiliary.h"
 #include "find2_index_approx_extension.h"
 #include <chrono>
+#include "global.h"
+#include <iostream>
 
 using namespace seqan;
 using namespace std;
@@ -12,6 +14,11 @@ int global;
 
 int main(int argc, char const ** argv)
 {
+//     params.print();
+    
+    global = 10;
+    testglobal(); 
+    
     ArgumentParser parser("benchmark");
     addDescription(parser, "App for search.cpp and finding optimal parameters.");
     
@@ -52,6 +59,7 @@ int main(int argc, char const ** argv)
     getOptionValue(nerrors, parser, "errors");
     getOptionValue(r, parser, "r");
     
+    
     //load reads
     SeqFileIn seqFileIn(toCString(readspath));
     StringSet<CharString> ids;
@@ -76,7 +84,7 @@ int main(int argc, char const ** argv)
     
     // load bitvectors
     cout << "Loading bitvectors" << endl;
-    vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bit_vectors = loadBitvectors(bitvectorpath, K, nerrors);
+    std::vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bit_vectors = loadBitvectors(bitvectorpath, K, nerrors);
     cout << "Bit vectors loaded. Number: " << bit_vectors.size() << endl;
     
     //start of loop
@@ -86,7 +94,7 @@ int main(int argc, char const ** argv)
     std::vector<uint8_t> errors_v;
     auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
     {
-        if(!rev /* workaround check iter later*/)
+        if(!rev)
         {
             for (auto occ : getOccurrences(iter)){
                 hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
@@ -107,14 +115,14 @@ int main(int argc, char const ** argv)
     
     std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hitsD;
     std::vector<uint8_t> errors_vD;
-    auto delegateDirect = [&hitsD, &errors_vD](vector<Pair<uint16_t, uint32_t>> poss, DnaString const & needle, vector<uint8_t> errors)
+    auto delegateDirect = [&hitsD, &errors_vD](std::vector<Pair<uint16_t, uint32_t>> poss, DnaString const & needle, std::vector<uint8_t> errors)
     {
         for (int i = 0; i < poss.size(); ++i){
             hitsD.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, poss[i]));
             errors_vD.push_back(errors[i]);
         }
     };
-
+    
     
     auto start = std::chrono::high_resolution_clock::now();
 //     cout.setstate(std::ios_base::failbit);
@@ -124,17 +132,9 @@ int main(int argc, char const ** argv)
     std::chrono::duration<double> elapsed = finish - start;
     cout << "MyVersion elapsed: " << elapsed.count() << "s" << endl;
     
-    params.print();
-    
-    global = 10;
-    seqan::testglobal(); 
+ 
+    std::cout << "finished" << std::endl;
     
     
-
-    
-    
-    
-    
-    cout << "finished" << endl;
     return 0;
 }

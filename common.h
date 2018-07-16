@@ -4,10 +4,9 @@
 #include <seqan/arg_parse.h>
 #include <seqan/seq_io.h>
 #include <seqan/index.h>
-#include <sdsl/bit_vectors.hpp>
 
-using namespace std;
-using namespace seqan;
+
+
 
 // reduce space consumption.
 // requires genome not to have more than ~ 4 gigabases

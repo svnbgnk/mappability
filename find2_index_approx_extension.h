@@ -1,110 +1,48 @@
 #ifndef SEQAN_INDEX_FIND2_INDEX_APPROX_EXTENSION_H_
 #define SEQAN_INDEX_FIND2_INDEX_APPROX_EXTENSION_H_
-
-// #include <seqan/index.h>
+/*
+#include <seqan/index.h>
 #include <sdsl/bit_vectors.hpp>
 #include "common.h"
+#include "common_auxiliary.h"
+*/
+
+#include <iostream>
+#include <sdsl/bit_vectors.hpp>
+#include "global.h"
+#include "auxiliary.h"
 #include "common_auxiliary.h"
 #include "find2_index_approx_unidirectional.h"
 #include "find2_index_approx_compmappable.h"
 #include "find2_index_approx_start_unidirectional.h"
 
+void testglobal(){
+    std::cout << "Lets test global" << std::endl;
+    std::cout << global << std::endl;
+    params.print();
+}
 
-extern int global;
-
-template <typename TIter>
-struct isBidirectionalIter
-{
-     static constexpr bool VALUE = false;
-};
-
-template <typename TText, typename TIndex, typename TIndexSpec>
-struct isBidirectionalIter<Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > >
-{
-     static constexpr bool VALUE = true;
-};
 
 namespace seqan{
+
     
-void testglobal(){
-    cout << "nothing" << endl;
-//     cout << global << endl;
-} 
-    
-/*    
-template <size_t N>
-struct OptimalSearch
-{
-    std::array<uint8_t, N> pi; // order of the blocks. permutation of [1..n]
-    std::array<uint8_t, N> l; // minimum number of errors at the end of the corresponding block
-    std::array<uint8_t, N> u; // maximum number of errors at the end of the corresponding block
+   
+// template <size_t N>
+// struct OptimalSearch
+// {
+//     std::array<uint8_t, N> pi; // order of the blocks. permutation of [1..n]
+//     std::array<uint8_t, N> l; // minimum number of errors at the end of the corresponding block
+//     std::array<uint8_t, N> u; // maximum number of errors at the end of the corresponding block
+// 
+//     std::array<uint32_t, N> blocklength; // cumulated values / prefix sums
+//     std::array<uint32_t, N> chronBL;
+//     std::array<uint32_t, N> revChronBL;
+//     std::array<uint8_t, N> min;
+//     std::array<uint8_t, N> max;
+//     uint32_t startPos; //wrong position so i still get 0 from initialization
+//     uint8_t startUniDir; 
+// };
 
-    std::array<uint32_t, N> blocklength; // cumulated values / prefix sums
-    std::array<uint32_t, N> chronBL;
-    std::array<uint32_t, N> revChronBL;
-    std::array<uint8_t, N> min;
-    std::array<uint8_t, N> max;
-    uint32_t startPos; //wrong position so i still get 0 from initialization
-    uint8_t startUniDir; 
-};
-
-
-
-template <typename TVoidType>
-struct OptimalSearchSchemes<0, 2, TVoidType>
-{
-    static constexpr std::array<OptimalSearch<4>, 3> VALUE
-    {{
-        { {{2, 1, 3, 4}}, {{0, 0, 1, 1}}, {{0, 0, 2, 2}}, {{0, 0, 0, 0}}, {{2, 1, 1, 1}}, {{2, 2, 3, 4}}, 2, 0 },
-        { {{3, 2, 1, 4}}, {{0, 0, 0, 0}}, {{0, 1, 1, 2}}, {{0, 0, 0, 0}}, {{3, 2, 1, 1}}, {{3, 3, 3, 4}}, 3, 0 },
-        { {{4, 3, 2, 1}}, {{0, 0, 0, 2}}, {{0, 1, 2, 2}}, {{0, 0, 0, 0}}, {{4, 3, 2, 1}}, {{4, 4, 4, 4}}, 0, 0 }
-    }};
-};
-    */
-
-
-template <size_t nbrBlocks, size_t N>
-constexpr inline void _optimalSearchSchemeSetMapParams(std::array<OptimalSearch<nbrBlocks>, N> & ss)
-{
-    for (OptimalSearch<nbrBlocks> & s : ss){
-        int bsize = s.pi.size();
-        uint8_t min = s.pi[0];
-        uint8_t max = s.pi[0];
-        // maybe < N?
-        for(int i = 0; i < bsize; ++i){
-            if(min > s.pi[i])
-                min = s.pi[i];
-            if(max < s.pi[i])
-                max = s.pi[i];
-            s.min[i] = min;
-            s.max[i] = max;
-        }
-        uint8_t lastValue = s.pi[bsize - 1];
-        int k = bsize - 2;
-        while(k >= 0){
-            if(s.pi[k] == lastValue - 1 || s.pi[k] == lastValue + 1)
-            {
-                lastValue = s.pi[k];
-                --k;
-            }else{
-                s.startUniDir = k + 1;
-                break;
-            }
-        }
-        s.chronBL[s.pi[0] - 1]  = s.blocklength[0];
-        for(int j = 1; j < bsize; ++j)
-            s.chronBL[s.pi[j] - 1] = s.blocklength[j] -  s.blocklength[j - 1];
-        for(int j = 1; j < bsize; ++j)
-            s.chronBL[j] += s.chronBL[j - 1];
-        
-        s.revChronBL[s.pi[bsize - 1] - 1]  = s.blocklength[bsize - 1] - s.blocklength[bsize - 2];
-        for(int i = bsize - 2; i >= 0; --i){
-            s.revChronBL[s.pi[i] - 1] = s.blocklength[i] - ((i > 0) ? s.blocklength[i - 1] : 0);
-        }
-        for(int i = bsize - 2; i >= 0; --i)
-            s.revChronBL[i] += s.revChronBL[i + 1];  
-    }
-}
 
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
@@ -122,7 +60,7 @@ void filter_interval(TDelegate & delegate,
                      OptimalSearch<nbrBlocks> const & s,
                      uint8_t const blockIndex,
                      Pair<uint8_t, Pair<uint32_t, uint32_t>> & inside_bit_interval,
-                     TDir const & /**/)
+                     TDir const & )
 {
     uint32_t intervalfilter_size = 3;      
     sdsl::bit_vector & b = bitvectors[inside_bit_interval.i1].first;
@@ -191,7 +129,7 @@ void genomeSearch(TNeedle const & needle,
                   uint8_t errors,
                   OptimalSearch<nbrBlocks> const & s,
                   uint8_t const blockIndex,
-                  TDir const & /**/,
+                  TDir const & ,
                   auto const & genome,
                   Pair<uint16_t, uint32_t> const & sa_info,
                   vector<Pair<uint16_t, uint32_t>> & hitsvOutput,
@@ -254,7 +192,7 @@ void directSearch(TDelegateD & delegateDirect,
                   OptimalSearch<nbrBlocks> const & s,
                   uint8_t const blockIndex,
                   Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
-                  TDir const & /**/)
+                  TDir const & )
 {
     cout << "directSearchdefault " <<  endl;
     cout << "NLP: " <<  needleLeftPos <<  endl;
@@ -330,7 +268,7 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval(Iter<Index<TText,
                                         vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,    
                                         OptimalSearch<nbrBlocks> const & s,
                                         uint8_t const blockIndex,
-                                        TDir const & /**/) 
+                                        TDir const & ) 
 {
 //     printv(s.pi);
     cout << "bitvector_interval blockIndex: " << (int)blockIndex << endl;
@@ -457,7 +395,7 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
     if(ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
     
-    else if(ivalOne < (s.pi.size() - blockIndex - 1) * directsearch_th/*params.normal.directsearch_th*/)
+    else if(ivalOne < (s.pi.size() - blockIndex - 1) * directsearch_th)
         return ReturnCode::DIRECTSEARCH;
     
     else if(ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
@@ -465,7 +403,7 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
     
     //equal or more than half zeroes
     //TODO add more constrains test that im not in the last block
-    else if(s.startUniDir <= blockIndex && ivalOne/ ivalSize <= filter_th/*params.normal.filter_th*/)
+    else if(s.startUniDir <= blockIndex && ivalOne/ ivalSize <= filter_th)
         return ReturnCode::SUSPECTUNIDIRECTIONAL;
         
     else
@@ -488,7 +426,7 @@ ReturnCode checkCurrentMappability(TDelegate & delegate,
                             OptimalSearch<nbrBlocks> const & s,
                             uint8_t const blockIndex,
                             uint8_t const minErrorsLeftInBlock,
-                            TDir const & /**/)
+                            TDir const & )
 {
     cout << "checkCurrentMappability:" << endl;
     cout << "NLP: " << (int)needleLeftPos << endl;
@@ -543,7 +481,7 @@ ReturnCode checkMappability(TDelegate & delegate,
                             OptimalSearch<nbrBlocks> const & s,
                             uint8_t const blockIndex,
                             bool const goToRight2,
-                            TDir const & /**/)
+                            TDir const & )
 {
     //TODO probably dont need needleLeftPos and needleRightPos sind there important border wasnt shifted
     bool finished = current_needleLeftPos == 0 && current_needleRightPos == length(needle) + 1;
@@ -645,7 +583,7 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
                                          OptimalSearch<nbrBlocks> const & s,
                                          uint8_t const blockIndex,
                                          uint8_t const minErrorsLeftInBlock,
-                                         TDir const & /**/)                                 
+                                         TDir const & )                                 
 {
     cout << "optimalSearchSchemeChildren" << endl;
     bool goToRight = std::is_same<TDir, Rev>::value;                                 
@@ -709,7 +647,7 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
                                       uint8_t const errors,
                                       OptimalSearch<nbrBlocks> const & s,
                                       uint8_t const blockIndex,
-                                      TDir const & /**/)
+                                      TDir const & )
 {
     // not in last block and next Block is larger then current block
     bool goToRight2 = (blockIndex < s.pi.size() - 1) ? s.pi[blockIndex + 1] > s.pi[blockIndex] : s.pi[blockIndex] > s.pi[blockIndex - 1];
@@ -783,7 +721,7 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
         }
     }
 }
-    
+
 
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
@@ -800,7 +738,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
                                  uint8_t const errors,                             
                                  OptimalSearch<nbrBlocks> const & s,
                                  uint8_t const blockIndex,
-                                 TDir const & /**/)
+                                 TDir const & )
 {
     cout << "optimalSearchScheme" << endl;
     cout << "blockIndex: " << (int)blockIndex << endl;
@@ -853,9 +791,11 @@ inline void _optimalSearchScheme(TDelegate & delegate,
         if(rcode == ReturnCode::FINISHED)
             return;
     }
-        _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir());
+    _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir());
     }
 }
+
+  
 
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
@@ -882,7 +822,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
             _uniOptimalSearchScheme(delegate, delegateDirect, it.fwdIter, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Fwd());
     }
 }
-
+  
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
@@ -911,6 +851,7 @@ find(TDelegate & delegate,
 {
     auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
     _optimalSearchSchemeComputeFixedBlocklength(scheme, length(needle));
+    params.print();
     cout << "New Needle:" << endl; //TODO revert this
     for(int i = 0; i < length(needle); ++i)
         cout << needle[i];
@@ -921,7 +862,7 @@ find(TDelegate & delegate,
     _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, scheme);
 }
   
-  
+
 
 template <size_t minErrors, size_t maxErrors,
           typename TDelegate, typename TDelegateD,
@@ -934,7 +875,7 @@ find(TDelegate & delegate,
      Index<TText, BidirectionalIndex<TIndexSpec> > & index,
      StringSet<TNeedle, TStringSetSpec> const & needles,
      vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
-     TParallelTag const & /**/)
+     TParallelTag const & )
 {
     typedef typename Iterator<StringSet<TNeedle, TStringSetSpec> const, Rooted>::Type TNeedleIt;
     typedef typename Reference<TNeedleIt>::Type                                       TNeedleRef;
@@ -994,7 +935,7 @@ void find(const int minErrors,
      TDelegate & delegate,
      Index<TText, BidirectionalIndex<TIndexSpec> > & index,
      StringSet<TNeedle, TStringSetSpec> const & needles,
-     TDistanceTag const & /**/)
+     TDistanceTag const & )
 {
     switch (maxErrors)
     {

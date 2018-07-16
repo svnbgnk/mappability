@@ -1,101 +1,51 @@
 #ifndef COMMON_AUXILLARY_H_
 #define COMMON_AUXILLARY_H_
 
-#include <seqan/arg_parse.h>
-#include <seqan/seq_io.h>
-#include <seqan/index.h>
-#include <sdsl/bit_vectors.hpp>
-
-using namespace std;
-using namespace seqan;
-
-struct majorCaseParameters{
-    bool nomappability = true;
-    bool directsearch = true;
-    bool compmappable = true;
-    bool suspectunidirectional = true;
-    
-    //binaryNumber
-    int stepcheck = 4;
-    int distancetoblockend = 2;
-    
-    int directsearch_th = 2;
-    float filter_th = 0.5;
-    
-    float flipdensity = 0.5;
-    
-    int intervalsize = 3;
-    
-    void print(){
-        cout << "Cases Enabled: " << "\n";
-        cout << nomappability << " " << directsearch << " " << compmappable << " " << suspectunidirectional << "\n";
-        cout << "Params: " << "\n";
-        cout << "stepcheck: " << stepcheck << "\n";
-        cout << "distancetoblockend: " << distancetoblockend << "\n";
-        cout << "directsearch_th: " << directsearch_th << "\n";
-        cout << "filter_th: " << filter_th << "\n";
-        cout << "flipdensity: " << flipdensity << "\n";
-        cout << "intervalsize: " << intervalsize << "\n";
-    }
-};
-
-
-struct myGlobalParameters{
-public:
-    bool startUnidirectional = false;
-    majorCaseParameters normal;
-    majorCaseParameters uni;
-    
-    
-    void print(){
-        normal.print();
-        uni.print();
-    }
-};
-
-extern int global;
-extern myGlobalParameters params;
-
-
-
-/*
-struct trackCases{
-public:
-    int returncodes[10];
-};*/
-
-sdsl::bit_vector create_random_bit_v(int length);
-
-template <typename T> 
-void printv(T a);
-
-inline bool file_exists (const std::string& name);
-
-template <size_t nbrBlocks, size_t N>
-void print_search_scheme(std::array<OptimalSearch<nbrBlocks>, N> & searchsscheme);
-
-template <typename TText, typename TIndex, typename TIndexSpec>
-void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-              vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
-              bool const fwd);
-
-template <typename TText, typename TIndex, typename TIndexSpec>
-void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-              int const number_of_indeces,
-              bool const fwd);
-
-template <typename TText, typename TIndex, typename TIndexSpec>
-void print_fullsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-              vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
-              bool const fwd);
-
-void printbit(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors, Pair<uint8_t, Pair<uint32_t, uint32_t>> brange);
-
-void printPair(pair<uint32_t, uint32_t> p);
-
 namespace seqan{
     
-void testglobal();
+template <size_t nbrBlocks, size_t N>
+constexpr inline void _optimalSearchSchemeSetMapParams(std::array<OptimalSearch<nbrBlocks>, N> & ss)
+{
+    for (OptimalSearch<nbrBlocks> & s : ss){
+        int bsize = s.pi.size();
+        uint8_t min = s.pi[0];
+        uint8_t max = s.pi[0];
+        // maybe < N?
+        for(int i = 0; i < bsize; ++i){
+            if(min > s.pi[i])
+                min = s.pi[i];
+            if(max < s.pi[i])
+                max = s.pi[i];
+            s.min[i] = min;
+            s.max[i] = max;
+        }
+        uint8_t lastValue = s.pi[bsize - 1];
+        int k = bsize - 2;
+        while(k >= 0){
+            if(s.pi[k] == lastValue - 1 || s.pi[k] == lastValue + 1)
+            {
+                lastValue = s.pi[k];
+                --k;
+            }else{
+                s.startUniDir = k + 1;
+                break;
+            }
+        }
+        s.chronBL[s.pi[0] - 1]  = s.blocklength[0];
+        for(int j = 1; j < bsize; ++j)
+            s.chronBL[s.pi[j] - 1] = s.blocklength[j] -  s.blocklength[j - 1];
+        for(int j = 1; j < bsize; ++j)
+            s.chronBL[j] += s.chronBL[j - 1];
+        
+        s.revChronBL[s.pi[bsize - 1] - 1]  = s.blocklength[bsize - 1] - s.blocklength[bsize - 2];
+        for(int i = bsize - 2; i >= 0; --i){
+            s.revChronBL[s.pi[i] - 1] = s.blocklength[i] - ((i > 0) ? s.blocklength[i - 1] : 0);
+        }
+        for(int i = bsize - 2; i >= 0; --i)
+            s.revChronBL[i] += s.revChronBL[i + 1];  
+    }
+}
+
     
 enum class ReturnCode {
 	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, ONEDIRECTION, MAPPABLE, FINISHED, UNIDIRECTIONAL, SUSPECTUNIDIRECTIONAL, FILTER, ERROR
@@ -110,24 +60,6 @@ typedef String<Dna, Alloc<>> TString;
 typedef StringSet<TString, Owner<ConcatDirect<> > > TText;
 typedef Index<TText, TIndexConfig> MyIndex;
     
- /*   
-template <typename TDelegateD,
-          typename TText, typename TConfig, typename TIndexSpec,
-          typename TNeedle, typename TIndex,
-          size_t nbrBlocks,
-          typename TDir>
-void directSearchDummy(TDelegateD & delegateDirect,
-                  Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
-                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > olditer,
-                  TNeedle const & needle,
-                  vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors, 
-                  uint32_t const needleLeftPos,
-                  uint32_t const needleRightPos,
-                  uint8_t const errors,
-                  OptimalSearch<nbrBlocks> const & s,
-                  uint8_t const blockIndex,
-                  Pair<uint8_t, Pair<uint32_t, uint32_t>> brange,
-                  TDir const & );*/
 }
 
 #endif
