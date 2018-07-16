@@ -383,8 +383,8 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
 {
     
     
-    int directsearch_th = 2;
-    float filter_th = 0.5; 
+//     int directsearch_th = 2;
+//     float filter_th = 0.5; 
     
     sdsl::bit_vector & b = bitvectors[brange.i1].first;
     sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second; 
@@ -392,10 +392,12 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
     
     uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
     float ivalSize = brange.i2.i2 - brange.i2.i1;
-    if(ivalOne == 0)
+    if(params.normal.nomappability == false)
+        cout << "Disabling Nommappability" << endl;
+    if(params.normal.nomappability && ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
     
-    else if(ivalOne < (s.pi.size() - blockIndex - 1) * directsearch_th)
+    else if(ivalOne < (s.pi.size() - blockIndex - 1) * params.normal.directsearch_th)
         return ReturnCode::DIRECTSEARCH;
     
     else if(ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
@@ -403,7 +405,7 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
     
     //equal or more than half zeroes
     //TODO add more constrains test that im not in the last block
-    else if(s.startUniDir <= blockIndex && ivalOne/ ivalSize <= filter_th)
+    else if(s.startUniDir <= blockIndex && ivalOne/ ivalSize <= params.normal.filter_th)
         return ReturnCode::SUSPECTUNIDIRECTIONAL;
         
     else

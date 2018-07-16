@@ -1,15 +1,16 @@
-#include <seqan/arg_parse.h>
-#include <seqan/seq_io.h>
-#include <seqan/index.h>
-#include "common.h"
-#include "common_auxiliary.h"
-#include "auxiliary.h"
-#include "find2_index_approx_extension.h"
 #include <sdsl/bit_vectors.hpp>
 #include <chrono>
+#include <seqan/arg_parse.h>
+#include "auxiliary.h"
+#include "common_auxiliary.h"
+#include "find2_index_approx_extension.h"
+#include "global.h"
 
 using namespace std;
 using namespace seqan;
+
+myGlobalParameters params;
+int global;
 
 int main(int argc, char *argv[])
 {
@@ -42,6 +43,7 @@ int main(int argc, char *argv[])
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
     if (res != ArgumentParser::PARSE_OK)
         return res == ArgumentParser::PARSE_ERROR;
+    
     
     CharString indexPath, bitvectorpath, readspath;
     string outputpath;
@@ -94,7 +96,7 @@ int main(int argc, char *argv[])
     auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
     {
         cout << "delegate Call: " << endl;
-        if(!rev /* workaround check iter later*/)
+        if(!rev ) // workaround check iter later
         {
 //             cout << "Is bidirectional Iter" << endl;
             for (auto occ : getOccurrences(iter)){
@@ -113,9 +115,7 @@ int main(int argc, char *argv[])
                     cout << "rev case" << endl;
                     occ.i2 = seqan::length(rgenome[occ.i1]) - occ.i2 - length(needle);
                     cout << "Occ after: "  << occ.i2 << endl;
-                }/*else{
-                    cout << "fwd case" << endl;
-                }*/
+                }
                 hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
                 errors_v.push_back(errors);
             }
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
             errors_vD.push_back(errors[i]);
         }
     };
-        
+    
     cout << "Start My Search!" << endl;
     auto start = std::chrono::high_resolution_clock::now();
 //     cout.setstate(std::ios_base::failbit);
@@ -171,7 +171,6 @@ int main(int argc, char *argv[])
     }
 
     
-//     std::vector<readOcc> readOccsDe;
     cout << "Test default" << endl;
     std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hitsDe;
     std::vector<uint8_t> errors_vDe;
@@ -209,7 +208,7 @@ int main(int argc, char *argv[])
     for(int i = 0; i < whitcount.size(); ++i)
         cout << whitcount[i] << endl;
     cout << endl;
-
+    
     return 0;
     
 }

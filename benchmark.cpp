@@ -4,7 +4,6 @@
 #include "find2_index_approx_extension.h"
 #include <chrono>
 #include "global.h"
-#include <iostream>
 
 using namespace seqan;
 using namespace std;
