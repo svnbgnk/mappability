@@ -1,6 +1,8 @@
 #ifndef SEQAN_INDEX_FIND2_INDEX_APPROX_START_UNIDIRECTIONAL_H_
 #define SEQAN_INDEX_FIND2_INDEX_APPROX_START_UNIDIRECTIONAL_EXTENSION_H_
 
+#include "auxiliary.h"
+
 namespace seqan{
 
     
@@ -21,37 +23,13 @@ void filter_interval(TDelegate & delegate,
                      uint8_t const blockIndex,
                      Pair<uint8_t, Pair<uint32_t, uint32_t>> & inside_bit_interval,
                      TDir const & /**/)
-{
-    uint32_t intervalfilter_size = 3;      
-    sdsl::bit_vector & b = bitvectors[inside_bit_interval.i1].first;
+{ 
+
 
     cout << "In start Unidirectional filterInterval" << endl;
-//     printbit(bitvectors, inside_bit_interval);
-/*    
-    if(std::is_same<TDir, Rev>::value)
-        print_sa(iter, bitvectors, true);
-    else
-        print_sa(iter, bitvectors, false);*/
-    vector<pair<uint32_t, uint32_t>> consOnes;
+    printbit(bitvectors, inside_bit_interval);
+    vector<pair<uint32_t, uint32_t>> consOnes = getConsOnes(bitvectors, inside_bit_interval, params.startuni.intervalsize);
     
-    uint32_t k = inside_bit_interval.i2.i1;
-    uint32_t startOneInterval = inside_bit_interval.i2.i1;
-    while(k < inside_bit_interval.i2.i2){
-        uint32_t interval = 0;
-        //TODO delete second condition it should end with 1
-        while(b[k + interval] == 0 && (k + interval) < inside_bit_interval.i2.i2){
-            ++interval;
-        }
-        if(interval >= intervalfilter_size){
-            consOnes.push_back(make_pair(startOneInterval, k));
-            startOneInterval = k + interval;
-        }
-        k += interval;
-        interval = 0;
-        ++k;
-    }
-    consOnes.push_back(make_pair(startOneInterval, k));
-//     consOnes.push_back(make_pair(inside_bit_interval.i2.i1, inside_bit_interval.i2.i2));
     uint32_t noi = seqan::length(iter.index->sa) - bitvectors[0].first.size(); // number_of_indeces
     //TODO replace with countSequences when it works
     
@@ -84,10 +62,6 @@ bool testFilter(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TInde
                           uint8_t const blockIndex,
                           TDir const & )
 {
-    
-    // allowd flips per intervalSize
-    float flipDensity = 1/static_cast<float>(2); //TODO less strict
-    
     // need bitinterval from inside the pattern to filter according to the mappability form
     //therefore i also need to acces the block before because of that block i got mappability of both sides
     auto bit_interval = get_bitvector_interval_inside(iter, bitvectors, s, blockIndex, TDir());
@@ -131,10 +105,10 @@ bool testFilter(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TInde
     // if 0 got Cutoff that means more changes but is at the same time also good
     // therefore ignore them
     cout << "Test flipdensitey " << endl;
-    cout << ivalSize * flipDensity - 1 << endl;
+    cout << ivalSize * params.startuni.invflipdensity - 1 << endl;
     cout << "count: " << count << endl;
 
-    if(ivalSize * flipDensity - 1 > static_cast<float>(count)){
+    if(ivalSize * params.startuni.invflipdensity - 1 > static_cast<float>(count)){
         cout << "FILTER!!!!!!!!!" << endl;
         brange.i1 = bit_interval.i1;
         cout << "New selected bitvector by inside function: " << (int)bit_interval.i1 << endl;
@@ -153,29 +127,29 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
                           uint8_t const blockIndex)
 {
     cout << "unicheckInterval" << endl;
-    int directSearch_Threshold = 2;
-    float filter_threshold = 0.7; //TODO less strict
+//     int directsearch_th = 2;
+//     float filter_threshold = 0.5; //TODO less strict
     sdsl::bit_vector & b = bitvectors[brange.i1].first;
     sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second; 
     rb.set_vector(&b);
     
     uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
-    if(ivalOne == 0)
+    if(params.startuni.nomappability && ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
 
     if(!done){
-        if(ivalOne < (blockSize - blockIndex - 1) * directSearch_Threshold){ //<4 
+        if(params.startuni.directsearch && ivalOne < (blockSize - blockIndex - 1) * params.startuni.directsearch_th){ //<4 
             cout << "UNIDIRECTSEARCHDIRECTSEARCHDIRECTSEARCH" << endl;
             return ReturnCode::DIRECTSEARCH;
         }    
-        if(ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
+        if(params.startuni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
             return ReturnCode::COMPMAPPABLE;
-        /*
+        
         //equal or more than half zeroes     
         float ivalSize = brange.i2.i2 - brange.i2.i1;
-        if(ivalOne/ ivalSize <= filter_threshold){
+        if(params.startuni.suspectunidirectional && ivalOne/ ivalSize <= params.startuni.filter_th){
             return ReturnCode::FILTER;
-        }*/
+        }
     }
     cout << "MAPPABLEMAPPABLEMAPPABLEMAPPABLEMAPPABLE" << endl;
     return ReturnCode::MAPPABLE;
@@ -204,11 +178,6 @@ ReturnCode uniCheckMappability(TDelegate & delegate,
     
     Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval_inside(iter, bitvectors, s, blockIndex + done, TDir());
     ReturnCode rcode = checkInterval(bitvectors, bit_interval, s.pi.size(), done, blockIndex);
-    /*
-    sdsl::bit_vector & b = bitvectors[bit_interval.i1].first;
-    sdsl::rank_support_v<> & rb = bitvectors[bit_interval.i1].second;
-    rb.set_vector(&b);
-    ivalOne = rb(bit_interval.i2.i2) - rb(bit_interval.i2.i1);*/
     
     cout << "at blockend with blockIndex: " << (int)blockIndex << endl;
     cout << "PrintUNI" << endl;

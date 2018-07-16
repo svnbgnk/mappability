@@ -122,7 +122,7 @@ int main(int argc, char const ** argv)
         }
     };
     
-    
+    params.normal.nomappability = false;
     auto start = std::chrono::high_resolution_clock::now();
 //     cout.setstate(std::ios_base::failbit);
     find(0, nerrors, delegate, delegateDirect, index, reads, bit_vectors);
@@ -131,7 +131,7 @@ int main(int argc, char const ** argv)
     std::chrono::duration<double> elapsed = finish - start;
     cout << "MyVersion elapsed: " << elapsed.count() << "s" << endl;
     
- 
+    params.print();
     std::cout << "finished" << std::endl;
     
     

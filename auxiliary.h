@@ -5,6 +5,9 @@
 #include <sdsl/bit_vectors.hpp>
 using namespace seqan;
 
+std::vector<std::pair<uint32_t, uint32_t>> getConsOnes(std::vector<std::pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors, 
+                                             Pair<uint8_t, Pair<uint32_t, uint32_t>> inside_bit_interval,
+                                             int const intervalsize);
 
 struct readOcc
 {

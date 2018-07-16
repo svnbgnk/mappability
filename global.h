@@ -8,13 +8,13 @@ struct majorCaseParameters{
     bool suspectunidirectional = true;
     
     //binaryNumber
-    int stepcheck = 4;
+    int step = 0b11;
     int distancetoblockend = 2;
     
     int directsearch_th = 2;
     float filter_th = 0.5;
     
-    float flipdensity = 0.5;
+    float invflipdensity = 0.5;
     
     int intervalsize = 3;
     
@@ -22,11 +22,11 @@ struct majorCaseParameters{
         std::cout << "Cases Enabled: " << "\n";
         std::cout << nomappability << " " << directsearch << " " << compmappable << " " << suspectunidirectional << "\n";
         std::cout << "Params: " << "\n";
-        std::cout << "stepcheck: " << stepcheck << "\n";
+        std::cout << "step: " << step << "\n";
         std::cout << "distancetoblockend: " << distancetoblockend << "\n";
         std::cout << "directsearch_th: " << directsearch_th << "\n";
         std::cout << "filter_th: " << filter_th << "\n";
-        std::cout << "flipdensity: " << flipdensity << "\n";
+        std::cout << "invflipdensity: " << invflipdensity << "\n";
         std::cout << "intervalsize: " << intervalsize << "\n";
     }
 };
@@ -36,11 +36,14 @@ struct myGlobalParameters{
 public:
     bool startUnidirectional = false;
     majorCaseParameters normal;
+    majorCaseParameters comp;
     majorCaseParameters uni;
+    majorCaseParameters startuni;
     
     
     void print(){
         normal.print();
+        comp.print();
         uni.print();
     }
 };

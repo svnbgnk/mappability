@@ -133,6 +133,8 @@ int main(int argc, char *argv[])
         }
     };
     
+    params.startUnidirectional = true;
+    
     cout << "Start My Search!" << endl;
     auto start = std::chrono::high_resolution_clock::now();
 //     cout.setstate(std::ios_base::failbit);

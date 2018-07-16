@@ -86,7 +86,6 @@ void genomeSearch(bool const unidirectionalOnReverseIndex,
     if(valid){
         cout << "uni rev Hiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiit" << endl;
         cout << (int)errors << endl;
-        cout << "Wrong start pos: " << sa_info.i2 << endl;
         uint32_t occ = seqan::length(rgenome[sa_info.i1]) - sa_info.i2 - length(needle);
         hitsvOutput.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
         cout << "Hit occ FWD Index: " << hitsvOutput[hitsvOutput.size() - 1] << endl;
@@ -357,10 +356,9 @@ inline void _optimalSearchScheme(TDelegate & delegate,
 //     cout << "Reached End" << endl;
 
 
-    int directSearchThreshold = 2;
     uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
     uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
-    
+    //TODO export into functions
     bool done = minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1;
     if(done || needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex - 1]){
         //in case of done blockIndex should have increased by one (an we calc the mappability of the block before) but didnt since we dont have any more blocks
@@ -424,7 +422,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
             return; 
         }
         
-        else if(needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex] && iter.vDesc.range.i2 - iter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1) *    directSearchThreshold){
+        else if(needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex] && iter.vDesc.range.i2 - iter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1) *    params.uni.directsearch_th){
             cout << "start direct Search Unidirectional" << endl;
 //         bit_interval = get_bitvector_interval_inside(iter, bitvectors, s, blockIndex, TDir());
             uniDirectSearch(delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir());

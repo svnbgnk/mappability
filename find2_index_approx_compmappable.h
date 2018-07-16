@@ -157,7 +157,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     {
 //         delegate(iter, needle, errors);
         cout << "Delegate Call comp:" << endl;
-        delegate(iter, needle, errors, false); //TODO put iterator test in the original code?
+        delegate(iter, needle, errors, false); //TODO put iterator test in the original code? but added DirectSearch!!!!
     }
     // Exact search in current block.
     else if (maxErrorsLeftInBlock == 0 && needleRightPos - needleLeftPos - 1 != s.blocklength[blockIndex])
@@ -173,8 +173,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
         cout << "PrintSA:" << endl;
         print_sa(iter, 1 , !(std::is_same<TDir, Rev>::value));
         
-        int directSearchTrigger = 2;
-        if(iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1) * directSearchTrigger){
+        if(iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1) * params.comp.directsearch_th){
             cout << "Current Range: " << (int)(iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1) << endl;
             directSearch(delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir());
             return;

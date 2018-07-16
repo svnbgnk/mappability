@@ -1,11 +1,5 @@
 #ifndef SEQAN_INDEX_FIND2_INDEX_APPROX_EXTENSION_H_
 #define SEQAN_INDEX_FIND2_INDEX_APPROX_EXTENSION_H_
-/*
-#include <seqan/index.h>
-#include <sdsl/bit_vectors.hpp>
-#include "common.h"
-#include "common_auxiliary.h"
-*/
 
 #include <iostream>
 #include <sdsl/bit_vectors.hpp>
@@ -22,6 +16,32 @@ void testglobal(){
     params.print();
 }
 
+
+vector<pair<uint32_t, uint32_t>> getConsOnes(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors, 
+                                             Pair<uint8_t, Pair<uint32_t, uint32_t>> inside_bit_interval,
+                                             int const intervalsize)
+{
+    sdsl::bit_vector & b = bitvectors[inside_bit_interval.i1].first;
+    vector<pair<uint32_t, uint32_t>> consOnes;
+    uint32_t k = inside_bit_interval.i2.i1;
+    uint32_t startOneInterval = inside_bit_interval.i2.i1;
+    while(k < inside_bit_interval.i2.i2){
+        uint32_t interval = 0;
+        //TODO delete second condition it should end with 1
+        while(b[k + interval] == 0 && (k + interval) < inside_bit_interval.i2.i2){
+            ++interval;
+        }
+        if(interval >= intervalsize){
+            consOnes.push_back(make_pair(startOneInterval, k));
+            startOneInterval = k + interval;
+        }
+        k += interval;
+        interval = 0;
+        ++k;
+    }
+    consOnes.push_back(make_pair(startOneInterval, k));
+    return(consOnes);
+}
 
 namespace seqan{
 
@@ -41,8 +61,8 @@ namespace seqan{
 //     std::array<uint8_t, N> max;
 //     uint32_t startPos; //wrong position so i still get 0 from initialization
 //     uint8_t startUniDir; 
-// };
-
+// };  
+    
 
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
@@ -61,10 +81,7 @@ void filter_interval(TDelegate & delegate,
                      uint8_t const blockIndex,
                      Pair<uint8_t, Pair<uint32_t, uint32_t>> & inside_bit_interval,
                      TDir const & )
-{
-    uint32_t intervalfilter_size = 3;      
-    sdsl::bit_vector & b = bitvectors[inside_bit_interval.i1].first;
-
+{  
     cout << "In filterInterval" << endl;
     printbit(bitvectors, inside_bit_interval);
     
@@ -72,25 +89,9 @@ void filter_interval(TDelegate & delegate,
         print_sa(iter, bitvectors, true);
     else
         print_sa(iter, bitvectors, false);
-    vector<pair<uint32_t, uint32_t>> consOnes;
+
     
-    uint32_t k = inside_bit_interval.i2.i1;
-    uint32_t startOneInterval = inside_bit_interval.i2.i1;
-    while(k < inside_bit_interval.i2.i2){
-        uint32_t interval = 0;
-        //TODO delete second condition it should end with 1
-        while(b[k + interval] == 0 && (k + interval) < inside_bit_interval.i2.i2){
-            ++interval;
-        }
-        if(interval >= intervalfilter_size){
-            consOnes.push_back(make_pair(startOneInterval, k));
-            startOneInterval = k + interval;
-        }
-        k += interval;
-        interval = 0;
-        ++k;
-    }
-    consOnes.push_back(make_pair(startOneInterval, k));
+    vector<pair<uint32_t, uint32_t>> consOnes = getConsOnes(bitvectors, inside_bit_interval, params.normal.intervalsize);
 //     consOnes.push_back(make_pair(inside_bit_interval.i2.i1, inside_bit_interval.i2.i2));
     uint32_t noi = seqan::length(iter.fwdIter.index->sa) - bitvectors[0].first.size(); // number_of_indeces
     
@@ -315,7 +316,7 @@ bool testUnidirectionalFilter(Iter<Index<TText, BidirectionalIndex<TIndex> >, VS
 {
     
     // allowd flips per intervalSize
-    float flipDensity = 1/static_cast<float>(2);
+//     float flipDensity = 1/static_cast<float>(2);
     
     // need bitinterval from inside the pattern to filter according to the mappability form
     //therefore i also need to acces the block before because of that block i got mappability of both sides
@@ -360,10 +361,10 @@ bool testUnidirectionalFilter(Iter<Index<TText, BidirectionalIndex<TIndex> >, VS
     // if 0 got Cutoff that means more changes but is at the same time also good
     // therefore ignore them
     cout << "Test flipdensitey " << endl;
-    cout << ivalSize * flipDensity - 1 << endl;
+    cout << ivalSize * params.normal.invflipdensity - 1 << endl; 
     cout << "count: " << count << endl;
 
-    if(ivalSize * flipDensity - 1 > static_cast<float>(count)){
+    if(ivalSize * params.normal.invflipdensity - 1 > static_cast<float>(count)){
         cout << "Continue UNIDIRECTIONAL" << endl;
         brange.i1 = bit_interval.i1;
         cout << "New selected bitvector by inside function: " << (int)bit_interval.i1 << endl;
@@ -385,27 +386,26 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
     
 //     int directsearch_th = 2;
 //     float filter_th = 0.5; 
-    
+    cout << "Normal checkInterval" << endl;
     sdsl::bit_vector & b = bitvectors[brange.i1].first;
     sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second; 
     rb.set_vector(&b);
     
     uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
     float ivalSize = brange.i2.i2 - brange.i2.i1;
-    if(params.normal.nomappability == false)
-        cout << "Disabling Nommappability" << endl;
+    
     if(params.normal.nomappability && ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
     
-    else if(ivalOne < (s.pi.size() - blockIndex - 1) * params.normal.directsearch_th)
+    else if(params.normal.directsearch && ivalOne < (s.pi.size() - blockIndex - 1) * params.normal.directsearch_th)
         return ReturnCode::DIRECTSEARCH;
     
-    else if(ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
+    else if(params.normal.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
         return ReturnCode::COMPMAPPABLE;
     
     //equal or more than half zeroes
     //TODO add more constrains test that im not in the last block
-    else if(s.startUniDir <= blockIndex && ivalOne/ ivalSize <= params.normal.filter_th)
+    else if(params.normal.suspectunidirectional && s.startUniDir <= blockIndex && ivalOne/ ivalSize <= params.normal.filter_th)
         return ReturnCode::SUSPECTUNIDIRECTIONAL;
         
     else
@@ -782,11 +782,11 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     cout << "Step: " << step << endl;
     
     //Parameters
-    int dfbe = 2; //distanceFromBlockEnd
+//     int dfbe = 2; //distanceFromBlockEnd
     //0b11 == 4 parameter
     int pblocklength = (blockIndex > 0) ? s.blocklength[blockIndex - 1] : 0;
-    cout << "pblocklength: " << pblocklength << "  compare to  " << static_cast<int>(needleRightPos - needleLeftPos - 1) - dfbe << endl;
-    if(((step & 0b11) == 0) && needleRightPos - needleLeftPos - 1 + dfbe < s.blocklength[blockIndex] && static_cast<int>(needleRightPos - needleLeftPos - 1) - dfbe > pblocklength){
+    cout << "pblocklength: " << pblocklength << "  compare to  " << static_cast<int>(needleRightPos - needleLeftPos - 1) - params.normal.distancetoblockend << endl;
+    if(((step & params.normal.step) == 0) && needleRightPos - needleLeftPos - 1 + params.normal.distancetoblockend < s.blocklength[blockIndex] && static_cast<int>(needleRightPos - needleLeftPos - 1) - params.normal.distancetoblockend > pblocklength){
         cout << "Checking" << endl;
         //TODO stop doing on loop to much (enter checkCurrentMappability a second time)
         ReturnCode rcode = checkCurrentMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir());
@@ -811,8 +811,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
                                  OptimalSearch<nbrBlocks> const & s)
 {
     bool initialDirection = s.pi[1] > s.pi[0];
-    if(s.startUniDir > 0 /*|| true*/){ //TODO insert additional param with or
-        cout << "Start normal Search Scheme" << endl;
+    if(!params.startUnidirectional || s.startUniDir > 0){ //TODO insert additional param with or
         if(initialDirection)
             _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Rev());
         else
