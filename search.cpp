@@ -95,26 +95,19 @@ int main(int argc, char *argv[])
     
     auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
     {
-        cout << "delegate Call: " << endl;
         if(!rev ) // workaround check iter later
         {
 //             cout << "Is bidirectional Iter" << endl;
             for (auto occ : getOccurrences(iter)){
-                cout << "Occ: "  << occ.i2 << endl;
-                //TODO replace with accual occurrence
                 hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
                 errors_v.push_back(errors);
             }
         }else{
-            cout << "Is UniDirectional Iter" << endl;
+            //TODO i think getting the reverse genome is bad just save reverse tag and calc later
             auto const & rgenome = getUniIndexGenome(iter);
             for (auto occ : getOccurrences(iter)){
-                cout << endl;
-                cout << "Occ: "  << occ.i2 << endl;
                  if(rev){
-                    cout << "rev case" << endl;
                     occ.i2 = seqan::length(rgenome[occ.i1]) - occ.i2 - length(needle);
-                    cout << "Occ after: "  << occ.i2 << endl;
                 }
                 hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
                 errors_v.push_back(errors);
@@ -171,7 +164,6 @@ int main(int argc, char *argv[])
         cout << infix(genome[readOccs[i].hit.i2.i1], readOccs[i].hit.i2.i2, readOccs[i].hit.i2.i2 + seqan::length(readOccs[i].hit.i1)) << endl;
         
     }
-
     
     cout << "Test default" << endl;
     std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hitsDe;
@@ -187,18 +179,19 @@ int main(int argc, char *argv[])
     find(0, nerrors, delegateDe, index, reads, HammingDistance());
     finish = std::chrono::high_resolution_clock::now();
 
-    std::vector<readOcc> readOccsDe = print_readocc_sorted(hitsDe, errors_vDe, genome, true);
-
-//     int threshold = 11; 
-    int threshold = 3; 
-    cout << "Test if default and my version are the same: " << endl;
-//     cout.setstate(std::ios_base::failbit); //TODO revert this
-    vector<int> whitcount = compare(index, nerrors, threshold, readOccs, readOccsDe);
-//     std::cout.clear();  //TODO revert this
-    
     cout << "MyVersion elapsed: " << elapsed.count() << "s" << endl;
     elapsed = finish - start;
     cout << "Default Version elapsed: " << elapsed.count() << "s" << endl;
+    
+    std::vector<readOcc> readOccsDe = print_readocc_sorted(hitsDe, errors_vDe, genome, true);
+
+    int threshold = 2; 
+    cout << "Test if default and my version are the same: " << endl;
+  
+   
+//     cout.setstate(std::ios_base::failbit); //TODO revert this
+    vector<int> whitcount = compare(index, nerrors, threshold, readOccs, readOccsDe);
+//     std::cout.clear();  //TODO revert this
     
     if(whitcount.size() == 0)
         cout << "MyVersion is still correct!" << endl;

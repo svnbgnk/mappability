@@ -88,7 +88,6 @@ void filter_interval(TDelegate & delegate,
     uint32_t noi = seqan::length(iter.fwdIter.index->sa) - bitvectors[0].first.size(); // number_of_indeces
     
     for(int i = 0; i < consOnes.size(); ++i){
-         cout << endl;
         if (std::is_same<TDir, Rev>::value){
             //TODO call DirectSearch here if the interval is to small also use block Index ....?
             iter.revIter.vDesc.range.i1 = consOnes[i].first + noi;
