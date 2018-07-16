@@ -319,7 +319,39 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
         }
     }
 }
+
+/*
+ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
+                          Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
+                          uint8_t const blockSize,
+                          bool const done,
+                          bool const true,
+                          uint8_t const blockIndex)
+{
+    cout << "unicheckInterval no start uni" << endl;
+//     int directsearch_th = 2;
+//     float filter_threshold = 0.5; //TODO less strict
+    sdsl::bit_vector & b = bitvectors[brange.i1].first;
+    sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second; 
+    rb.set_vector(&b);
     
+    uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
+    if(params.uni.nomappability && ivalOne == 0)
+        return ReturnCode::NOMAPPABILITY;
+
+    if(!done){
+        if(params.uni.directsearch && ivalOne < (blockSize - blockIndex - 1) * params.uni.directsearch_th){ //<4 
+            cout << "UNIDIRECTSEARCHDIRECTSEARCHDIRECTSEARCH" << endl;
+            return ReturnCode::DIRECTSEARCH;
+        }    
+        if(params.uni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
+            return ReturnCode::COMPMAPPABLE;
+    }
+    cout << "MAPPABLEMAPPABLEMAPPABLEMAPPABLEMAPPABLE" << endl;
+    return ReturnCode::MAPPABLE;
+}
+*/
+
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TConfig, typename TIndexSpec,
           typename TNeedle,
@@ -359,6 +391,20 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
     uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
     //TODO export into functions
+    
+    cout << "checkUniMappa? no start" << endl;
+    cout << "current blocklength   " << needleRightPos - needleLeftPos - 1 << endl;
+    cout << "calc   " << s.blocklength[blockIndex - 1] << endl;
+    
+    bool done = minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1;
+    
+    if(blockIndex > 0 && done || needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex - 1]){
+        cout << "start checkUnidirectionalMappability" << endl;
+        ReturnCode rcode = uniCheckMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, done, true, TDir());
+        if(rcode == ReturnCode::FINISHED)
+            return;
+    }
+/*    
     bool done = minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1;
     if(done || needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex - 1]){
         //in case of done blockIndex should have increased by one (an we calc the mappability of the block before) but didnt since we dont have any more blocks
@@ -428,7 +474,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
             uniDirectSearch(delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir());
         return;
         }
-    }
+    }*/
     
     // Exact search in current block.
     if (maxErrorsLeftInBlock == 0 && needleRightPos - needleLeftPos - 1 != s.blocklength[blockIndex])

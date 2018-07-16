@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
         }
     };
     
-    params.startUnidirectional = true;
+    params.startUnidirectional = false;
     
     cout << "Start My Search!" << endl;
     auto start = std::chrono::high_resolution_clock::now();

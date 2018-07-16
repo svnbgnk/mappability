@@ -124,34 +124,62 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
                           Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
                           uint8_t const blockSize,
                           bool const done,
+                          bool const nofilter,
                           uint8_t const blockIndex)
 {
-    cout << "unicheckInterval" << endl;
-//     int directsearch_th = 2;
-//     float filter_threshold = 0.5; //TODO less strict
-    sdsl::bit_vector & b = bitvectors[brange.i1].first;
-    sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second; 
-    rb.set_vector(&b);
+    if(!nofilter){
+        cout << "unicheckInterval" << endl;
+        sdsl::bit_vector & b = bitvectors[brange.i1].first;
+        sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second; 
+        rb.set_vector(&b);
     
-    uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
-    if(params.startuni.nomappability && ivalOne == 0)
-        return ReturnCode::NOMAPPABILITY;
+        uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
+        if(params.startuni.nomappability && ivalOne == 0)
+            return ReturnCode::NOMAPPABILITY;
 
-    if(!done){
-        if(params.startuni.directsearch && ivalOne < (blockSize - blockIndex - 1) * params.startuni.directsearch_th){ //<4 
-            cout << "UNIDIRECTSEARCHDIRECTSEARCHDIRECTSEARCH" << endl;
-            return ReturnCode::DIRECTSEARCH;
-        }    
-        if(params.startuni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
-            return ReturnCode::COMPMAPPABLE;
+        if(!done){
+            if(params.startuni.directsearch && ivalOne < (blockSize - blockIndex - 1) * params.startuni.directsearch_th){ //<4 
+                cout << "UNIDIRECTSEARCHDIRECTSEARCHDIRECTSEARCH" << endl;
+                return ReturnCode::DIRECTSEARCH;
+            }    
+            if(params.startuni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
+                return ReturnCode::COMPMAPPABLE;
         
-        //equal or more than half zeroes     
-        float ivalSize = brange.i2.i2 - brange.i2.i1;
-        if(params.startuni.suspectunidirectional && ivalOne/ ivalSize <= params.startuni.filter_th){
-            return ReturnCode::FILTER;
+            //equal or more than half zeroes     
+            float ivalSize = brange.i2.i2 - brange.i2.i1;
+            if(params.startuni.suspectunidirectional && ivalOne/ ivalSize <= params.startuni.filter_th){
+                return ReturnCode::FILTER;
+            }
         }
+        cout << "MAPPABLEMAPPABLEMAPPABLEMAPPABLEMAPPABLE" << endl;
+        return ReturnCode::MAPPABLE;
     }
-    cout << "MAPPABLEMAPPABLEMAPPABLEMAPPABLEMAPPABLE" << endl;
+    else
+    {
+        cout << "unicheckInterval no start uni" << endl;
+        sdsl::bit_vector & b = bitvectors[brange.i1].first;
+        sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second; 
+        rb.set_vector(&b);
+    
+        uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
+        if(params.uni.nomappability && ivalOne == 0)
+            return ReturnCode::NOMAPPABILITY;
+
+        if(!done){
+            if(params.uni.directsearch && ivalOne < (blockSize - blockIndex - 1) * params.uni.directsearch_th){ //<4 
+                cout << "UNIDIRECTSEARCHDIRECTSEARCHDIRECTSEARCH" << endl;
+                return ReturnCode::DIRECTSEARCH;
+            }    
+            if(params.uni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
+                return ReturnCode::COMPMAPPABLE;
+        }
+        cout << "MAPPABLEMAPPABLEMAPPABLEMAPPABLEMAPPABLE" << endl;
+        return ReturnCode::MAPPABLE;
+    }
+    
+    
+    std::cerr << "Something went wrong!!!" << "\n";
+    exit(0);
     return ReturnCode::MAPPABLE;
 }
 
@@ -172,42 +200,17 @@ ReturnCode uniCheckMappability(TDelegate & delegate,
                                  OptimalSearch<nbrBlocks> const & s,
                                  uint8_t const blockIndex,
                                  bool const done,
+                                 bool const nofilter,
                                  TDir const & )
 {
     cout << "uniCheckMappability" << endl;
     
     Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval_inside(iter, bitvectors, s, blockIndex + done, TDir());
-    ReturnCode rcode = checkInterval(bitvectors, bit_interval, s.pi.size(), done, blockIndex);
+    ReturnCode rcode = checkInterval(bitvectors, bit_interval, s.pi.size(), done, nofilter, blockIndex);
     
     cout << "at blockend with blockIndex: " << (int)blockIndex << endl;
     cout << "PrintUNI" << endl;
-    
-    uint32_t number_of_indeces = seqan::length(iter.index->sa) - bitvectors[0].first.size();
-    Pair<uint32_t, uint32_t> dirrange = range(iter);
-    vector<int> sequenceLengths(number_of_indeces + 1, 0);
-    for(int i = 0; i < number_of_indeces; ++i)
-        sequenceLengths[iter.index->sa[i].i1 + 1] = iter.index->sa[i].i2;
-        // cumulative sum seq
-    for(int i = 1; i < sequenceLengths.size(); ++i)
-        sequenceLengths[i] += (sequenceLengths[i - 1]);
-
-    if(!std::is_same<TDir, Rev>::value){
-        cout << "ForwardIndex" << endl;
-        for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
-            int seq = iter.index->sa[i].i1;
-            int sa = iter.index->sa[i].i2;
-            cout << i << ": " << sa + sequenceLengths[seq] << endl;
-        }  
-    }
-    else{
-        cout << "Rev  Index" << endl;
-        for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
-            int seq = iter.index->sa[i].i1;
-            int sa = iter.index->sa[i].i2;
-            cout << i << ": " << sequenceLengths[seq + 1] - sa - 1 << endl;
-        }
-    }
-       
+      
     printbit(bitvectors, bit_interval);
     cout << "PrintUend" << endl;
     
@@ -476,10 +479,10 @@ inline void _uniOptimalSearchScheme(TDelegate & delegate,
     cout << "current blocklength   " << needleRightPos - needleLeftPos - 1 << endl;
     cout << "calc   " << s.blocklength[blockIndex - 1] << endl;
     bool done = minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1;
-    //TODO fix this in unidirectional
+
     if(blockIndex > 0 && done || needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex - 1]){
         cout << "start checkUnidirectionalMappability" << endl;
-        ReturnCode rcode = uniCheckMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, done, TDir());
+        ReturnCode rcode = uniCheckMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, done, false, TDir());
         if(rcode == ReturnCode::FINISHED)
             return;
     }
