@@ -2,8 +2,37 @@
 #define SEQAN_INDEX_FIND2_INDEX_APPROX_COMPMAPPLE_H_
 using namespace std;
 
-
+   //TODO merge with iterator test into the original code? but added DirectSearch!!!! 
 namespace seqan{
+
+template <typename TDelegateD,
+          typename TText, typename TIndex, typename TIndexSpec,
+          typename TNeedle,
+          size_t nbrBlocks,
+          typename TDir>
+void directSearch(TDelegateD & delegateDirect,
+                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+                  TNeedle const & needle,
+                  uint32_t const needleLeftPos,
+                  uint32_t const needleRightPos,
+                  uint8_t const errors,
+                  OptimalSearch<nbrBlocks> const & s,
+                  uint8_t const blockIndex,
+                  TDir const & /**/)
+{
+    vector<Pair<uint16_t, uint32_t>> hitsv;
+    vector<uint8_t> errorsv;
+    auto const & genome = indexText(*iter.fwdIter.index);
+    for(int i = iter.fwdIter.vDesc.range.i1; i < iter.fwdIter.vDesc.range.i2; ++i){
+        Pair<uint16_t, uint32_t> sa_info;
+        uint32_t startPos;
+        //dont need look at the reverse index in this case since i dont use mappability
+        sa_info = iter.fwdIter.index->sa[i];
+        sa_info.i2 = sa_info.i2 - needleLeftPos;
+        genomeSearch(needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info, hitsv, errorsv);
+    }
+    delegateDirect(hitsv, needle, errorsv);
+}
     
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
@@ -155,9 +184,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     // Done.
     if (minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1)
     {
-//         delegate(iter, needle, errors);
-        cout << "Delegate Call comp:" << endl;
-        delegate(iter, needle, errors, false); //TODO put iterator test in the original code? but added DirectSearch!!!!
+        delegate(iter, needle, errors, false); 
     }
     // Exact search in current block.
     else if (maxErrorsLeftInBlock == 0 && needleRightPos - needleLeftPos - 1 != s.blocklength[blockIndex])
@@ -167,14 +194,9 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     }
  
     else
-    {
-        //TODO test for directSearch
-        cout << "Test for cDirectSearch:" << endl;
-        cout << "PrintSA:" << endl;
-        print_sa(iter, 1 , !(std::is_same<TDir, Rev>::value));
-        
-        if(iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1) * params.comp.directsearch_th){
-            cout << "Current Range: " << (int)(iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1) << endl;
+    {      
+        if(iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1) * params.comp.directsearch_th)
+        {
             directSearch(delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir());
             return;
         }
@@ -183,40 +205,6 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     }
 }
 
-template <typename TDelegateD,
-          typename TText, typename TIndex, typename TIndexSpec,
-          typename TNeedle,
-          size_t nbrBlocks,
-          typename TDir>
-void directSearch(TDelegateD & delegateDirect,
-                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-                  TNeedle const & needle,
-                  uint32_t const needleLeftPos,
-                  uint32_t const needleRightPos,
-                  uint8_t const errors,
-                  OptimalSearch<nbrBlocks> const & s,
-                  uint8_t const blockIndex,
-                  TDir const & /**/)
-{
-    cout << "compdirectSearch " <<  endl;
-    cout << "NLP: " <<  needleLeftPos <<  endl;
-    cout << "NRP: " <<  needleRightPos <<  endl;
-    cout << "errors:  " <<  (int)errors <<  endl;
-    vector<Pair<uint16_t, uint32_t>> hitsv;
-    vector<uint8_t> errorsv;
-    auto const & genome = indexText(*iter.fwdIter.index);
-    for(int i = iter.fwdIter.vDesc.range.i1; i < iter.fwdIter.vDesc.range.i2; ++i){
-        cout << "blockIndex: " << (int)blockIndex << endl;
-        Pair<uint16_t, uint32_t> sa_info;
-        uint32_t startPos;
-        //dont need look at the reverse index in this case since i dont use mappability
-        sa_info = iter.fwdIter.index->sa[i];
-        sa_info.i2 = sa_info.i2 - needleLeftPos;
-        genomeSearch(needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info, hitsv, errorsv);
-    }
-    delegateDirect(hitsv, needle, errorsv);
-    cout << "compdirectSearchEnd " <<  endl;
-}
 
 }
 #endif
