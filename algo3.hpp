@@ -188,17 +188,42 @@ inline void runAlgo3(TIndex & index, auto const & text, unsigned const length, T
     const uint64_t max_i = textLength - length + 1;
     const uint64_t step_size = length - overlap + 1;
     #pragma omp parallel for schedule(guided) num_threads(threads)
-    //#pragma omp parallel for schedule(dynamic, 1000000)
+    //#pragma omp parallel for schedule(dynamic, 1000/*1000000*/) num_threads(threads)
     // TODO: if we choose a multiple of step_size * |cyclic_rotations of int_vector| as chunks (not just chunksize), we dont need to worry about locking
     for (uint64_t i = 0; i < max_i; i += step_size)
     {
+	//if (omp_get_num_threads() < 4)
+	//{
+	//	std::cout << "x: " << omp_get_num_threads() << '\n';
+	//}
         uint64_t max_pos = std::min(i + length - overlap, textLength - length) + 1;
         // std::cout << "max_pos + 1 = " << max_pos << '\n';
 
         // all are zero if (std::equal(c.begin() + i, c.begin() + max_pos, c.begin() + i) && c[i] == 0)
 
-        if (std::any_of(c.begin() + i, c.begin() + max_pos, [](auto value){ return value == 0; }))
-        {
+
+	uint64_t leading = 0, trailing = 0;
+	
+	for (uint64_t xx = i; c[xx] != 0 && xx < max_pos; ++xx)
+		++leading;
+	for (uint64_t xx = max_pos - 1 && xx >= i; c[xx] != 0; --xx) // TODO: i could theoretically be 0 ... overflow because of unsigned value!
+		++trailing;
+
+	if (trailing != 0 && leading != 0)
+	{
+		std::cout << "cut off " << leading << " and " << trailing << ": ";
+		for (uint64_t xx = i; xx < max_pos; ++xx)
+			std::cout << ((c[xx] != 0) ? '1' : '0') << ' ';
+		std::cout << '\n';
+	}
+
+        //if (std::any_of(c.begin() + i, c.begin() + max_pos, [](auto value){ return value == 0; }))
+	if (leading != max_pos - i)        
+	{
+		//if (std::any_of(c.begin() + i, c.begin() + max_pos, [](auto value){ return value != 0; }))
+                //{
+		//}
+
             TIter it_zero_errors[length - overlap + 1];
             unsigned hits[length - overlap + 1] = {};
 
@@ -229,7 +254,8 @@ inline void runAlgo3(TIndex & index, auto const & text, unsigned const length, T
                 if (countOccurrences(it_zero_errors[j - i]) > 1) // guaranteed to exist, since there has to be at least one match!
                 {
                     // ++count_forward_value;
-                    count_forward_positions += countOccurrences(it_zero_errors[j - i]) - 1;
+                    if (c[j] == 0)
+                        count_forward_positions += countOccurrences(it_zero_errors[j - i]) - 1;
                     for (auto const & occ : getOccurrences(it_zero_errors[j-i], Fwd()))
                     {
                         auto const occ_pos = posGlobalize(occ, limits);
