@@ -1,7 +1,7 @@
 #ifndef SEQAN_INDEX_FIND2_INDEX_APPROX_START_UNIDIRECTIONAL_H_
 #define SEQAN_INDEX_FIND2_INDEX_APPROX_START_UNIDIRECTIONAL_EXTENSION_H_
 
-#include "auxiliary.h"
+#include "common_auxiliary.h"
 
 namespace seqan{
 
@@ -9,13 +9,14 @@ namespace seqan{
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TConfig, typename TIndexSpec,
           typename TNeedle,
+          typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir>
 void filter_interval(TDelegate & delegate,
                      TDelegateD & delegateDirect,
                      Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
                      TNeedle const & needle,
-                     vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
+                     vector<pair<TVector, TVSupport>> & bitvectors,
                      uint32_t const needleLeftPos,
                      uint32_t const needleRightPos,
                      uint8_t const errors,
@@ -41,10 +42,11 @@ void filter_interval(TDelegate & delegate,
     
 //TODO merge with old funtion (test unidirectional) diff: iter and pramenter filpDensity
 template<typename TText, typename TConfig, typename TIndexSpec,
+         typename TVector, typename TVSupport,
          size_t nbrBlocks,
          typename TDir>
 bool testFilter(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
-                          vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
+                          vector<pair<TVector, TVSupport>> & bitvectors,
                           Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
                           OptimalSearch<nbrBlocks> const & s,
                           uint8_t const blockIndex,
@@ -53,7 +55,7 @@ bool testFilter(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TInde
     // need bitinterval from inside the pattern to filter according to the mappability form
     //therefore i also need to acces the block before because of that block i got mappability of both sides
     auto bit_interval = get_bitvector_interval_inside(iter, bitvectors, s, blockIndex, TDir());
-    sdsl::bit_vector & b2 = bitvectors[bit_interval.i1].first;
+    TVector & b2 = bitvectors[bit_interval.i1].first;
     
     //squash interval
     uint32_t startPos = bit_interval.i2.i1, endPos = bit_interval.i2.i2;
@@ -99,7 +101,8 @@ bool testFilter(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TInde
 }
 
 //TODO add else if
-ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
+template <typename TVector, typename TVSupport>
+ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
                           Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
                           uint8_t const blockSize,
                           bool const done,
@@ -107,8 +110,8 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
                           uint8_t const blockIndex)
 {
     if(!nofilter){
-        sdsl::bit_vector & b = bitvectors[brange.i1].first;
-        sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second; 
+        TVector & b = bitvectors[brange.i1].first;
+        TVSupport & rb = bitvectors[brange.i1].second; 
         rb.set_vector(&b);
     
         uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
@@ -132,8 +135,8 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
     }
     else
     {
-        sdsl::bit_vector & b = bitvectors[brange.i1].first;
-        sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second; 
+        TVector & b = bitvectors[brange.i1].first;
+        TVSupport & rb = bitvectors[brange.i1].second; 
         rb.set_vector(&b);
     
         uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
@@ -160,13 +163,14 @@ ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> 
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TConfig, typename TIndexSpec,
           typename TNeedle,
+          typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir> 
 ReturnCode uniCheckMappability(TDelegate & delegate,
                                  TDelegateD & delegateDirect,
                                  Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
                                  TNeedle const & needle,
-                                 vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,   
+                                 vector<pair<TVector, TVSupport>> & bitvectors,   
                                  uint32_t const needleLeftPos,
                                  uint32_t const needleRightPos,
                                  uint8_t const errors,                             
@@ -229,13 +233,14 @@ ReturnCode uniCheckMappability(TDelegate & delegate,
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TConfig, typename TIndexSpec,
           typename TNeedle,
+          typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir>
 inline void _uniOptimalSearchSchemeChildren(TDelegate & delegate,
                                          TDelegateD & delegateDirect,
                                          Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
                                          TNeedle const & needle,
-                                         vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,   
+                                         vector<pair<TVector, TVSupport>> & bitvectors,   
                                          uint32_t const needleLeftPos,
                                          uint32_t const needleRightPos,
                                          uint8_t const errors,
@@ -285,13 +290,14 @@ inline void _uniOptimalSearchSchemeChildren(TDelegate & delegate,
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TConfig, typename TIndexSpec,
           typename TNeedle,
+          typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir>
 inline void _uniOptimalSearchSchemeExact(TDelegate & delegate,
                                       TDelegateD & delegateDirect,
                                       Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
                                       TNeedle const & needle,
-                                      vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,    
+                                      vector<pair<TVector, TVSupport>> & bitvectors,    
                                       uint32_t const needleLeftPos,
                                       uint32_t const needleRightPos,
                                       uint8_t const errors,
@@ -338,13 +344,14 @@ inline void _uniOptimalSearchSchemeExact(TDelegate & delegate,
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TConfig, typename TIndexSpec,
           typename TNeedle,
+          typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir>
 inline void _uniOptimalSearchScheme(TDelegate & delegate,
                                  TDelegateD & delegateDirect,
                                  Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
                                  TNeedle const & needle,
-                                 vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,   
+                                 vector<pair<TVector, TVSupport>> & bitvectors,   
                                  uint32_t const needleLeftPos,
                                  uint32_t const needleRightPos,
                                  uint8_t const errors,                             

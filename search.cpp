@@ -136,7 +136,9 @@ int main(int argc, char *argv[])
     std::chrono::duration<double> elapsed = finish - start;
     cout << "Finished My Search" << endl;
     
-/*
+    cout << "Temp Hits:" << hits.size() << endl;
+    
+
     vector<int> sl = getSequencesLengths(it, bit_vectors);
     auto scalc = std::chrono::high_resolution_clock::now();
     for(int i = 0; i < hits.size(); ++i){
@@ -234,6 +236,7 @@ int main(int argc, char *argv[])
     
     
     
+    
 
     if(ecompare){
     hitsDe = print_readocc_sorted(hitsDe, genome, true);
@@ -253,7 +256,7 @@ int main(int argc, char *argv[])
     for(int i = 0; i < whitcount.size(); ++i)
         cout << whitcount[i] << endl;
     cout << endl;
-    }*/
+    }
  
  
     

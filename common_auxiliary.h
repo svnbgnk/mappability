@@ -1,7 +1,7 @@
 #ifndef COMMON_AUXILLARY_H_
 #define COMMON_AUXILLARY_H_
 
-
+#include <sdsl/bit_vectors.hpp>
 
 namespace seqan{
 
@@ -64,10 +64,17 @@ enum class BV {
 	RIGHT = 0, MIDDLE = 1, LEFT = 2
 };
 
+template <typename TVector, typename TVSupport>
+std::vector<std::pair<uint32_t, uint32_t>> getConsOnes(std::vector<std::pair<TVector, TVSupport>> & bitvectors, 
+                                             Pair<uint8_t, Pair<uint32_t, uint32_t>> inside_bit_interval,
+                                             int const intervalsize);
+
 
 typedef String<Dna, Alloc<>> TString;
 typedef StringSet<TString, Owner<ConcatDirect<> > > TText;
 typedef Index<TText, TIndexConfig> MyIndex;
+typedef sdsl::bit_vector TBitvector;
+typedef sdsl::rank_support_v<> TSupport;
     
 }
 

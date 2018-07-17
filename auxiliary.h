@@ -3,12 +3,7 @@
 
 #include "common.h"
 #include "common_auxiliary.h"
-#include <sdsl/bit_vectors.hpp>
 using namespace seqan;
-
-std::vector<std::pair<uint32_t, uint32_t>> getConsOnes(std::vector<std::pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors, 
-                                             Pair<uint8_t, Pair<uint32_t, uint32_t>> inside_bit_interval,
-                                             int const intervalsize);
 
 struct readOcc
 {
@@ -29,9 +24,10 @@ struct isBidirectionalIter<Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTre
      static constexpr bool VALUE = true;
 };
 
-template <typename TText, typename TIndex, typename TIndexSpec>
+template <typename TText, typename TIndex, typename TIndexSpec,
+          typename TVector, typename TVSupport>
 std::vector<int> getSequencesLengths(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-                                std::vector<std::pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors)
+                                std::vector<std::pair<TVector, TVSupport>> & bitvectors)
 {
     int size = seqan::length(iter.fwdIter.index->sa);
     uint32_t number_of_indeces = size - bitvectors[0].first.size();
@@ -44,9 +40,11 @@ std::vector<int> getSequencesLengths(Iter<Index<TText, BidirectionalIndex<TIndex
     return sequenceLengths;
 }
 
-template <typename TText, typename TIndex, typename TIndexSpec>
+
+template <typename TText, typename TIndex, typename TIndexSpec,
+          typename TVector, typename TVSupport>
 void print_fullsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-              std::vector<std::pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
+              std::vector<std::pair<TVector, TVSupport>> & bitvectors,
               bool const fwd)
 {
     int size = seqan::length(iter.fwdIter.index->sa);
@@ -102,9 +100,10 @@ void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIn
     }
 }
 
-template <typename TText, typename TIndex, typename TIndexSpec>
+template <typename TText, typename TIndex, typename TIndexSpec,
+          typename TVector, typename TVSupport>
 void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-              std::vector<std::pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
+              std::vector<std::pair<TVector, TVSupport>> & bitvectors,
               bool const fwd)
 {
     int size = seqan::length(iter.fwdIter.index->sa);
@@ -252,13 +251,6 @@ std::vector<int> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
 void printPair(std::pair<uint32_t, uint32_t> p){
     std::cout << "<" << p.first << ", " << p.second << ">";
 }
-/*
-void printbit(std::vector<std::pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors, Pair<uint8_t, Pair<uint32_t, uint32_t>> brange){
-    sdsl::bit_vector const & rb = bitvectors[brange.i1].first;
-    std::cout << "bitvector: " << (int)brange.i1 << " brange start: " << brange.i2.i1 << "  brange end: " << brange.i2.i2 << "\n";
-    for(int i = brange.i2.i1; i < brange.i2.i2; ++i)
-        std::cout << i << " Bit: " << rb[i] << "\n";
-}*/
 
 sdsl::bit_vector create_random_bit_v(int length){
 //     srand (time(0));
@@ -279,8 +271,9 @@ void printv(T a){
     std::cout << "\n";
 }
 
-void printbit(std::vector<std::pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors, Pair<uint8_t, Pair<uint32_t, uint32_t>> brange){
-    sdsl::bit_vector const & rb = bitvectors[brange.i1].first;
+template<typename TVector, typename TVSupport>
+void printbit(std::vector<std::pair<TVector, TVSupport>> & bitvectors, Pair<uint8_t, Pair<uint32_t, uint32_t>> brange){
+    TVector const & rb = bitvectors[brange.i1].first;
     std::cout << "bitvector: " << (int)brange.i1 << " brange start: " << brange.i2.i1 << "  brange end: " << brange.i2.i2 << "\n";
     for(int i = brange.i2.i1; i < brange.i2.i2; ++i)
         std::cout << i << " Bit: " << rb[i] << "\n";
@@ -387,18 +380,18 @@ void print_genome(auto it, //Iter<Index<TText, BidirectionalIndex<TIndex> >, VST
 //}
 
 
-std::vector<std::pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(CharString const bitvectorpath, const int K, const int errors){
-    std::vector<std::pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bit_vectors;
+std::vector<std::pair<TBitvector, TSupport>> loadBitvectors(CharString const bitvectorpath, const int K, const int errors){
+    std::vector<std::pair<TBitvector, TSupport>> bit_vectors;
     if(file_exists(std::string("") + toCString(bitvectorpath) + "l_bit_vector_" +  std::to_string(K) + "_" +  std::to_string(errors) + "_shift_" +  std::to_string(0)))
     {
     std::cout << "Load the following Bitvectors:" << "\n";
     for(int i = 0; i < 10; ++i){
         std::string file_name = std::string("") + toCString(bitvectorpath) + "r_bit_vector_" +  std::to_string(K) + "_" +  std::to_string(errors) + "_shift_" +  std::to_string(i);
         if(file_exists(file_name)){
-            sdsl::bit_vector b;
+            TBitvector b;
             std::cout << "Filename: " << file_name << "\n";
             load_from_file(b, file_name);
-            sdsl::rank_support_v<> rb(& b);
+            TSupport rb(& b);
             bit_vectors.push_back(std::make_pair(b, rb));
 //              bit_vectors[i + 1].second.set_vector(&bit_vectors[i + 1].first);
          }
@@ -407,10 +400,10 @@ std::vector<std::pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(
     for(int i = 0; i < 10; ++i){
          std::string file_name = std::string("") + toCString(bitvectorpath) + "l_bit_vector_" +  std::to_string(K) + "_" +  std::to_string(errors) + "_shift_" +  std::to_string(i);
          if(file_exists(file_name)){
-             sdsl::bit_vector b;
+             TBitvector b;
              std::cout << "Filename: " << file_name << "\n";
              load_from_file(b, file_name);
-             sdsl::rank_support_v<> rb(& b);
+             TSupport rb(& b);
              bit_vectors.push_back(std::make_pair(b, rb));
 //              bit_vectors[i + 1].second.set_vector(&bit_vectors[i + 1].first);
          }
@@ -418,10 +411,10 @@ std::vector<std::pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(
     }else{
     std::string file_name = std::string("") + toCString(bitvectorpath) + "right_bit_vector_" +  std::to_string(K) + "_" +  std::to_string(errors);
     if(file_exists(file_name)){
-        sdsl::bit_vector b;
+        TBitvector b;
         std::cout << "Filename: " << file_name << "\n";
         load_from_file(b, file_name);
-        sdsl::rank_support_v<> rb(& b);
+        TSupport rb(& b);
         bit_vectors.push_back(std::make_pair(b, rb));
         }else{
             std::cerr << file_name << " not found" <<  "\n";
@@ -429,10 +422,10 @@ std::vector<std::pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(
 
     file_name = std::string("") + toCString(bitvectorpath) + "middle_bit_vector_" +  std::to_string(K) + "_" +  std::to_string(errors);
     if(file_exists(file_name)){
-        sdsl::bit_vector b;
+        TBitvector b;
         std::cout << "Filename: " << file_name << "\n";
         load_from_file(b, file_name);
-        sdsl::rank_support_v<> rb(& b);
+        TSupport rb(& b);
         bit_vectors.push_back(std::make_pair(b, rb));
     }else{
         std::cerr << file_name << " not found" <<  "\n";
@@ -440,10 +433,10 @@ std::vector<std::pair<sdsl::bit_vector, sdsl::rank_support_v<>>> loadBitvectors(
         
     file_name = std::string("") + toCString(bitvectorpath) + "left_bit_vector_" +  std::to_string(K) + "_" +  std::to_string(errors);
     if(file_exists(file_name)){
-        sdsl::bit_vector b;
+        TBitvector b;
         std::cout << "Filename: " << file_name << "\n";
         load_from_file(b, file_name);
-        sdsl::rank_support_v<> rb(& b);
+        TSupport rb(& b);
         bit_vectors.push_back(std::make_pair(b, rb));
     }else{
         std::cerr << file_name << " not found" <<  "\n";
