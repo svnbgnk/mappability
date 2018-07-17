@@ -1,8 +1,17 @@
 #ifndef COMMON_AUXILLARY_H_
 #define COMMON_AUXILLARY_H_
 
+
+
 namespace seqan{
-    
+
+struct hit{
+    bool rev;
+    Pair <unsigned, unsigned> occ;
+    uint8_t errors;
+    DnaString read;
+};
+
 template <size_t nbrBlocks, size_t N>
 constexpr inline void _optimalSearchSchemeSetMapParams(std::array<OptimalSearch<nbrBlocks>, N> & ss)
 {

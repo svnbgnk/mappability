@@ -2,6 +2,7 @@
 #define AUXILLARY_H_
 
 #include "common.h"
+#include "common_auxiliary.h"
 #include <sdsl/bit_vectors.hpp>
 using namespace seqan;
 
@@ -28,6 +29,20 @@ struct isBidirectionalIter<Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTre
      static constexpr bool VALUE = true;
 };
 
+template <typename TText, typename TIndex, typename TIndexSpec>
+std::vector<int> getSequencesLengths(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+                                std::vector<std::pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors)
+{
+    int size = seqan::length(iter.fwdIter.index->sa);
+    uint32_t number_of_indeces = size - bitvectors[0].first.size();
+    std::vector<int> sequenceLengths(number_of_indeces + 1, 0);
+    for(int i = 0; i < number_of_indeces; ++i)
+        sequenceLengths[iter.fwdIter.index->sa[i].i1 + 1] = iter.fwdIter.index->sa[i].i2;
+        // cumulative sum seq
+    for(int i = 1; i < sequenceLengths.size(); ++i)
+        sequenceLengths[i] += (sequenceLengths[i - 1]);
+    return sequenceLengths;
+}
 
 template <typename TText, typename TIndex, typename TIndexSpec>
 void print_fullsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
@@ -117,36 +132,25 @@ void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIn
     }
 }
 
-
-bool occ_smaller(const readOcc& x, const readOcc& y)
+bool occ_smaller(const hit & x, const hit & y)
 {
-    if(x.hit.i2.i1 == y.hit.i2.i1)
-        return x.hit.i2.i2 < y.hit.i2.i2;
+    if(x.occ.i1 == y.occ.i1)
+        return x.occ.i2 < y.occ.i2;
     else
-        return x.hit.i2.i1 < y.hit.i2.i1;
+        return x.occ.i1 < y.occ.i1;
 }
 
-std::vector<readOcc> print_readocc_sorted(std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hits, std::vector<uint8_t> errors_v, auto const & genome, bool const occEnabled)
+std::vector<hit> print_readocc_sorted(std::vector<hit> hits, auto const & genome, bool const occEnabled)
 {
-    std::vector<readOcc> readOccs;
+    std::sort(hits.begin(), hits.end(), occ_smaller);
     for(int i = 0; i < hits.size(); ++i){
-        readOcc readOcc;
-        readOcc.hit = hits[i];
-        readOcc.errors = errors_v[i];
-        readOccs.push_back(readOcc);
-    }
-    std::sort(readOccs.begin(), readOccs.end(), occ_smaller);
-    
-    std::cout << "Default Hits:" << hits.size() << "\n";
-    
-    for(int i = 0; i < readOccs.size(); ++i){
-        std::cout << "Errors: "<< (int)readOccs[i].errors;
-        std::cout << "   " << readOccs[i].hit << "\n";
+        std::cout << "Errors: "<< (int)hits[i].errors;
+        std::cout << "   " << hits[i].occ << "\n";
         if(occEnabled)
-            std::cout << infix(genome[readOccs[i].hit.i2.i1], readOccs[i].hit.i2.i2, readOccs[i].hit.i2.i2 + seqan::length(readOccs[i].hit.i1)) << "\n";
+            std::cout << infix(genome[hits[i].occ.i1], hits[i].occ.i2, hits[i].occ.i2 + seqan::length(hits[i].read)) << "\n";
         
     }
-    return(readOccs);
+    return(hits);
 }
 
 
@@ -154,42 +158,44 @@ std::vector<readOcc> print_readocc_sorted(std::vector<Pair<DnaString, Pair <unsi
 template <size_t minErrors, size_t maxErrors,
           typename TText, typename TIndexSpec>
 int testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
-              readOcc readOcc)
+              hit testhit)
 {
     auto const & genome = indexText(index);
-    std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hits;
-    std::vector<uint8_t> errors_v;
-    auto delegate = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors)
+    std::vector<hit> hits;
+    auto delegate = [&hits](auto & iter, DnaString const & needle, uint8_t errors)
     {
         for (auto occ : getOccurrences(iter)){
-            hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
-            errors_v.push_back(errors);
+            hit me;
+            me.occ = occ;
+            me.read = needle;
+            me.errors = errors;
+            me.rev = false;
+            hits.push_back(me);
         }
     };
     
     StringSet<DnaString> testocc;
-    DnaString part = infix(genome[readOcc.hit.i2.i1], readOcc.hit.i2.i2, readOcc.hit.i2.i2 + seqan::length(readOcc.hit.i1));
+    DnaString part = infix(genome[testhit.occ.i1], testhit.occ.i2, testhit.occ.i2 + seqan::length(testhit.read));
     appendValue(testocc, part);
-    std::cout << "Search occ: " << (int)readOcc.hit.i2.i2 << " which has seq: " << "\n";
+    std::cout << "Search occ: " << (int)testhit.occ.i2 << " which has seq: " << "\n";
     std::cout << part << "\n"; //TODO revert this
 
     find<minErrors, maxErrors>(delegate, index, testocc, HammingDistance());
-//        print_readocc_sorted(hite, errors_v);
     std::cout << hits.size() << " hits!!!!!!!!!!" << "\n";
     return(hits.size());
 }
 
 template <typename TText, typename TIndexSpec>
 int testread(int minErrors, int maxErrors, Index<TText, BidirectionalIndex<TIndexSpec> > & index,
-              readOcc readOcc){
+              hit testhit){
     int nhits;
     switch (maxErrors)
     {
-        case 1: nhits = testread<0, 1>(index, readOcc);
+        case 1: nhits = testread<0, 1>(index, testhit);
                 break;
-        case 2: nhits = testread<0, 2>(index, readOcc);
+        case 2: nhits = testread<0, 2>(index, testhit);
                 break;
-        case 3: nhits = testread<0, 3>(index, readOcc);
+        case 3: nhits = testread<0, 3>(index, testhit);
                 break;
         default: std::cerr << "E = " << maxErrors << " not yet supported.\n";
                 std::exit(1);
@@ -205,8 +211,8 @@ template <typename TText, typename TIndexSpec>
 std::vector<int> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
                     int errors,
                     int threshold,
-                    std::vector<readOcc> x,
-                    std::vector<readOcc> y)
+                    std::vector<hit> x,
+                    std::vector<hit> y)
 {
     std::vector<int> wrongHitCount; 
     bool same2 = true;
@@ -218,13 +224,13 @@ std::vector<int> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
     int offset = 0;
     for(int i = 0; i + offset < y.size(); ++i){
         same = false;
-        same = (i < x.size() && x[i].hit.i2.i1 == y[i + offset].hit.i2.i1 && x[i].hit.i2.i2 == y[i + offset].hit.i2.i2);
+        same = (i < x.size() && x[i].occ.i1 == y[i + offset].occ.i1 && x[i].occ.i2 == y[i + offset].occ.i2);
         while(!same && i + offset < y.size()){
             if(wrongHitCount.size() > 0)
                 std::cout << "Something went wrong" << "\n";
             if(i < x.size())//TODO revert this
-                std::cout << "MyVersion has: " << x[i].hit.i2 << " while " ; //TODO revert this
-            std::cout << "default version has: " << y[i + offset].hit.i2 << "\n";//TODO revert this
+                std::cout << "MyVersion has: " << x[i].occ.i2 << " while " ; //TODO revert this
+            std::cout << "default version has: " << y[i + offset].occ.i2 << "\n";//TODO revert this
             int nhits = testread(0, errors, index, y[i + offset]); //TODO  3 lines down
             if(nhits < threshold){      //TODO //3 lines down
                 std::cout << "To few hits should have found this part!!!!" << "\n";
@@ -234,7 +240,7 @@ std::vector<int> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
 //                 std::exit(0);
             }
             ++offset;
-            same = (i < x.size() && x[i].hit.i2.i1 == y[i + offset].hit.i2.i1 && x[i].hit.i2.i2 == y[i + offset].hit.i2.i2);
+            same = (i < x.size() && x[i].occ.i1 == y[i + offset].occ.i1 && x[i].occ.i2 == y[i + offset].occ.i2);
         }
         if(i == x.size() && y.size() == i + offset){
             return(wrongHitCount);
