@@ -97,18 +97,17 @@ int main(int argc, char *argv[])
     {
         if(!rev ) // workaround check iter later
         {
-//             cout << "Is bidirectional Iter" << endl;
             for (auto occ : getOccurrences(iter)){
                 hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
                 errors_v.push_back(errors);
             }
         }else{
             //TODO i think getting the reverse genome is bad just save reverse tag and calc later
-            auto const & rgenome = getUniIndexGenome(iter);
+//             auto const & rgenome = getUniIndexGenome(iter);
             for (auto occ : getOccurrences(iter)){
-                 if(rev){
-                    occ.i2 = seqan::length(rgenome[occ.i1]) - occ.i2 - length(needle);
-                }
+//                  if(rev){
+//                     occ.i2 = seqan::length(rgenome[occ.i1]) - occ.i2 - length(needle);
+//                 }
                 hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
                 errors_v.push_back(errors);
             }
@@ -155,16 +154,14 @@ int main(int argc, char *argv[])
     
     
     auto const & genome = indexText(index);
-    
-    cout << "normal Hits: " << hits.size() << endl;
-    cout << "direct Hits: " << hitsD.size() << endl;
+  /*  
     for(int i = 0; i < readOccs.size(); ++i){
         cout << "Errors: "<< (int)readOccs[i].errors;
         cout << "   "  << readOccs[i].hit << endl;
         cout << infix(genome[readOccs[i].hit.i2.i1], readOccs[i].hit.i2.i2, readOccs[i].hit.i2.i2 + seqan::length(readOccs[i].hit.i1)) << endl;
         
     }
-    
+    */
     cout << "Test default" << endl;
     std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hitsDe;
     std::vector<uint8_t> errors_vDe;
@@ -179,13 +176,64 @@ int main(int argc, char *argv[])
     find(0, nerrors, delegateDe, index, reads, HammingDistance());
     finish = std::chrono::high_resolution_clock::now();
 
+    
+    cout << "normal Hits: " << hits.size() << endl;
+    cout << "direct Hits: " << hitsD.size() << endl;
     cout << "MyVersion elapsed: " << elapsed.count() << "s" << endl;
     elapsed = finish - start;
     cout << "Default Version elapsed: " << elapsed.count() << "s" << endl;
+    cout << "default Hits: " << hitsDe.size() << endl;
+    
+    for(int i = 1; i < 9; ++i){
+        params.comp.directsearch_th = i;
+        hits.clear();
+        errors_v.clear();
+        hitsD.clear();
+        errors_vD.clear();
     
     
+    auto delegate2 = [&hits, &errors_v](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
+    {
+        if(!rev ) // workaround check iter later
+        {
+            for (auto occ : getOccurrences(iter)){
+                hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
+                errors_v.push_back(errors);
+            }
+        }else{
+            //TODO i think getting the reverse genome is bad just save reverse tag and calc later
+//             auto const & rgenome = getUniIndexGenome(iter);
+            for (auto occ : getOccurrences(iter)){
+//                  if(rev){
+//                     occ.i2 = seqan::length(rgenome[occ.i1]) - occ.i2 - length(needle);
+//                 }
+                hits.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, occ));
+                errors_v.push_back(errors);
+            }
+        }
+    };
+    
+    std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hitsD;
+    std::vector<uint8_t> errors_vD;
+    auto delegateDirect2 = [&hitsD, &errors_vD](vector<Pair<uint16_t, uint32_t>> poss, DnaString const & needle, vector<uint8_t> errors)
+    {
+        for (int i = 0; i < poss.size(); ++i){
+            hitsD.push_back(Pair<DnaString, Pair <unsigned, unsigned>>(needle, poss[i]));
+            errors_vD.push_back(errors[i]);
+        }
+    };
+    
+    auto start2 = std::chrono::high_resolution_clock::now();
+    find(0, nerrors, delegate2, delegateDirect2, index, reads);
+    auto finish2 = std::chrono::high_resolution_clock::now();
+    elapsed = finish2 - start2;
+    cout << "Default Version with DS: " << elapsed.count() << "s" << endl;
+    cout << "default DS Hits: " << hits.size() + hitsD.size() << endl;
+    
+    }
+ /*   
     std::vector<readOcc> readOccsDe = print_readocc_sorted(hitsDe, errors_vDe, genome, true);
-    int threshold = 2; 
+    int threshold = 1; 
     cout << "Test if default and my version are the same: " << endl;
 //     cout.setstate(std::ios_base::failbit); //TODO revert this
     vector<int> whitcount = compare(index, nerrors, threshold, readOccs, readOccsDe);
@@ -200,7 +248,10 @@ int main(int argc, char *argv[])
     cout << "M: " << endl;
     for(int i = 0; i < whitcount.size(); ++i)
         cout << whitcount[i] << endl;
-    cout << endl;
+    cout << endl;*/
+    
+ 
+ 
     
     return 0;
     

@@ -4,7 +4,7 @@ cmake_minimum_required (VERSION 3.0.0)
 # Name of project and that it is C++ only.
 project (mappability CXX)
 
-set (CMAKE_BUILD_TYPE "Debug") #Release
+#set (CMAKE_BUILD_TYPE "Debug") #Release
 set (CUR_DIR "${CMAKE_CURRENT_LIST_DIR}/..")
 
 # ----------------------------------------------------------------------------

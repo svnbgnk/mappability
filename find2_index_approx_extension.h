@@ -635,6 +635,26 @@ inline void _optimalSearchScheme(TDelegate & delegate,
             _uniOptimalSearchScheme(delegate, delegateDirect, it.fwdIter, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Fwd());
     }
 }
+
+//TODO use TDistanceTag in fucntions before
+template <typename TDelegate, typename TDelegateD,
+          typename TText, typename TIndex, typename TIndexSpec,
+          typename TNeedle,
+          size_t nbrBlocks>
+inline void _optimalSearchScheme(TDelegate & delegate,
+                                 TDelegateD & delegateDirect,
+                                 Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it,
+                                 TNeedle const & needle,
+                                 OptimalSearch<nbrBlocks> const & s)
+{
+    bool initialDirection = s.pi[1] > s.pi[0];
+    if(initialDirection)
+        _optimalSearchScheme(delegate, delegateDirect, it, needle, s.startPos, s.startPos + 1, 0, s, 0, Rev(), HammingDistance());
+    else
+        _optimalSearchScheme(delegate, delegateDirect, it, needle, s.startPos, s.startPos + 1, 0, s, 0, Fwd(), HammingDistance());
+
+}
+
   
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
@@ -650,6 +670,21 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     for (auto & s : ss)
         _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, s);
 }  
+
+template <typename TDelegate, typename TDelegateD,
+          typename TText, typename TIndex, typename TIndexSpec,
+          typename TNeedle,
+          size_t nbrBlocks, size_t N>
+inline void _optimalSearchScheme(TDelegate & delegate,
+                                 TDelegateD & delegateDirect,
+                                 Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it,
+                                 TNeedle const & needle,
+                                 std::array<OptimalSearch<nbrBlocks>, N> const & ss)
+{
+    for (auto & s : ss)
+        _optimalSearchScheme(delegate, delegateDirect, it, needle, s);
+}
+
 
 template <size_t minErrors, size_t maxErrors,
           typename TDelegate, typename TDelegateD,
@@ -668,7 +703,23 @@ find(TDelegate & delegate,
     Iter<Index<TText, BidirectionalIndex<TIndexSpec> >, VSTree<TopDown<> > > it(index);
     _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, scheme);
 }
-  
+
+template <size_t minErrors, size_t maxErrors,
+          typename TDelegate, typename TDelegateD,
+          typename TText, typename TIndexSpec,
+          typename TChar, typename TStringSpec>
+inline void
+find(TDelegate & delegate,
+     TDelegateD & delegateDirect,
+     Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+     String<TChar, TStringSpec> const & needle)
+{
+    auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
+    _optimalSearchSchemeComputeFixedBlocklength(scheme, length(needle));
+    _optimalSearchSchemeSetMapParams(scheme);
+    Iter<Index<TText, BidirectionalIndex<TIndexSpec> >, VSTree<TopDown<> > > it(index);
+    _optimalSearchScheme(delegate, delegateDirect, it, needle, scheme);
+}
 
 
 template <size_t minErrors, size_t maxErrors,
@@ -693,7 +744,30 @@ find(TDelegate & delegate,
     },
     Rooted(), TParallelTag());
 }    
-    
+
+template <size_t minErrors, size_t maxErrors,
+          typename TDelegate, typename TDelegateD,
+          typename TText, typename TIndexSpec,
+          typename TNeedle, typename TStringSetSpec,
+          typename TParallelTag>
+inline void
+find(TDelegate & delegate,
+     TDelegateD & delegateDirect,
+     Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+     StringSet<TNeedle, TStringSetSpec> const & needles,
+     TParallelTag const & )
+{
+    typedef typename Iterator<StringSet<TNeedle, TStringSetSpec> const, Rooted>::Type TNeedleIt;
+    typedef typename Reference<TNeedleIt>::Type                                       TNeedleRef;
+    iterate(needles, [&](TNeedleIt const & needleIt)
+    {
+        TNeedleRef needle = value(needleIt);
+        find<minErrors, maxErrors>(delegate, delegateDirect, index, needle);
+    },
+    Rooted(), TParallelTag());
+}  
+   
+
 template <size_t minErrors, size_t maxErrors,
           typename TDelegate, typename TDelegateD,
           typename TText, typename TIndexSpec,
@@ -708,7 +782,22 @@ find(TDelegate & delegate,
     find<minErrors, maxErrors>(delegate, delegateDirect, index, needles, bitvectors, Serial());
 }
 
+
+template <size_t minErrors, size_t maxErrors,
+          typename TDelegate, typename TDelegateD,
+          typename TText, typename TIndexSpec,
+          typename TNeedle, typename TStringSetSpec>
+inline void
+find(TDelegate & delegate,
+     TDelegateD & delegateDirect,
+     Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+     StringSet<TNeedle, TStringSetSpec> const & needles)
+{
+    find<minErrors, maxErrors>(delegate, delegateDirect, index, needles, Serial());
 }
+
+
+
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndexSpec,
           typename TNeedle, typename TStringSetSpec>
@@ -756,6 +845,32 @@ void find(const int minErrors,
                 exit(1);
     }
 }
+
+template <typename TDelegate, typename TDelegateD,
+          typename TText, typename TIndexSpec,
+          typename TNeedle, typename TStringSetSpec>
+void find(const int minErrors,
+     const int maxErrors,
+     TDelegate & delegate,
+     TDelegateD & delegateDirect,
+     Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+     StringSet<TNeedle, TStringSetSpec> const & needles)
+{
+    switch (maxErrors)
+    {
+        case 1: find<0, 1>(delegate, delegateDirect, index, needles);
+                break;
+        case 2: find<0, 2>(delegate, delegateDirect, index, needles);
+                break;
+        case 3: find<0, 3>(delegate, delegateDirect, index, needles);
+                break;
+        default: cerr << "E = " << maxErrors << " not yet supported.\n";
+                exit(1);
+    }
+}
+
+}
+
 
 
 #endif
