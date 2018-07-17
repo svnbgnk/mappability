@@ -12,6 +12,13 @@ using namespace seqan;
 myGlobalParameters params;
 int global;
 
+struct hit{
+    bool reverse;
+    Pair <unsigned, unsigned> occ;
+    uint8_t errors;
+    DnaString read;
+};
+
 int main(int argc, char *argv[])
 {
     ArgumentParser parser("Search");
@@ -183,7 +190,8 @@ int main(int argc, char *argv[])
     elapsed = finish - start;
     cout << "Default Version elapsed: " << elapsed.count() << "s" << endl;
     cout << "default Hits: " << hitsDe.size() << endl;
-    
+/*   
+    // default with in text search
     for(int i = 1; i < 9; ++i){
         params.comp.directsearch_th = i;
         hits.clear();
@@ -231,9 +239,11 @@ int main(int argc, char *argv[])
     cout << "default DS Hits: " << hits.size() + hitsD.size() << endl;
     
     }
- /*   
+    */
+    
+    
     std::vector<readOcc> readOccsDe = print_readocc_sorted(hitsDe, errors_vDe, genome, true);
-    int threshold = 1; 
+    int threshold = 11; 
     cout << "Test if default and my version are the same: " << endl;
 //     cout.setstate(std::ios_base::failbit); //TODO revert this
     vector<int> whitcount = compare(index, nerrors, threshold, readOccs, readOccsDe);
@@ -248,7 +258,7 @@ int main(int argc, char *argv[])
     cout << "M: " << endl;
     for(int i = 0; i < whitcount.size(); ++i)
         cout << whitcount[i] << endl;
-    cout << endl;*/
+    cout << endl;
     
  
  
