@@ -423,6 +423,7 @@ std::vector<std::pair<TBitvector, TSupport>> loadBitvectors(CharString const bit
          }
     }
     }else{
+    std::cout << "Searching for: " << std::string("") + toCString(bitvectorpath) + "l_bit_vector_" +  std::to_string(K) + "_" +  std::to_string(errors) + "_shift_" +  std::to_string(0) << "\n";
     std::string file_name = std::string("") + toCString(bitvectorpath) + "right_bit_vector_" +  std::to_string(K) + "_" +  std::to_string(errors);
     if(file_exists(file_name)){
         TBitvector b;
