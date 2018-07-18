@@ -195,7 +195,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
  
     else
     {      
-        if(iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1) * params.comp.directsearch_th)
+        if(params.comp.directsearch && iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1) * params.comp.directsearch_th)
         {
             directSearch(delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir());
             return;
