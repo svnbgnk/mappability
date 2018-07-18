@@ -142,7 +142,10 @@ int main(int argc, char *argv[])
         params.normal.setbestnormal();
     }
     
-    
+    params.normal.directsearch = false;
+    params.comp.directsearch = false;
+    params.uni.directsearch = false;
+    params.startuni.directsearch = false;    
     auto start = std::chrono::high_resolution_clock::now();
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed;
