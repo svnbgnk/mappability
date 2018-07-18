@@ -336,7 +336,7 @@ ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
     if(params.normal.nomappability && ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
     
-    else if(params.normal.directsearch && ivalOne < (s.pi.size() - blockIndex - 1) * params.normal.directsearch_th)
+    else if(params.normal.directsearch && ivalOne < (s.pi.size() - blockIndex - 1 + params.normal.directsearchblockoffset) * params.normal.directsearch_th)
         return ReturnCode::DIRECTSEARCH;
     
     else if(params.normal.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
@@ -757,10 +757,26 @@ find(TDelegate & delegate,
 {
     typedef typename Iterator<StringSet<TNeedle, TStringSetSpec> const, Rooted>::Type TNeedleIt;
     typedef typename Reference<TNeedleIt>::Type                                       TNeedleRef;
+    checkTime time;
     iterate(needles, [&](TNeedleIt const & needleIt)
     {
+        /*
+        if(params.clocking && time.stopnow(params.terminateDuration)){
+            cout << "Trying to break/return" << endl;
+            for(int i = 0; i < length(needles); ++i){
+                TNeedleRef needle = value(needleIt);
+//                 cout << "s";
+            }
+            //return does not work;
+        }*/ 
+        
         TNeedleRef needle = value(needleIt);
-        find<minErrors, maxErrors>(delegate, delegateDirect, index, needle, bitvectors);
+        if(!(params.clocking && time.stopnow(params.terminateDuration))){
+            find<minErrors, maxErrors>(delegate, delegateDirect, index, needle, bitvectors);
+        }else{
+            params.wasStopped = true;
+        }
+        
     },
     Rooted(), TParallelTag());
 }    

@@ -44,6 +44,9 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("c", "ecompare",
         "Compare my Version and default version"));
     
+    addOption(parser, ArgParseOption("p", "benchparams",
+        "Compare my Version and default version"));
+    
     
     
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
@@ -63,6 +66,7 @@ int main(int argc, char *argv[])
     getOptionValue(r, parser, "r");
     bool defaultT = isSet(parser, "defaultT");
     bool ecompare = isSet(parser, "ecompare");
+    bool benchparams = isSet(parser, "benchparams");
     
     //load reads
     SeqFileIn seqFileIn(toCString(readspath));
@@ -86,20 +90,19 @@ int main(int argc, char *argv[])
     MyIndex index;      
     open(index, toCString(indexPath), OPEN_RDONLY);
     Iter<Index<TText, TIndexConfig>, VSTree<TopDown<> > > it(index);
-    cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
+    auto const & genome = indexText(index);
     
+    cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
 //     auto iter = it.revIter;
 //     print_genome(it, outputpath, 1); //TODO find solution for bidrectional iter test
 //     print_genome(iter, outputpath, 1); //TODO use the solution
 
      // load bitvectors
     cout << "Loading bitvectors" << endl;
-    vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bit_vectors = loadBitvectors(bitvectorpath, K, nerrors);
-    cout << "Bit vectors loaded. Number: " << bit_vectors.size() << endl;
+    vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
+    cout << "Bit vectors loaded. Number: " << bitvectors.size() << endl;
+    
   
-//     std::vector<readOcc> readOccs;
-//     std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hits;
-//     std::vector<uint8_t> errors_v;
     std::vector<hit> dhits;
     std::vector<hit> hits;
     auto delegate = [&hits](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
@@ -113,8 +116,6 @@ int main(int argc, char *argv[])
             hits.push_back(me);
         }
     };
-    
-      
     auto delegateDirect = [&dhits](vector<Pair<uint16_t, uint32_t>> pos, DnaString const & needle, vector<uint8_t> errors)
     {
         for (int i = 0; i < pos.size(); ++i){
@@ -127,24 +128,21 @@ int main(int argc, char *argv[])
         }
     };
     
+    
     params.startUnidirectional = false;
+    if(benchparams){
+        params.normal.setbestnormal();
+    }
     
     cout << "Start My Search!" << endl;
     auto start = std::chrono::high_resolution_clock::now();
-    find(0, nerrors, delegate, delegateDirect, index, reads, bit_vectors);
+    find(0, nerrors, delegate, delegateDirect, index, reads, bitvectors);
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finish - start;
     cout << "Finished My Search" << endl;
-    
-    cout << "Temp Hits:" << hits.size() << endl;
-    
 
-    vector<int> sl = getSequencesLengths(it, bit_vectors);
     auto scalc = std::chrono::high_resolution_clock::now();
-    for(int i = 0; i < hits.size(); ++i){
-        if(hits[i].rev)
-            hits[i].occ.i2 = sl[hits[i].occ.i1 + 1] - hits[i].occ.i2 - length(hits[i].read);
-    }
+    calcfwdPos(index, bitvectors, hits);
     auto ecalc = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsedcalc = ecalc - scalc;
     cout << "Calc revPositions to forward positions: "<< elapsedcalc.count() << "s" << endl;
@@ -152,114 +150,100 @@ int main(int argc, char *argv[])
     for(int i = 0; i < dhits.size(); ++i){
         hits.push_back(dhits[i]);
     }
-    
     std::sort(hits.begin(), hits.end(), occ_smaller);
     
     
-    auto const & genome = indexText(index);
-  
     if(ecompare){
-    for(int i = 0; i < hits.size(); ++i){
-        cout << "Errors: "<< (int)hits[i].errors;
-        cout << "   "  << hits[i].occ << endl;
-        cout << infix(genome[hits[i].occ.i1], hits[i].occ.i2, hits[i].occ.i2 + seqan::length(hits[i].read)) << endl;
-    }
-    }
-    
-    cout << "Test default" << endl;
-    
-    std::vector<hit> hitsDe;
-//     std::vector<Pair<DnaString, Pair <unsigned, unsigned>>> hitsDe;
-//     std::vector<uint8_t> errors_vDe;
-    auto delegateDe = [&hitsDe](auto & iter, DnaString const & needle, uint8_t errors)
-    {
-        for (auto occ : getOccurrences(iter)){
-            hit me;
-            me.occ = occ;
-            me.read = needle;
-            me.errors = errors;
-            me.rev = false;
-            hitsDe.push_back(me);
+        for(int i = 0; i < hits.size(); ++i){
+            cout << "Errors: "<< (int)hits[i].errors;
+            cout << "   "  << hits[i].occ << endl;
+            cout << infix(genome[hits[i].occ.i1], hits[i].occ.i2, hits[i].occ.i2 + seqan::length(hits[i].read)) << endl;
         }
-    };
-    
-    start = std::chrono::high_resolution_clock::now();
-    find(0, nerrors, delegateDe, index, reads, HammingDistance());
-    finish = std::chrono::high_resolution_clock::now();
-
-    
+    }    
+    cout << "MyVersion elapsed: " << elapsed.count() << "s" << endl;
     cout << "normal Hits: " << hits.size() - dhits.size() << endl;
     cout << "direct Hits: " << dhits.size() << endl;
-    cout << "MyVersion elapsed: " << elapsed.count() << "s" << endl;
-    elapsed = finish - start;
-    cout << "Default Version elapsed: " << elapsed.count() << "s" << endl;
-    cout << "default Hits: " << hitsDe.size() << endl;
-  
-    if(defaultT){
-    // default with in text search
-        for(int i = 1; i < 9; ++i){
-            params.comp.directsearch_th = i;
-            std::vector<hit> hitsDe;
-            std::vector<hit> dhitsDe;
-            auto delegate2 = [&hitsDe](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
-            {
-                for (auto occ : getOccurrences(iter)){
-                    hit me;
+    
+    // Test default
+    std::vector<hit> hitsDe;
+    if(ecompare){
+        auto delegateDe = [&hitsDe](auto & iter, DnaString const & needle, uint8_t errors)
+        {
+            for (auto occ : getOccurrences(iter)){
+                hit me;
                 me.occ = occ;
                 me.read = needle;
                 me.errors = errors;
                 me.rev = false;
                 hitsDe.push_back(me);
-                }
-            };
+            }
+        };
+        cout << "Test default" << endl;
+        start = std::chrono::high_resolution_clock::now();
+        find(0, nerrors, delegateDe, index, reads, HammingDistance());
+        finish = std::chrono::high_resolution_clock::now();
     
-            auto delegateDirect2 = [&dhitsDe](vector<Pair<uint16_t, uint32_t>> pos, DnaString const & needle, vector<uint8_t> errors)
-            {
-                for (int i = 0; i < pos.size(); ++i){
-                    hit me;
-                    me.occ = pos[i];
-                    me.read = needle;
-                    me.errors = errors[i];
-                    me.rev = false;
-                    dhitsDe.push_back(me);
-                }
-            };
+        elapsed = finish - start;
+        cout << "Default Version elapsed: " << elapsed.count() << "s" << endl;
+        cout << "default Hits: " << hitsDe.size() << endl;
+    }
     
-            auto start2 = std::chrono::high_resolution_clock::now();
-            find(0, nerrors, delegate2, delegateDirect2, index, reads);
-            auto finish2 = std::chrono::high_resolution_clock::now();
-            elapsed = finish2 - start2;
-            cout << "Default Version with DS: " << elapsed.count() << "s" << endl;
-            cout << "default DS Hits: " << hitsDe.size() + dhitsDe.size() << endl;
-        }
+    // default with in text search
+    if(defaultT){
+        params.comp.directsearch_th = 5;
+        std::vector<hit> hitsDe;
+        std::vector<hit> dhitsDe;
+        auto delegate2 = [&hitsDe](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
+        {
+            for (auto occ : getOccurrences(iter)){
+                hit me;
+            me.occ = occ;
+            me.read = needle;
+            me.errors = errors;
+            me.rev = false;
+            hitsDe.push_back(me);
+            }
+        };
+        auto delegateDirect2 = [&dhitsDe](vector<Pair<uint16_t, uint32_t>> pos, DnaString const & needle, vector<uint8_t> errors)
+        {
+            for (int i = 0; i < pos.size(); ++i){
+                hit me;
+                me.occ = pos[i];
+                me.read = needle;
+                me.errors = errors[i];
+                me.rev = false;
+                dhitsDe.push_back(me);
+            }
+        };
+        auto start2 = std::chrono::high_resolution_clock::now();
+        find(0, nerrors, delegate2, delegateDirect2, index, reads);
+        auto finish2 = std::chrono::high_resolution_clock::now();
+        elapsed = finish2 - start2;
+        cout << "Default Version with DS: " << elapsed.count() << "s" << endl;
+        cout << "default DS Hits: " << hitsDe.size() + dhitsDe.size() << endl;
     }
     
     
-    
-    
-
     if(ecompare){
-    hitsDe = print_readocc_sorted(hitsDe, genome, true);
-    int threshold = 11; 
-    cout << "Test if default and my version are the same: " << endl;
+        hitsDe = print_readocc_sorted(hitsDe, genome, true);
+        int threshold = 11; 
+        cout << "Test if default and my version are the same: " << endl;
 //     cout.setstate(std::ios_base::failbit); //TODO revert this
-    vector<int> whitcount = compare(index, nerrors, threshold, hits, hitsDe);
+        vector<int> whitcount = compare(index, nerrors, threshold, hits, hitsDe);
 //     std::cout.clear();  //TODO revert this
     
-    if(whitcount.size() == 0)
-        cout << "MyVersion is still correct!" << endl;
-    else{
-        cout << "Missed hits mappability" << endl;
-    }
-    cout << endl;
-    cout << "M: " << endl;
-    for(int i = 0; i < whitcount.size(); ++i)
-        cout << whitcount[i] << endl;
-    cout << endl;
+        if(whitcount.size() == 0){
+            cout << "MyVersion is still correct!" << endl;
+        }else{
+            cout << "Missed hits mappability" << endl;
+        }
+        cout << endl;
+        cout << "M: " << endl;
+        for(int i = 0; i < whitcount.size(); ++i)
+            cout << whitcount[i] << endl;
+        cout << endl;
     }
  
- 
-    
     return 0;
     
 }

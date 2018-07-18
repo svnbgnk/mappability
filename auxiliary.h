@@ -24,6 +24,7 @@ struct isBidirectionalIter<Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTre
      static constexpr bool VALUE = true;
 };
 
+
 template <typename TText, typename TIndex, typename TIndexSpec,
           typename TVector, typename TVSupport>
 std::vector<int> getSequencesLengths(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
@@ -40,6 +41,19 @@ std::vector<int> getSequencesLengths(Iter<Index<TText, BidirectionalIndex<TIndex
     return sequenceLengths;
 }
 
+template<typename TIndex,
+         typename TVector, typename TVSupport>
+void calcfwdPos(TIndex & index,
+                std::vector<std::pair<TVector, TVSupport>> & bitvectors,
+                std::vector<hit> & hitsOutput)
+{
+    Iter<TIndex, VSTree<TopDown<> > > it(index);
+    std::vector<int> sl = getSequencesLengths(it, bitvectors);
+    for(int i = 0; i < hitsOutput.size(); ++i){
+        if(hitsOutput[i].rev)
+            hitsOutput[i].occ.i2 = sl[hitsOutput[i].occ.i1 + 1] - hitsOutput[i].occ.i2 - length(hitsOutput[i].read);
+    }
+}
 
 template <typename TText, typename TIndex, typename TIndexSpec,
           typename TVector, typename TVSupport>
