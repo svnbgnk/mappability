@@ -17,8 +17,8 @@ set (CXX11_FOUND "1")
 find_package (ZLIB)
 
 # Add CXX flags found by find_package (SeqAn).
-set (CMAKE_PREFIX_PATH "/home/sven/devel/seqan/util/cmake")
-set (SEQAN_INCLUDE_PATH "/home/sven/devel/seqan/include")
+set (CMAKE_PREFIX_PATH "CUR_DIR/seqan/util/cmake")
+set (SEQAN_INCLUDE_PATH "CUR_DIR/seqan/include")
 
 # Load the SeqAn module and fail if not found.
 find_package (OpenMP REQUIRED)
