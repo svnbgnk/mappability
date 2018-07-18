@@ -190,7 +190,7 @@ ReturnCode uniCheckMappability(TDelegate & delegate,
     {
         bool rev = std::is_same<TDir, Rev>::value;
         //TODO it is possible to allowed cheap repeats if always false 
-        if(false) 
+        if(rcode == ReturnCode::MAPPABLE) 
         {
             uint32_t rangeStart = iter.vDesc.range.i1;
             uint32_t rangeEnd = iter.vDesc.range.i2;
