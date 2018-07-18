@@ -50,6 +50,9 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("p", "benchparams",
         "Compare my Version and default version"));
     
+    addOption(parser, ArgParseOption("n", "notmy",
+        "Compare my Version and default version"));
+    
     
     
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
@@ -71,6 +74,7 @@ int main(int argc, char *argv[])
     bool defaultT = isSet(parser, "defaultT");
     bool ecompare = isSet(parser, "ecompare");
     bool benchparams = isSet(parser, "benchparams");
+    bool notmy = isSet(parser, "notmy");
     
     //load reads
     SeqFileIn seqFileIn(toCString(readspath));
@@ -138,11 +142,17 @@ int main(int argc, char *argv[])
         params.normal.setbestnormal();
     }
     
-    cout << "Start My Search!" << endl;
+    
     auto start = std::chrono::high_resolution_clock::now();
-    find(0, nerrors, delegate, delegateDirect, index, reads, bitvectors);
     auto finish = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = finish - start;
+    std::chrono::duration<double> elapsed;
+    
+    if(!notmy){
+    cout << "Start My Search!" << endl;
+    start = std::chrono::high_resolution_clock::now();
+    find(0, nerrors, delegate, delegateDirect, index, reads, bitvectors);
+    finish = std::chrono::high_resolution_clock::now();
+    elapsed = finish - start;
     cout << "Finished My Search" << endl;
 
     auto scalc = std::chrono::high_resolution_clock::now();
@@ -155,7 +165,7 @@ int main(int argc, char *argv[])
         hits.push_back(dhits[i]);
     }
     std::sort(hits.begin(), hits.end(), occ_smaller);
-    
+    }
     
     if(ecompare){
         for(int i = 0; i < hits.size(); ++i){
