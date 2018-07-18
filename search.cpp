@@ -38,7 +38,10 @@ int main(int argc, char *argv[])
     
     addOption(parser, ArgParseOption("r", "r", "number of reads to test ", ArgParseArgument::INTEGER, "INT"));
 
-    addOption(parser, ArgParseOption("d", "defaultT",
+    addOption(parser, ArgParseOption("d", "default",
+        "Test default with in Text Search"));
+    
+    addOption(parser, ArgParseOption("dd", "defaultT",
         "Test default with in Text Search"));
     
     addOption(parser, ArgParseOption("c", "ecompare",
@@ -64,6 +67,7 @@ int main(int argc, char *argv[])
     getOptionValue(K, parser, "length");
     getOptionValue(nerrors, parser, "errors");
     getOptionValue(r, parser, "r");
+    bool mdefault = isSet(parser, "default");
     bool defaultT = isSet(parser, "defaultT");
     bool ecompare = isSet(parser, "ecompare");
     bool benchparams = isSet(parser, "benchparams");
@@ -166,7 +170,7 @@ int main(int argc, char *argv[])
     
     // Test default
     std::vector<hit> hitsDe;
-    if(ecompare){
+    if(mdefault){
         auto delegateDe = [&hitsDe](auto & iter, DnaString const & needle, uint8_t errors)
         {
             for (auto occ : getOccurrences(iter)){
