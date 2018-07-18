@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
 
      // load bitvectors
     cout << "Loading bitvectors" << endl;
-    vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
+    vector<pair<TBitvector, TSupport>> bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
     cout << "Bit vectors loaded. Number: " << bitvectors.size() << endl;
     
   

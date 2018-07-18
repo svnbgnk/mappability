@@ -75,6 +75,7 @@ typedef StringSet<TString, Owner<ConcatDirect<> > > TText;
 typedef Index<TText, TIndexConfig> MyIndex;
 typedef sdsl::bit_vector TBitvector;
 typedef sdsl::rank_support_v<> TSupport;
+// typedef sdsl::rank_support_v5<> TSupport;
     
 }
 

@@ -14,7 +14,7 @@ int global;
 template<typename Tdelegate, typename TdelegateD,
         typename TIndex,
         typename Treads,
-        typename Tbitvectors>
+        typename TBitvectors>
 std::chrono::duration<double> callFunction(int nerrors,
                   vector<hit> & hits,
                   vector<hit> & dhits,
@@ -22,7 +22,7 @@ std::chrono::duration<double> callFunction(int nerrors,
                   TdelegateD & delegateDirect,
                   TIndex & index,
                   Treads & reads,
-                  Tbitvectors & bitvectors)
+                  TBitvectors & bitvectors)
 {
     hits.clear();
     dhits.clear();
@@ -108,10 +108,10 @@ int main(int argc, char const ** argv)
     MyIndex index;      
     open(index, toCString(indexPath), OPEN_RDONLY);
     Iter<Index<TText, TIndexConfig>, VSTree<TopDown<> > > it(index);
-    
+
     // load bitvectors
     cout << "Loading bitvectors" << endl;
-    std::vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
+    std::vector<pair<TBitvector, TSupport>> bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
     cout << "Bit vectors loaded. Number: " << bitvectors.size() << endl;
     cout << "Start my Search" << endl;
     //start of loop
