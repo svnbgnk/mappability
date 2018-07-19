@@ -175,9 +175,6 @@ inline void runAlgo3(TIndex & index, auto const & text, unsigned const length, T
 {
     typedef Iter<TIndex, VSTree<TopDown<> > > TIter;
 
-    auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
-    _optimalSearchSchemeComputeFixedBlocklength(scheme, overlap);
-
     auto const & limits = stringSetLimits(indexText(index));
 
     uint64_t const textLength = seqan::length(text); // lengthSum() forwards to length() for a single string
@@ -188,57 +185,95 @@ inline void runAlgo3(TIndex & index, auto const & text, unsigned const length, T
     const uint64_t max_i = textLength - length + 1;
     const uint64_t step_size = length - overlap + 1;
     #pragma omp parallel for schedule(guided) num_threads(threads)
-    //#pragma omp parallel for schedule(dynamic, 1000000)
+    #pragma omp parallel for schedule(dynamic, max_i/(step_size*threads*50)) num_threads(threads)
     // TODO: if we choose a multiple of step_size * |cyclic_rotations of int_vector| as chunks (not just chunksize), we dont need to worry about locking
     for (uint64_t i = 0; i < max_i; i += step_size)
     {
+
+	//if (omp_get_num_threads() < 4)
+	//{
+	//	std::cout << "x: " << omp_get_num_threads() << '\n';
+	//}
         uint64_t max_pos = std::min(i + length - overlap, textLength - length) + 1;
         // std::cout << "max_pos + 1 = " << max_pos << '\n';
 
         // all are zero if (std::equal(c.begin() + i, c.begin() + max_pos, c.begin() + i) && c[i] == 0)
+	
+	// overlap is the length of the infix!
+	//std::cout << overlap << '\n';
 
-        if (std::any_of(c.begin() + i, c.begin() + max_pos, [](auto value){ return value == 0; }))
-        {
-            TIter it_zero_errors[length - overlap + 1];
-            unsigned hits[length - overlap + 1] = {};
+	uint64_t leading = 0, trailing = 0;
+	
+	for (uint64_t xx = i; c[xx] != 0 && xx < max_pos; ++xx)
+		++leading;
+	for (uint64_t xx = max_pos - 1; c[xx] != 0 && xx >= i; --xx) // TODO: i could theoretically be 0 ... overflow because of unsigned value! but c[...] will be zero for i=0 (unless some really weired scheduling happens)
+		++trailing;
 
-            auto delegate = [&hits, &it_zero_errors, i, length, textLength, overlap, &text](auto it, auto const & /*read*/, unsigned const errors_spent) {
-                uint64_t const bb = std::min(textLength - 1, i + length - 1 + length - overlap);
+	/*if (trailing != 0 && leading != 0)
+	{
+		std::cout << "cut off " << leading << " and " << trailing << ": ";
+		for (uint64_t xx = i; xx < max_pos; ++xx)
+			std::cout << ((c[xx] != 0) ? '1' : '0') << ' ';
+		std::cout << '\n';
+	}*/
+
+        //if (std::any_of(c.begin() + i, c.begin() + max_pos, [](auto value){ return value == 0; }))
+	if (trailing != max_pos - i)
+	// doesn't work either: trailing != length - overlap + 1 because last interval might be smaller than length - overlap + 1	
+	// doesn't word: leading != max_pos - i. trailing is computed last and might have found the full range (while another thread writing) to be non-zero while leading didn't find a full range before!        
+	{
+		uint64_t begin_pos = i + leading;
+		uint64_t end_pos = max_pos - trailing; // excluding
+		uint64_t new_overlap = length - (end_pos - begin_pos) + 1;
+
+	    	auto scheme = OptimalSearchSchemes<0, errors>::VALUE; // TODO: move out as array
+	    	_optimalSearchSchemeComputeFixedBlocklength(scheme, new_overlap); // only do when new_overlap != overlap
+		//if (std::any_of(c.begin() + i, c.begin() + max_pos, [](auto value){ return value != 0; }))
+                //{
+		//}
+
+            TIter it_zero_errors[end_pos - begin_pos];
+            unsigned hits[end_pos - begin_pos] = {};
+
+            auto delegate = [&hits, &it_zero_errors, begin_pos, length, textLength, new_overlap, &text](auto it, auto const & /*read*/, unsigned const errors_spent) {
+                uint64_t const bb = std::min(textLength - 1, begin_pos + length - 1 + length - new_overlap);
                 if (errors_spent == 0)
                 {
                     extend3<errors>(it, hits, it_zero_errors, errors - errors_spent, text, length,
-                        i + length - overlap, i + length - 1, // searched interval
-                        i, bb // entire interval
+                        begin_pos + length - new_overlap, begin_pos + length - 1, // searched interval
+                        begin_pos, bb // entire interval
                     );
                 }
                 else
                 {
                     extend(it, hits, errors - errors_spent, text, length,
-                        i + length - overlap, i + length - 1, // searched interval
-                        i, bb // entire interval
+                        begin_pos + length - new_overlap, begin_pos + length - 1, // searched interval
+                        begin_pos, bb // entire interval
                     );
                 }
             };
 
-            auto const & needle = infix(text, i + length - overlap, i + length);
+		//std::cout << "infix(" << (begin_pos + length - new_overlap) << ", " << (begin_pos + length) << ")\n";
+            auto const & needle = infix(text, begin_pos + length - new_overlap, begin_pos + length);
             TIter it(index);
             _optimalSearchScheme(delegate, it, needle, scheme, HammingDistance());
-            for (uint64_t j = i; j < max_pos; ++j)
+            for (uint64_t j = begin_pos; j < end_pos; ++j)
             {
                 // std::cout << "access it_zero[" << j-i << "]\n";
-                if (countOccurrences(it_zero_errors[j - i]) > 1) // guaranteed to exist, since there has to be at least one match!
+                if (countOccurrences(it_zero_errors[j - begin_pos]) > 1) // guaranteed to exist, since there has to be at least one match!
                 {
                     // ++count_forward_value;
-                    count_forward_positions += countOccurrences(it_zero_errors[j - i]) - 1;
-                    for (auto const & occ : getOccurrences(it_zero_errors[j-i], Fwd()))
+                    if (c[j] == 0)
+                        count_forward_positions += countOccurrences(it_zero_errors[j - begin_pos]) - 1;
+                    for (auto const & occ : getOccurrences(it_zero_errors[j-begin_pos], Fwd()))
                     {
                         auto const occ_pos = posGlobalize(occ, limits);
-                        c[occ_pos] = hits[j - i]; // tODO: occ pair ...
+                        c[occ_pos] = hits[j - begin_pos]; // tODO: occ pair ...
                     }
                 }
                 else
                 {
-                    c[j] = hits[j - i];
+                    c[j] = hits[j - begin_pos];
                 }
             }
 
