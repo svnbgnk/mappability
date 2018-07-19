@@ -1,8 +1,7 @@
 #ifndef SEQAN_INDEX_FIND2_INDEX_APPROX_COMPMAPPLE_H_
 #define SEQAN_INDEX_FIND2_INDEX_APPROX_COMPMAPPLE_H_
 using namespace std;
-
-   //TODO merge with iterator test into the original code? but added DirectSearch!!!! 
+ 
 namespace seqan{
 
 template <typename TDelegateD,
@@ -10,7 +9,7 @@ template <typename TDelegateD,
           typename TNeedle,
           size_t nbrBlocks,
           typename TDir>
-void directSearch(TDelegateD & delegateDirect,
+inline void directSearch(TDelegateD & delegateDirect,
                   Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                   TNeedle const & needle,
                   uint32_t const needleLeftPos,
@@ -29,9 +28,8 @@ void directSearch(TDelegateD & delegateDirect,
         //dont need look at the reverse index in this case since i dont use mappability
         sa_info = iter.fwdIter.index->sa[i];
         sa_info.i2 = sa_info.i2 - needleLeftPos;
-        genomeSearch(needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info, hitsv, errorsv);
+        genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info);
     }
-    delegateDirect(hitsv, needle, errorsv);
 }
     
 template <typename TDelegate, typename TDelegateD,
@@ -168,6 +166,7 @@ template <typename TDelegate, typename TDelegateD,
           typename TDistanceTag>
 inline void _optimalSearchScheme(TDelegate & delegate,
                                  TDelegateD & delegateDirect,
+                                 // TDelegateTV & doInTextVerification,
                                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                  TNeedle const & needle,
                                  uint32_t const needleLeftPos,
@@ -194,7 +193,8 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     }
  
     else
-    {      
+    {    
+        // if (doInTextVerification(s, blockIndex, iter))
         if(params.comp.directsearch && iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1) * params.comp.directsearch_th)
         {
             directSearch(delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir());
@@ -208,4 +208,3 @@ inline void _optimalSearchScheme(TDelegate & delegate,
 
 }
 #endif
-

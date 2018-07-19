@@ -65,9 +65,10 @@ enum class BV {
 };
 
 template <typename TVector, typename TVSupport>
-std::vector<std::pair<uint32_t, uint32_t>> getConsOnes(std::vector<std::pair<TVector, TVSupport>> & bitvectors, 
-                                             Pair<uint8_t, Pair<uint32_t, uint32_t>> inside_bit_interval,
-                                             int const intervalsize);
+inline void getConsOnes(std::vector<std::pair<TVector, TVSupport>> & bitvectors,
+                 Pair<uint8_t, Pair<uint32_t, uint32_t>> & inside_bit_interval,
+                 int const intervalsize,
+                 std::vector<std::pair<uint32_t, uint32_t>> & consOnesOutput);
 
 
 typedef String<Dna, Alloc<>> TString;

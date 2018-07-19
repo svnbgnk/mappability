@@ -130,16 +130,14 @@ int main(int argc, char const ** argv)
             hits.push_back(me);
         }
     };
-    auto delegateDirect = [&dhits](vector<Pair<uint16_t, uint32_t>> pos, DnaString const & needle, vector<uint8_t> errors)
+    auto delegateDirect = [&dhits](Pair<uint16_t, uint32_t> const & pos, DnaString const & needle, const uint8_t errors)
     {
-        for (int i = 0; i < pos.size(); ++i){
-            hit me;
-            me.occ = pos[i];
-            me.read = needle;
-            me.errors = errors[i];
-            me.rev = false;
-            dhits.push_back(me);
-        }
+        hit me;
+        me.occ = pos;
+        me.read = needle;
+        me.errors = errors;
+        me.rev = false;
+        dhits.push_back(me);
     };
     
     

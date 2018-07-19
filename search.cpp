@@ -109,11 +109,11 @@ int main(int argc, char *argv[])
     cout << "Loading bitvectors" << endl;
     vector<pair<TBitvector, TSupport>> bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
     cout << "Bit vectors loaded. Number: " << bitvectors.size() << endl;
-    
-  
+
+
     std::vector<hit> dhits;
     std::vector<hit> hits;
-    auto delegate = [&hits](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
+    auto delegate = [&hits](auto const & iter, DnaString const & needle, uint8_t errors, bool const rev)
     {
         for (auto occ : getOccurrences(iter)){
             hit me;
@@ -124,16 +124,14 @@ int main(int argc, char *argv[])
             hits.push_back(me);
         }
     };
-    auto delegateDirect = [&dhits](vector<Pair<uint16_t, uint32_t>> pos, DnaString const & needle, vector<uint8_t> errors)
+    auto delegateDirect = [&dhits](Pair<uint16_t, uint32_t> const & pos, DnaString const & needle, uint8_t const errors)
     {
-        for (int i = 0; i < pos.size(); ++i){
-            hit me;
-            me.occ = pos[i];
-            me.read = needle;
-            me.errors = errors[i];
-            me.rev = false;
-            dhits.push_back(me);
-        }
+        hit me;
+        me.occ = pos;
+        me.read = needle;
+        me.errors = errors;
+        me.rev = false;
+        dhits.push_back(me);
     };
     
     
@@ -151,40 +149,42 @@ int main(int argc, char *argv[])
     std::chrono::duration<double> elapsed;
     
     if(!notmy){
-    cout << "Start My Search!" << endl;
-    start = std::chrono::high_resolution_clock::now();
-    find(0, nerrors, delegate, delegateDirect, index, reads, bitvectors);
-    finish = std::chrono::high_resolution_clock::now();
-    elapsed = finish - start;
-    cout << "Finished My Search" << endl;
+        cout << "Start My Search!" << endl;
+        start = std::chrono::high_resolution_clock::now();
+        find(0, nerrors, delegate, delegateDirect, index, reads, bitvectors);
+        finish = std::chrono::high_resolution_clock::now();
+        elapsed = finish - start;
+        cout << "Finished My Search" << endl;
 
-    auto scalc = std::chrono::high_resolution_clock::now();
-    calcfwdPos(index, bitvectors, hits);
-    auto ecalc = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsedcalc = ecalc - scalc;
-    cout << "Calc revPositions to forward positions: "<< elapsedcalc.count() << "s" << endl;
+        auto scalc = std::chrono::high_resolution_clock::now();
+        calcfwdPos(index, bitvectors, hits);
+        auto ecalc = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsedcalc = ecalc - scalc;
+        cout << "Calc revPositions to forward positions: "<< elapsedcalc.count() << "s" << endl;
     //     stringSetLimits(text)
-    for(int i = 0; i < dhits.size(); ++i){
-        hits.push_back(dhits[i]);
-    }
-    std::sort(hits.begin(), hits.end(), occ_smaller);
     }
     
     if(ecompare){
+        for(int i = 0; i < dhits.size(); ++i){
+            hits.push_back(dhits[i]);
+        }
+        std::sort(hits.begin(), hits.end(), occ_smaller);
+        
         for(int i = 0; i < hits.size(); ++i){
             cout << "Errors: "<< (int)hits[i].errors;
             cout << "   "  << hits[i].occ << endl;
             cout << infix(genome[hits[i].occ.i1], hits[i].occ.i2, hits[i].occ.i2 + seqan::length(hits[i].read)) << endl;
         }
-    }    
+    }
+        
     cout << "MyVersion elapsed: " << elapsed.count() << "s" << endl;
-    cout << "normal Hits: " << hits.size() - dhits.size() << endl;
+    cout << "normal Hits: (if compare this also includes dhits)" << hits.size() << endl;
     cout << "direct Hits: " << dhits.size() << endl;
     
     // Test default
     std::vector<hit> hitsDe;
     if(mdefault){
-        auto delegateDe = [&hitsDe](auto & iter, DnaString const & needle, uint8_t errors)
+        auto delegateDe = [&hitsDe](auto & iter, DnaString const & needle, uint8_t const errors)
         {
             for (auto occ : getOccurrences(iter)){
                 hit me;
@@ -221,16 +221,14 @@ int main(int argc, char *argv[])
             hitsDe.push_back(me);
             }
         };
-        auto delegateDirect2 = [&dhitsDe](vector<Pair<uint16_t, uint32_t>> pos, DnaString const & needle, vector<uint8_t> errors)
+        auto delegateDirect2 = [&dhitsDe](Pair<uint16_t, uint32_t> const & pos, DnaString const & needle, uint8_t const errors)
         {
-            for (int i = 0; i < pos.size(); ++i){
-                hit me;
-                me.occ = pos[i];
-                me.read = needle;
-                me.errors = errors[i];
-                me.rev = false;
-                dhitsDe.push_back(me);
-            }
+            hit me;
+            me.occ = pos;
+            me.read = needle;
+            me.errors = errors;
+            me.rev = false;
+            dhitsDe.push_back(me);
         };
         auto start2 = std::chrono::high_resolution_clock::now();
         find(0, nerrors, delegate2, delegateDirect2, index, reads);

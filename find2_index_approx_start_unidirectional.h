@@ -12,7 +12,7 @@ template <typename TDelegate, typename TDelegateD,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir>
-void filter_interval(TDelegate & delegate,
+inline void filter_interval(TDelegate & delegate,
                      TDelegateD & delegateDirect,
                      Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
                      TNeedle const & needle,
@@ -25,7 +25,8 @@ void filter_interval(TDelegate & delegate,
                      Pair<uint8_t, Pair<uint32_t, uint32_t>> & inside_bit_interval,
                      TDir const & /**/)
 {
-    vector<pair<uint32_t, uint32_t>> consOnes = getConsOnes(bitvectors, inside_bit_interval, params.startuni.intervalsize);
+    vector<pair<uint32_t, uint32_t>> consOnes;
+    getConsOnes(bitvectors, inside_bit_interval, params.startuni.intervalsize, consOnes);
     //TODO replace with countSequences when it works
     uint32_t noi = seqan::length(iter.index->sa) - bitvectors[0].first.size(); // number_of_indeces
     for(int i = 0; i < consOnes.size(); ++i){
@@ -45,7 +46,7 @@ template<typename TText, typename TConfig, typename TIndexSpec,
          typename TVector, typename TVSupport,
          size_t nbrBlocks,
          typename TDir>
-bool testFilter(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
+inline bool testFilter(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
                           vector<pair<TVector, TVSupport>> & bitvectors,
                           Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
                           OptimalSearch<nbrBlocks> const & s,
@@ -54,40 +55,41 @@ bool testFilter(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TInde
 {
     // need bitinterval from inside the pattern to filter according to the mappability form
     //therefore i also need to acces the block before because of that block i got mappability of both sides
-    auto bit_interval = get_bitvector_interval_inside(iter, bitvectors, s, blockIndex, TDir());
+    Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
+    get_bitvector_interval_inside(iter, bitvectors, s, blockIndex, bit_interval, TDir());
     TVector & b2 = bitvectors[bit_interval.i1].first;
     
     //squash interval
     uint32_t startPos = bit_interval.i2.i1, endPos = bit_interval.i2.i2;
     
-    for(uint32_t i = startPos; i < endPos; ++i){
-        if(b2[i] != 0)
-            break; 
+    while(b2[startPos] == 0 && startPos < endPos)
         ++startPos;
-    }
-    for(uint32_t i = endPos - 1; i >= startPos; --i){
-        if(b2[i] != 0)
-            break;
+
+    while(b2[endPos - 1] == 0 && endPos > startPos)
         --endPos;
-    }
     
     if(startPos > endPos){
         cout << "Error bit vector has only zeroes this should have been checked by checkinterval" << endl;
         cout << "Size: " << endPos - startPos << endl;
         exit(0);
     }
-    // order of bits
-    bool last = b2[startPos];
-    uint32_t pos = startPos;
-    uint32_t count = 0; 
-    while(pos < endPos){
-        if(b2[pos] != last){
-            ++count;
-            last = !last;
-        }
-        ++pos;
-    }  
+    
+    
     float ivalSize = brange.i2.i2 - brange.i2.i1;
+    uint32_t count = 0; 
+    
+    if(params.startuni.testflipdensity){
+        // order of bits
+        bool last = b2[startPos];
+        uint32_t pos = startPos;
+        while(pos < endPos){
+            if(b2[pos] != last){
+                ++count;
+                last = !last;
+            }
+            ++pos;
+        }
+    }
     
     // if next condition is true then brange will be modified!!!!
     // it will contain mappability of the bitvector from the other side of already searched needle
@@ -100,9 +102,8 @@ bool testFilter(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TInde
     return false;
 }
 
-//TODO add else if
 template <typename TVector, typename TVSupport>
-ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
+inline ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
                           Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
                           uint8_t const blockSize,
                           bool const done,
@@ -166,7 +167,7 @@ template <typename TDelegate, typename TDelegateD,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir> 
-ReturnCode uniCheckMappability(TDelegate & delegate,
+inline ReturnCode uniCheckMappability(TDelegate & delegate,
                                  TDelegateD & delegateDirect,
                                  Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
                                  TNeedle const & needle,
@@ -180,7 +181,8 @@ ReturnCode uniCheckMappability(TDelegate & delegate,
                                  bool const nofilter,
                                  TDir const & )
 {
-    Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval_inside(iter, bitvectors, s, blockIndex + done, TDir());
+    Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
+    get_bitvector_interval_inside(iter, bitvectors, s, blockIndex + done, bit_interval, TDir());
     ReturnCode rcode = checkInterval(bitvectors, bit_interval, s.pi.size(), done, nofilter, blockIndex);
     
     if(rcode == ReturnCode::NOMAPPABILITY)
@@ -217,10 +219,14 @@ ReturnCode uniCheckMappability(TDelegate & delegate,
             delegate(iter, needle, errors, rev);
         }
         return ReturnCode::FINISHED; 
-    }else if(rcode == ReturnCode::DIRECTSEARCH){
+    }
+    
+    if(rcode == ReturnCode::DIRECTSEARCH){
         uniDirectSearch(delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir());
         return ReturnCode::FINISHED;
-    }else if(rcode == ReturnCode::FILTER){
+    }
+    
+    if(rcode == ReturnCode::FILTER){
         //test filter also modfied iter range if true;
         if(testFilter(iter, bitvectors, bit_interval, s, blockIndex, TDir())){
             filter_interval(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir());
