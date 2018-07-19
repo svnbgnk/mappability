@@ -22,8 +22,8 @@ void testglobal(){
 namespace seqan{
     
 template <typename TVector, typename TVSupport>
-vector<pair<uint32_t, uint32_t>> getConsOnes(vector<pair<TVector, TVSupport>> & bitvectors, 
-                                             Pair<uint8_t, Pair<uint32_t, uint32_t>> inside_bit_interval,
+vector<pair<uint32_t, uint32_t>> getConsOnes(vector<pair<TVector, TVSupport>> & bitvectors, // TODO: const
+                                             Pair<uint8_t, Pair<uint32_t, uint32_t>> inside_bit_interval, // TODO: const &
                                              int const intervalsize)
 {
     TVector & b = bitvectors[inside_bit_interval.i1].first;
@@ -105,6 +105,7 @@ void filter_interval(TDelegate & delegate,
     } 
 }
 
+// remove hitsvOutput return vector errors
 template <typename TNeedle,
           size_t nbrBlocks,
           typename TDir>
@@ -141,9 +142,12 @@ void genomeSearch(TNeedle const & needle,
         }
         if(errors < s.l[j] || errors > s.u[j]){
             valid = false;
+            // errorsOutput = -1;
+            // return;
             break;
         }
     }
+    // sa_info.i2 = ...;
     if(valid){
         hitsvOutput.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, sa_info.i2));
         errorsvOutput.push_back(errors);
@@ -169,7 +173,9 @@ void directSearch(TDelegateD & delegateDirect,
                   TDir const & )
 {
     vector<Pair<uint16_t, uint32_t>> hitsv;
+    hitsv.reserve(iter.countOccurrences());
     vector<uint8_t> errorsv;
+    errorsv.reserve(iter.countOccurrences());
     auto const & genome = indexText(*iter.fwdIter.index);
     for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
         if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
@@ -281,6 +287,7 @@ bool testUnidirectionalFilter(Iter<Index<TText, BidirectionalIndex<TIndex> >, VS
             break; 
         ++startPos;
     }
+    // TODO: schleifen schöner machen. ohne i
     for(uint32_t i = endPos - 1; i >= startPos; --i){
         if(b2[i] != 0)
             break;
@@ -335,7 +342,7 @@ ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
     
     if(params.normal.nomappability && ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
-    
+    // TODO: else raus
     else if(params.normal.directsearch && ivalOne < (s.pi.size() - blockIndex - 1 + params.normal.directsearchblockoffset) * params.normal.directsearch_th)
         return ReturnCode::DIRECTSEARCH;
     
@@ -372,6 +379,11 @@ ReturnCode checkCurrentMappability(TDelegate & delegate,
     //TODO add else ifs
     Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval(iter, bitvectors, s, blockIndex, TDir());
     ReturnCode rcode = checkInterval(bitvectors, bit_interval, s, blockIndex);
+    
+    // TODO:
+    // switch(rcode) {
+    //   case ReturnCode::NOMAPPABILITY
+    // }
     
     if(rcode == ReturnCode::NOMAPPABILITY)
         return ReturnCode::FINISHED;        
@@ -588,7 +600,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
                                  TDelegateD & delegateDirect,
                                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                  TNeedle const & needle,
-                                 vector<pair<TVector, TVSupport>> & bitvectors,   
+                                 vector<pair<TVector, TVSupport>> & bitvectors, // TODO: const   
                                  uint32_t const needleLeftPos,
                                  uint32_t const needleRightPos,
                                  uint8_t const errors,                             
@@ -797,7 +809,7 @@ find(TDelegate & delegate,
     typedef typename Reference<TNeedleIt>::Type                                       TNeedleRef;
     iterate(needles, [&](TNeedleIt const & needleIt)
     {
-        TNeedleRef needle = value(needleIt);
+        TNeedleRef needle = value(needleIt); 
         find<minErrors, maxErrors>(delegate, delegateDirect, index, needle);
     },
     Rooted(), TParallelTag());
@@ -843,9 +855,9 @@ void find(const int minErrors,
      const int maxErrors,
      TDelegate & delegate,
      TDelegateD & delegateDirect,
-     Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+     Index<TText, BidirectionalIndex<TIndexSpec> > & index, // TODO: const?
      StringSet<TNeedle, TStringSetSpec> const & needles,
-     vector<pair<TVector, TVSupport>> & bitvectors)
+     vector<pair<TVector, TVSupport>> & bitvectors) // TODO: const?
 {
     switch (maxErrors)
     {

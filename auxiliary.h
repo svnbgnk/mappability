@@ -351,7 +351,7 @@ void print_genome(auto it,//Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<T
     }else{
         std::cout << "UniDirectional Iter" << "\n";
     }/*
-    StringSet<DnaString> const & genome = indexText(*it.index);
+    auto const & genome = indexText(*it.index);
     ofstream file(output_path, ios::out | ios::binary);
     for(int i = 0; i < chr; ++i){
         file << (">");
@@ -378,7 +378,7 @@ void print_genome(auto it, //Iter<Index<TText, BidirectionalIndex<TIndex> >, VST
         std::cout << "UniDirectional Iter" << "\n";
     }
     /*
-    StringSet<DnaString> const & genome = indexText(*it.fwdIter.index);
+    auto const & genome = indexText(*it.fwdIter.index);
     ofstream file(output_path, ios::out | ios::binary);
     for(int i = 0; i < chr; ++i){
         file << (">");
@@ -502,10 +502,9 @@ Pair<uint32_t, uint32_t> getUniRange(Iter<Index<TText, FMIndex<void, TConfig> >,
     return(r);
 }
 
-
 //TODO fix this
 template <typename TText, typename TIndex, typename TIndexSpec>
-String<unsigned> getUniSa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it){
+auto getUniSa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it){
     std::cout << "This thing should not be executed getUniSa" << "\n";
     std::exit(0);
     auto const & sa = it.fwdIter.index->sa;
@@ -514,8 +513,8 @@ String<unsigned> getUniSa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree
 
 // template <typename TText, typename TSpec, typename TConfig>
 template <typename TText, typename TConfig, typename TIndexSpec>
-String<unsigned> getUniSa(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > it){
-    String<unsigned> const & sa = it.index->sa;
+auto getUniSa(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > it){
+    auto const & sa = it.index->sa;
     return(sa);
 }
 

@@ -109,11 +109,11 @@ int main(int argc, char *argv[])
     cout << "Loading bitvectors" << endl;
     vector<pair<TBitvector, TSupport>> bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
     cout << "Bit vectors loaded. Number: " << bitvectors.size() << endl;
-    
-  
+
+
     std::vector<hit> dhits;
     std::vector<hit> hits;
-    auto delegate = [&hits](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
+    auto delegate = [&hits](auto const & iter, DnaString const & needle, uint8_t errors, bool const rev)
     {
         for (auto occ : getOccurrences(iter)){
             hit me;
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
             hits.push_back(me);
         }
     };
-    auto delegateDirect = [&dhits](vector<Pair<uint16_t, uint32_t>> pos, DnaString const & needle, vector<uint8_t> errors)
+    auto delegateDirect = [&dhits](vector<Pair<uint16_t, uint32_t>> const & pos, DnaString const & needle, vector<uint8_t> const & errors)
     {
         for (int i = 0; i < pos.size(); ++i){
             hit me;
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
     // Test default
     std::vector<hit> hitsDe;
     if(mdefault){
-        auto delegateDe = [&hitsDe](auto & iter, DnaString const & needle, uint8_t errors)
+        auto delegateDe = [&hitsDe](auto & iter, DnaString const & needle, uint8_t const errors)
         {
             for (auto occ : getOccurrences(iter)){
                 hit me;

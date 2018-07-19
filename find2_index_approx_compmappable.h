@@ -168,6 +168,7 @@ template <typename TDelegate, typename TDelegateD,
           typename TDistanceTag>
 inline void _optimalSearchScheme(TDelegate & delegate,
                                  TDelegateD & delegateDirect,
+                                 // TDelegateTV & doInTextVerification,
                                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                  TNeedle const & needle,
                                  uint32_t const needleLeftPos,
@@ -194,7 +195,8 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     }
  
     else
-    {      
+    {    
+        // if (doInTextVerification(s, blockIndex, iter))
         if(params.comp.directsearch && iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1) * params.comp.directsearch_th)
         {
             directSearch(delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir());
@@ -208,4 +210,3 @@ inline void _optimalSearchScheme(TDelegate & delegate,
 
 }
 #endif
-
