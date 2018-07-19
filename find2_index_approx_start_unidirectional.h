@@ -54,7 +54,8 @@ bool testFilter(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TInde
 {
     // need bitinterval from inside the pattern to filter according to the mappability form
     //therefore i also need to acces the block before because of that block i got mappability of both sides
-    auto bit_interval = get_bitvector_interval_inside(iter, bitvectors, s, blockIndex, TDir());
+    Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
+    get_bitvector_interval_inside(iter, bitvectors, s, blockIndex, bit_interval, TDir());
     TVector & b2 = bitvectors[bit_interval.i1].first;
     
     //squash interval
@@ -180,7 +181,8 @@ ReturnCode uniCheckMappability(TDelegate & delegate,
                                  bool const nofilter,
                                  TDir const & )
 {
-    Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval_inside(iter, bitvectors, s, blockIndex + done, TDir());
+    Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
+    get_bitvector_interval_inside(iter, bitvectors, s, blockIndex + done, bit_interval, TDir());
     ReturnCode rcode = checkInterval(bitvectors, bit_interval, s.pi.size(), done, nofilter, blockIndex);
     
     if(rcode == ReturnCode::NOMAPPABILITY)

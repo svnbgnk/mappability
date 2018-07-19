@@ -8,16 +8,20 @@ using namespace std;
 
 namespace seqan{
 
+//TODO generalize function
 //TODO load bitvectors inside a struct to make accessing the correct bitvector easier
+    
+/*    
 template <typename TText, typename TConfig, typename TIndexSpec,
           typename TVector, typename TVSupport,
           typename TDir,
           size_t nbrBlocks>
-Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval_inside(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
-                                        vector<pair<TVector, TVSupport>> & bitvectors,    
-                                        OptimalSearch<nbrBlocks> const & s,
-                                        uint8_t const blockIndex,
-                                        TDir const & /**/) 
+inline void get_bitvector_interval_inside(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
+                                          vector<pair<TVector, TVSupport>> & bitvectors,    
+                                          OptimalSearch<nbrBlocks> const & s,
+                                          uint8_t const blockIndex,
+                                          Pair<uint8_t, Pair<uint32_t, uint32_t>> & brangeOutput,
+                                          TDir const & ) 
 {
     Pair<uint32_t, uint32_t> dirrange = range(iter);
     uint8_t needed_bitvector;
@@ -32,10 +36,11 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval_inside(Iter<Index
     uint32_t number_of_indeces = seqan::length(iter.index->sa) - bitvectors[needed_bitvector].first.size();
     dirrange.i1 = dirrange.i1 - number_of_indeces;
     dirrange.i2 = dirrange.i2 - number_of_indeces;
-    Pair<uint8_t, Pair<uint32_t, uint32_t>> brange(needed_bitvector, dirrange);
-    return brange;
+//     Pair<uint8_t, Pair<uint32_t, uint32_t>> brangeOutput(needed_bitvector, dirrange);
+    brangeOutput.i1 = needed_bitvector;
+    brangeOutput.i2 = dirrange;
 }
-    
+  */  
 //search on unidirectional reverse genome
 //sa_info is non const
 template <typename TDelegateD,

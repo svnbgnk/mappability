@@ -10,6 +10,9 @@
 #include "find2_index_approx_compmappable.h"
 #include "find2_index_approx_start_unidirectional.h"
 
+#include <assert.h> //TODO remove
+
+
 void testglobal(){
     std::cout << "Lets test global" << std::endl;
     std::cout << global << std::endl;
@@ -20,6 +23,39 @@ void testglobal(){
 //TODO add //squash interval as function
 
 namespace seqan{
+    
+    
+    
+template <typename TText, typename TConfig, typename TIndexSpec>
+auto getIterRange(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > it,
+                         bool const reverse)
+{
+    return range(it);
+}
+
+template <typename TText, typename TIndex, typename TIndexSpec>
+auto getIterRange(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it,
+                         bool const reverse)
+{
+    if(reverse)
+        return range(it.revIter);
+    else
+        return range(it.fwdIter);
+}
+
+
+template <typename TText, typename TConfig, typename TIndexSpec>
+unsigned getSALength(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > it)
+{
+    return (seqan::length(it.index->sa));
+}
+
+template <typename TText, typename TIndex, typename TIndexSpec>
+unsigned getSALength(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it)
+{
+    return (seqan::length(it.fwdIter.index->sa));
+}
+
     
 template <typename TVector, typename TVSupport>
 vector<pair<uint32_t, uint32_t>> getConsOnes(vector<pair<TVector, TVSupport>> & bitvectors, // TODO: const
@@ -47,24 +83,6 @@ vector<pair<uint32_t, uint32_t>> getConsOnes(vector<pair<TVector, TVSupport>> & 
     consOnes.push_back(make_pair(startOneInterval, k));
     return(consOnes);
 }
-
-    
-// template <size_t N>
-// struct OptimalSearch
-// {
-//     std::array<uint8_t, N> pi; // order of the blocks. permutation of [1..n]
-//     std::array<uint8_t, N> l; // minimum number of errors at the end of the corresponding block
-//     std::array<uint8_t, N> u; // maximum number of errors at the end of the corresponding block
-// 
-//     std::array<uint32_t, N> blocklength; // cumulated values / prefix sums
-//     std::array<uint32_t, N> chronBL;
-//     std::array<uint32_t, N> revChronBL;
-//     std::array<uint8_t, N> min;
-//     std::array<uint8_t, N> max;
-//     uint32_t startPos; //wrong position so i still get 0 from initialization
-//     uint8_t startUniDir; 
-// };  
-    
 
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
@@ -188,20 +206,22 @@ void directSearch(TDelegateD & delegateDirect,
             genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info);
         }
     }
-//     delegateDirect(hitsv, needle, errorsv);
 }
 
 //TODO load bitvectors inside a struct to make accessing the correct bitvector easier
-template <typename TText, typename TIndex, typename TIndexSpec,
+// unsigned getSALength(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > it)
+// unsigned getSALength(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it)
+template <typename TIter, //, typename TIndexConfig, typename TIndexSpec,
           typename TVector, typename TVSupport,
           size_t nbrBlocks>
-Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval_inside(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-                                        vector<pair<TVector, TVSupport>> & bitvectors,    
-                                        OptimalSearch<nbrBlocks> const & s,
-                                        uint8_t const blockIndex,
-                                        bool const goToRight2) 
+inline void get_bitvector_interval_inside(TIter iter,
+                              vector<pair<TVector, TVSupport>> & bitvectors,    
+                              OptimalSearch<nbrBlocks> const & s,
+                              uint8_t const blockIndex,
+                              Pair<uint8_t, Pair<uint32_t, uint32_t>> & brangeOutput,
+                              bool const goToRight2) 
 {
-    Pair<uint32_t, uint32_t> dirrange = (goToRight2) ? range(iter.revIter) : range(iter.fwdIter);
+    Pair<uint32_t, uint32_t> dirrange = getIterRange(iter, goToRight2); //? range(iter.revIter) : range(iter.fwdIter);
     uint8_t needed_bitvector;
     uint8_t size = s.pi.size();
     uint8_t bitvsize = bitvectors.size();
@@ -211,23 +231,25 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval_inside(Iter<Index
         needed_bitvector = s.min[blockIndex - 1] - 1;
 
     //TODO use countSequences if it works
-    uint32_t number_of_indeces = seqan::length(iter.fwdIter.index->sa) - bitvectors[needed_bitvector].first.size();
+    uint32_t number_of_indeces = getSALength(iter) - bitvectors[needed_bitvector].first.size();
     dirrange.i1 = dirrange.i1 - number_of_indeces;
     dirrange.i2 = dirrange.i2 - number_of_indeces;
     
-    Pair<uint8_t, Pair<uint32_t, uint32_t>> brange(needed_bitvector, dirrange);
-    return brange;
+    brangeOutput.i1 = needed_bitvector;
+    brangeOutput.i2 = dirrange;
 }
+
 
 template <typename TText, typename TIndex, typename TIndexSpec,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir>
-Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-                                                               vector<pair<TVector, TVSupport>> & bitvectors,    
-                                                               OptimalSearch<nbrBlocks> const & s,
-                                                               uint8_t const blockIndex,
-                                                               TDir const & ) 
+inline void get_bitvector_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+                       vector<pair<TVector, TVSupport>> & bitvectors,    
+                       OptimalSearch<nbrBlocks> const & s,
+                       uint8_t const blockIndex,
+                       Pair<uint8_t, Pair<uint32_t, uint32_t>> & brangeOutput,
+                       TDir const & ) 
 {
     Pair<uint32_t, uint32_t> dirrange = (std::is_same<TDir, Rev>::value) ? range(iter.fwdIter) : range(iter.revIter);
     uint8_t needed_bitvector;
@@ -252,14 +274,15 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval(Iter<Index<TText,
     uint32_t number_of_indeces = seqan::length(iter.fwdIter.index->sa) - bitvectors[needed_bitvector].first.size(); 
     dirrange.i1 = dirrange.i1 - number_of_indeces;
     dirrange.i2 = dirrange.i2 - number_of_indeces;
-    Pair<uint8_t, Pair<uint32_t, uint32_t>> brange(needed_bitvector, dirrange);
-    return brange;
+    
+   brangeOutput.i1 = needed_bitvector;
+   brangeOutput.i2 = dirrange;
 }
 
 template<typename TText, typename TIndex, typename TIndexSpec,
          typename TVector, typename TVSupport,
          size_t nbrBlocks>
-bool testUnidirectionalFilter(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+inline bool testUnidirectionalFilter(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                           vector<pair<TVector, TVSupport>> & bitvectors,
                           Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
                           OptimalSearch<nbrBlocks> const & s,
@@ -268,40 +291,60 @@ bool testUnidirectionalFilter(Iter<Index<TText, BidirectionalIndex<TIndex> >, VS
 {
     // need bitinterval from inside the pattern to filter according to the mappability form
     //therefore i also need to acces the block before because of that block i got mappability of both sides
-    auto bit_interval = get_bitvector_interval_inside(iter, bitvectors, s, blockIndex, goToRight2);
+    Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
+    get_bitvector_interval_inside(iter, bitvectors, s, blockIndex, bit_interval, goToRight2);
     TVector & b2 = bitvectors[bit_interval.i1].first;
     
     //squash interval
     uint32_t startPos = bit_interval.i2.i1, endPos = bit_interval.i2.i2;
+    uint32_t startPos2 = startPos;
+    uint32_t endPos2 = endPos;
     
-    for(uint32_t i = startPos; i < endPos; ++i){
+    while(b2[startPos] == 0 && startPos < endPos)
+        ++startPos;
+    
+    
+    //TODO remove
+    for(uint32_t i = startPos2; i < endPos; ++i){
         if(b2[i] != 0)
             break; 
-        ++startPos;
+        ++startPos2;
     }
-    // TODO: schleifen schöner machen. ohne i
-    for(uint32_t i = endPos - 1; i >= startPos; --i){
+    
+    assert(startPos == startPos2);
+
+    while(b2[endPos - 1] == 0 && endPos > startPos)
+        --endPos;
+  
+    //TODO remove
+    for(uint32_t i = endPos2 - 1; i >= startPos2; --i){
         if(b2[i] != 0)
             break;
-        --endPos;
+        --endPos2;
     }
+    
+    assert(endPos == endPos2);
     
     if(startPos > endPos){
         cout << "Error bit vector has only zeroes this should have been checked by checkinterval" << endl;
         exit(0);
     }
-    // order of bits
-    bool last = b2[startPos];
-    uint32_t pos = startPos;
-    uint32_t count = 0; 
-    while(pos < endPos){
-        if(b2[pos] != last){
-            ++count;
-            last = !last;
-        }
-        ++pos;
-    }  
+    
     float ivalSize = brange.i2.i2 - brange.i2.i1;
+    uint32_t count = 0;
+    
+    if(params.normal.testflipdensity){
+        // order of bits
+        bool last = b2[startPos];
+        uint32_t pos = startPos;
+        while(pos < endPos){
+            if(b2[pos] != last){
+                ++count;
+                last = !last;
+            }
+            ++pos;
+        }
+    }
     // if next condition is true then brange will be modified!!!!
     // it will contain mappability of the bitvector from the other side of already searched needle
     
@@ -309,7 +352,7 @@ bool testUnidirectionalFilter(Iter<Index<TText, BidirectionalIndex<TIndex> >, VS
     // if 0 got Cutoff that means more changes but is also good at the same time
     // therefore ignore them
     // allowd flips per intervalSize
-    if(ivalSize * params.normal.invflipdensity - 1 > static_cast<float>(count)){
+    if(!params.normal.testflipdensity || ivalSize * params.normal.invflipdensity - 1 > static_cast<float>(count)){
         brange.i1 = bit_interval.i1;
         brange.i2.i1 = startPos;
         brange.i2.i2 = endPos;
@@ -320,7 +363,7 @@ bool testUnidirectionalFilter(Iter<Index<TText, BidirectionalIndex<TIndex> >, VS
 
 template<typename TVector, typename TVSupport,
          size_t nbrBlocks>
-ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
+inline ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
                           Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
                           OptimalSearch<nbrBlocks> const & s,
                           uint8_t const blockIndex)
@@ -334,17 +377,16 @@ ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
     
     if(params.normal.nomappability && ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
-    // TODO: else raus
-    else if(params.normal.directsearch && ivalOne < (s.pi.size() - blockIndex - 1 + params.normal.directsearchblockoffset) * params.normal.directsearch_th)
+
+    if(params.normal.directsearch && ivalOne < (s.pi.size() - blockIndex - 1 + params.normal.directsearchblockoffset) * params.normal.directsearch_th)
         return ReturnCode::DIRECTSEARCH;
     
-    else if(params.normal.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
+    if(params.normal.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
         return ReturnCode::COMPMAPPABLE;
     
     //equal or more than half zeroes
-    else if(params.normal.suspectunidirectional && s.startUniDir <= blockIndex && ivalOne/ ivalSize <= params.normal.filter_th)
+    if(params.normal.suspectunidirectional && s.startUniDir <= blockIndex && ivalOne/ ivalSize <= params.normal.filter_th)
         return ReturnCode::SUSPECTUNIDIRECTIONAL;
-        
     else
         return ReturnCode::MAPPABLE;
 }
@@ -355,7 +397,7 @@ template <typename TDelegate, typename TDelegateD,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir>
-ReturnCode checkCurrentMappability(TDelegate & delegate,
+inline ReturnCode checkCurrentMappability(TDelegate & delegate,
                             TDelegateD & delegateDirect,
                             Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                             TNeedle const & needle,
@@ -368,27 +410,29 @@ ReturnCode checkCurrentMappability(TDelegate & delegate,
                             uint8_t const minErrorsLeftInBlock,
                             TDir const & )
 {
-    //TODO add else ifs
-    Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval = get_bitvector_interval(iter, bitvectors, s, blockIndex, TDir());
+    Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
+    get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, TDir());
     ReturnCode rcode = checkInterval(bitvectors, bit_interval, s, blockIndex);
     
-    // TODO:
-    // switch(rcode) {
-    //   case ReturnCode::NOMAPPABILITY
-    // }
-    
-    if(rcode == ReturnCode::NOMAPPABILITY)
-        return ReturnCode::FINISHED;        
-    //search directly in Genome
-    if(rcode == ReturnCode::DIRECTSEARCH){
-        directSearch(delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir());
-        return ReturnCode::FINISHED;
+    switch(rcode){
+        case ReturnCode::NOMAPPABILITY:
+            return ReturnCode::FINISHED;
+        
+        case ReturnCode::DIRECTSEARCH: 
+        {
+            directSearch(delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir());
+            return ReturnCode::FINISHED;
+        }
+        
+        case ReturnCode::COMPMAPPABLE:
+        {
+            _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), HammingDistance());
+            return ReturnCode::FINISHED;
+        }
+        
+        default: 
+            return ReturnCode::MAPPABLE;
     }
-    if(rcode == ReturnCode::COMPMAPPABLE){
-        _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), HammingDistance());
-        return ReturnCode::FINISHED;
-    }
-    return ReturnCode::MAPPABLE;
 }
 
 
@@ -398,7 +442,7 @@ template <typename TDelegate, typename TDelegateD,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir>
-ReturnCode checkMappability(TDelegate & delegate,
+inline ReturnCode checkMappability(TDelegate & delegate,
                             TDelegateD & delegateDirect,
                             Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                             TNeedle const & needle,
@@ -416,49 +460,58 @@ ReturnCode checkMappability(TDelegate & delegate,
     if(!finished){
         Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
         if(goToRight2)
-            bit_interval = get_bitvector_interval(iter, bitvectors, s, blockIndex, Rev());
+            get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, Rev());
         else
-            bit_interval = get_bitvector_interval(iter, bitvectors, s, blockIndex, Fwd());
+            get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, Fwd());
         
         ReturnCode rcode = checkInterval(bitvectors, bit_interval, s, blockIndex);
-        
-        if(rcode == ReturnCode::NOMAPPABILITY)
-            return ReturnCode::FINISHED;   
-        if(rcode == ReturnCode::DIRECTSEARCH)
-        {
-            //search directly in Genome
-            // search in the next blocks only therefore need current error count
-            if(goToRight2)
+        //TODO switch
+         switch(rcode)
+         {
+            case ReturnCode::NOMAPPABILITY: 
+                return ReturnCode::FINISHED;
+                
+            case ReturnCode::DIRECTSEARCH:
             {
-                directSearch(delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, Rev());
-            }
-            else
-            {
-                directSearch(delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, Fwd());
-            }
-            return ReturnCode::FINISHED;
-        }
-        if(rcode == ReturnCode::COMPMAPPABLE)
-        {
-            if (goToRight2)
-                _optimalSearchScheme(delegate, delegateDirect, iter, needle, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, Rev(), HammingDistance());
-            else
-                _optimalSearchScheme(delegate, delegateDirect, iter, needle, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, Fwd(), HammingDistance());
-            return ReturnCode::FINISHED;
-        }
-        
-        if(rcode == ReturnCode::SUSPECTUNIDIRECTIONAL)
-        {
-            //test unidirectional changes iter range if true
-            if(testUnidirectionalFilter(iter, bitvectors, bit_interval, s, blockIndex, goToRight2)){
-            //range on iter was changed in function before
+                //search directly in Genome
+                // search in the next blocks only therefore need current error count
+                //TODO direction plays no role in this anymore?
                 if(goToRight2)
-                    filter_interval(delegate, delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, Rev());
+                {
+                    directSearch(delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, Rev());
+                }
                 else
-                    filter_interval(delegate, delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s,blockIndex,    bit_interval, Fwd());
-                return ReturnCode::FINISHED;        
+                {
+                    directSearch(delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, Fwd());
+                }
+                return ReturnCode::FINISHED;
             }
-        }
+            
+            case ReturnCode::COMPMAPPABLE:
+            {
+                if (goToRight2)
+                    _optimalSearchScheme(delegate, delegateDirect, iter, needle, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, Rev(), HammingDistance());
+                else
+                    _optimalSearchScheme(delegate, delegateDirect, iter, needle, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, Fwd(), HammingDistance());
+                return ReturnCode::FINISHED;
+            }
+            
+            case ReturnCode::SUSPECTUNIDIRECTIONAL:
+            {
+                //test unidirectional changes iter range if true
+                if(testUnidirectionalFilter(iter, bitvectors, bit_interval, s, blockIndex, goToRight2)){
+                    //range on iter was changed in function before
+                    if(goToRight2)
+                        filter_interval(delegate, delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, Rev());
+                    else
+                        filter_interval(delegate, delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s,blockIndex,    bit_interval, Fwd());
+                    return ReturnCode::FINISHED;        
+                }
+            }
+ /*           
+            default: 
+                ReturnCode::MAPPABLE;*/
+         }
     }
     return ReturnCode::MAPPABLE;
 }
@@ -592,7 +645,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
                                  TDelegateD & delegateDirect,
                                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                  TNeedle const & needle,
-                                 vector<pair<TVector, TVSupport>> & bitvectors, // TODO: const   
+                                 vector<pair<TVector, TVSupport>> & bitvectors,
                                  uint32_t const needleLeftPos,
                                  uint32_t const needleRightPos,
                                  uint8_t const errors,                             
@@ -763,17 +816,7 @@ find(TDelegate & delegate,
     typedef typename Reference<TNeedleIt>::Type                                       TNeedleRef;
     checkTime time;
     iterate(needles, [&](TNeedleIt const & needleIt)
-    {
-        /*
-        if(params.clocking && time.stopnow(params.terminateDuration)){
-            cout << "Trying to break/return" << endl;
-            for(int i = 0; i < length(needles); ++i){
-                TNeedleRef needle = value(needleIt);
-//                 cout << "s";
-            }
-            //return does not work;
-        }*/ 
-        
+    {        
         TNeedleRef needle = value(needleIt);
         if(!(params.clocking && time.stopnow(params.terminateDuration))){
             find<minErrors, maxErrors>(delegate, delegateDirect, index, needle, bitvectors);
@@ -843,13 +886,13 @@ template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndexSpec,
           typename TNeedle, typename TStringSetSpec,
           typename TVector, typename TVSupport>
-void find(const int minErrors,
+inline void find(const int minErrors,
      const int maxErrors,
      TDelegate & delegate,
      TDelegateD & delegateDirect,
-     Index<TText, BidirectionalIndex<TIndexSpec> > & index, // TODO: const?
+     Index<TText, BidirectionalIndex<TIndexSpec> > & index,
      StringSet<TNeedle, TStringSetSpec> const & needles,
-     vector<pair<TVector, TVSupport>> & bitvectors) // TODO: const?
+     vector<pair<TVector, TVSupport>> & bitvectors) // cant be const since TVSupport.set_vector(&TVector)
 {
     switch (maxErrors)
     {
@@ -868,7 +911,7 @@ template <typename TDelegate,
           typename TText, typename TIndexSpec,
           typename TNeedle, typename TStringSetSpec,
           typename TDistanceTag>
-void find(const int minErrors,
+inline void find(const int minErrors,
      const int maxErrors,
      TDelegate & delegate,
      Index<TText, BidirectionalIndex<TIndexSpec> > & index,
@@ -891,7 +934,7 @@ void find(const int minErrors,
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndexSpec,
           typename TNeedle, typename TStringSetSpec>
-void find(const int minErrors,
+inline void find(const int minErrors,
      const int maxErrors,
      TDelegate & delegate,
      TDelegateD & delegateDirect,

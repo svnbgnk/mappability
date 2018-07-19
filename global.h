@@ -24,6 +24,8 @@ public:
     bool directsearch;
     bool compmappable;
     bool suspectunidirectional;
+    
+    bool testflipdensity;
     int step;
     int distancetoblockend;
     int directsearch_th;
@@ -52,6 +54,7 @@ public:
         compmappable = true;
         suspectunidirectional = true;
     
+        testflipdensity = true;
         //binaryNumber
         step = 0b11;
         distancetoblockend = 2;
@@ -86,6 +89,7 @@ public:
         std::cout << "Cases Enabled: " << "\n";
         std::cout << nomappability << " " << directsearch << " " << compmappable << " " << suspectunidirectional << "\n";
         std::cout << "Params: " << "\n";
+
         std::cout << "step: " << step << "\n";
         std::cout << "distancetoblockend: " << distancetoblockend << "\n";
         std::cout << "directsearchblockoffset: " << directsearchblockoffset << "\n";
