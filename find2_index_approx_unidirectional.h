@@ -11,7 +11,7 @@ namespace seqan{
 //TODO generalize function
 //TODO load bitvectors inside a struct to make accessing the correct bitvector easier
     
-/*    
+    
 template <typename TText, typename TConfig, typename TIndexSpec,
           typename TVector, typename TVSupport,
           typename TDir,
@@ -40,7 +40,7 @@ inline void get_bitvector_interval_inside(Iter<Index<TText, FMIndex<void, TConfi
     brangeOutput.i1 = needed_bitvector;
     brangeOutput.i2 = dirrange;
 }
-  */  
+
 //search on unidirectional reverse genome
 //sa_info is non const
 template <typename TDelegateD,

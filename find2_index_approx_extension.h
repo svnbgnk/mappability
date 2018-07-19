@@ -24,39 +24,6 @@ void testglobal(){
 
 namespace seqan{
     
-    
-    
-template <typename TText, typename TConfig, typename TIndexSpec>
-auto getIterRange(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > it,
-                         bool const reverse)
-{
-    return range(it);
-}
-
-template <typename TText, typename TIndex, typename TIndexSpec>
-auto getIterRange(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it,
-                         bool const reverse)
-{
-    if(reverse)
-        return range(it.revIter);
-    else
-        return range(it.fwdIter);
-}
-
-
-template <typename TText, typename TConfig, typename TIndexSpec>
-unsigned getSALength(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > it)
-{
-    return (seqan::length(it.index->sa));
-}
-
-template <typename TText, typename TIndex, typename TIndexSpec>
-unsigned getSALength(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it)
-{
-    return (seqan::length(it.fwdIter.index->sa));
-}
-
-    
 template <typename TVector, typename TVSupport>
 vector<pair<uint32_t, uint32_t>> getConsOnes(vector<pair<TVector, TVSupport>> & bitvectors, // TODO: const
                                              Pair<uint8_t, Pair<uint32_t, uint32_t>> inside_bit_interval, // TODO: const &
@@ -209,19 +176,17 @@ void directSearch(TDelegateD & delegateDirect,
 }
 
 //TODO load bitvectors inside a struct to make accessing the correct bitvector easier
-// unsigned getSALength(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > it)
-// unsigned getSALength(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it)
-template <typename TIter, //, typename TIndexConfig, typename TIndexSpec,
+template <typename TText, typename TIndex, typename TIndexSpec,
           typename TVector, typename TVSupport,
           size_t nbrBlocks>
-inline void get_bitvector_interval_inside(TIter iter,
+inline void get_bitvector_interval_inside(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                               vector<pair<TVector, TVSupport>> & bitvectors,    
                               OptimalSearch<nbrBlocks> const & s,
                               uint8_t const blockIndex,
                               Pair<uint8_t, Pair<uint32_t, uint32_t>> & brangeOutput,
                               bool const goToRight2) 
 {
-    Pair<uint32_t, uint32_t> dirrange = getIterRange(iter, goToRight2); //? range(iter.revIter) : range(iter.fwdIter);
+    Pair<uint32_t, uint32_t> dirrange = (goToRight2) ? range(iter.revIter) : range(iter.fwdIter);
     uint8_t needed_bitvector;
     uint8_t size = s.pi.size();
     uint8_t bitvsize = bitvectors.size();
@@ -231,7 +196,7 @@ inline void get_bitvector_interval_inside(TIter iter,
         needed_bitvector = s.min[blockIndex - 1] - 1;
 
     //TODO use countSequences if it works
-    uint32_t number_of_indeces = getSALength(iter) - bitvectors[needed_bitvector].first.size();
+    uint32_t number_of_indeces = seqan::length(iter.fwdIter.index->sa) - bitvectors[needed_bitvector].first.size();
     dirrange.i1 = dirrange.i1 - number_of_indeces;
     dirrange.i2 = dirrange.i2 - number_of_indeces;
     
