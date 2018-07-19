@@ -72,7 +72,7 @@ inline void run(TIndex & index, TText const & text, Options const & opt, signed 
     TVector c(seqan::length(text) - opt.length + 1, 0);
 
     // TODO: is there an upper bound? are we interested whether a k-mer has 60.000 or 70.000 hits?
-    cout << mytime() << "Vector initialized (size: " << c.size() << ")." << endl;
+    //cout << mytime() << "Vector initialized (size: " << c.size() << ")." << endl;
 
     // TODO: won't be necessary in the future
     // if (opt.overlap == 0 && opt.threshold > 0)
@@ -146,15 +146,16 @@ inline void run(TIndex & index, TText const & text, Options const & opt, signed 
     }
 
     cout << mytime() << "Done.\n";
+    cout.flush();
 
     string output_path = get_output_path(opt, chromosomeId);
     save(c, output_path);
 
-    for (unsigned i = 0; i < min(c.size(), 64ul); ++i)
-        cout << (unsigned) c[i] << ' ';
-    cout << '\n';
+    //for (unsigned i = 0; i < min(c.size(), 64ul); ++i)
+    //    cout << (unsigned) c[i] << ' ';
+    //cout << '\n';
 
-    cout << mytime() << "Saved to disk: " << output_path << '\n';
+    //cout << mytime() << "Saved to disk: " << output_path << '\n';
 }
 
 template <typename TChar, typename TAllocConfig, typename TDistance>
@@ -169,7 +170,7 @@ inline void run(Options const & opt)
 
         auto const & text = indexText(index);
 
-        cout << mytime() << "Index loaded." << endl;
+        //cout << mytime() << "Index loaded." << endl;
         run<TDistance>(index, text.concat, opt, -1 /*no chromosomeId*/);
     }
     else
@@ -186,7 +187,7 @@ inline void run(Options const & opt)
             _indexPath += "." + to_string(i);
             TIndex<TString> index;
             open(index, toCString(_indexPath), OPEN_RDONLY);
-            cout << mytime() << "Index of " << ids[i] << " loaded." << endl;
+            //cout << mytime() << "Index of " << ids[i] << " loaded." << endl;
             auto const & text = indexText(index);
             run<TDistance>(index, text, opt, i);
         }
@@ -254,6 +255,9 @@ int main(int argc, char *argv[])
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
     if (res != ArgumentParser::PARSE_OK)
         return res == ArgumentParser::PARSE_ERROR;
+
+    cout << mytime() << "Started.\n";
+    cout.flush();
 
     // Retrieve input parameters
     Options opt;
