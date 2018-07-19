@@ -173,9 +173,9 @@ void directSearch(TDelegateD & delegateDirect,
                   TDir const & )
 {
     vector<Pair<uint16_t, uint32_t>> hitsv;
-    hitsv.reserve(iter.countOccurrences());
+//     hitsv.reserve(countOccurrences(iter.fwdIter)); //TODO fix this
     vector<uint8_t> errorsv;
-    errorsv.reserve(iter.countOccurrences());
+//     errorsv.reserve(iter.fwdIter.countOccurrences());
     auto const & genome = indexText(*iter.fwdIter.index);
     for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
         if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){

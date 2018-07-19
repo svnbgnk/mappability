@@ -148,34 +148,36 @@ int main(int argc, char *argv[])
     std::chrono::duration<double> elapsed;
     
     if(!notmy){
-    cout << "Start My Search!" << endl;
-    start = std::chrono::high_resolution_clock::now();
-    find(0, nerrors, delegate, delegateDirect, index, reads, bitvectors);
-    finish = std::chrono::high_resolution_clock::now();
-    elapsed = finish - start;
-    cout << "Finished My Search" << endl;
+        cout << "Start My Search!" << endl;
+        start = std::chrono::high_resolution_clock::now();
+        find(0, nerrors, delegate, delegateDirect, index, reads, bitvectors);
+        finish = std::chrono::high_resolution_clock::now();
+        elapsed = finish - start;
+        cout << "Finished My Search" << endl;
 
-    auto scalc = std::chrono::high_resolution_clock::now();
-    calcfwdPos(index, bitvectors, hits);
-    auto ecalc = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsedcalc = ecalc - scalc;
-    cout << "Calc revPositions to forward positions: "<< elapsedcalc.count() << "s" << endl;
+        auto scalc = std::chrono::high_resolution_clock::now();
+        calcfwdPos(index, bitvectors, hits);
+        auto ecalc = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsedcalc = ecalc - scalc;
+        cout << "Calc revPositions to forward positions: "<< elapsedcalc.count() << "s" << endl;
     //     stringSetLimits(text)
-    for(int i = 0; i < dhits.size(); ++i){
-        hits.push_back(dhits[i]);
-    }
-    std::sort(hits.begin(), hits.end(), occ_smaller);
     }
     
     if(ecompare){
+        for(int i = 0; i < dhits.size(); ++i){
+            hits.push_back(dhits[i]);
+        }
+        std::sort(hits.begin(), hits.end(), occ_smaller);
+        
         for(int i = 0; i < hits.size(); ++i){
             cout << "Errors: "<< (int)hits[i].errors;
             cout << "   "  << hits[i].occ << endl;
             cout << infix(genome[hits[i].occ.i1], hits[i].occ.i2, hits[i].occ.i2 + seqan::length(hits[i].read)) << endl;
         }
-    }    
+    }
+        
     cout << "MyVersion elapsed: " << elapsed.count() << "s" << endl;
-    cout << "normal Hits: " << hits.size() - dhits.size() << endl;
+    cout << "normal Hits: (if compare this also includes dhits)" << hits.size() << endl;
     cout << "direct Hits: " << dhits.size() << endl;
     
     // Test default
