@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
         for (auto occ : getOccurrences(iter)){
             hit me;
             me.occ = occ;
-            me.read = needle;
+//             me.read = needle;
             me.errors = errors;
             me.rev = rev;
             hits.push_back(me);
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
     {
         hit me;
         me.occ = pos;
-        me.read = needle;
+//         me.read = needle;
         me.errors = errors;
         me.rev = false;
         dhits.push_back(me);
@@ -186,7 +186,7 @@ int main(int argc, char *argv[])
             for (auto occ : getOccurrences(iter)){
                 hit me;
                 me.occ = occ;
-                me.read = needle;
+//                 me.read = needle;
                 me.errors = errors;
                 me.rev = false;
                 hitsDe.push_back(me);
@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
             for (auto occ : getOccurrences(iter)){
                 hit me;
             me.occ = occ;
-            me.read = needle;
+//             me.read = needle;
             me.errors = errors;
             me.rev = false;
             hitsDe.push_back(me);
@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
         {
             hit me;
             me.occ = pos;
-            me.read = needle;
+//             me.read = needle;
             me.errors = errors;
             me.rev = false;
             dhitsDe.push_back(me);
