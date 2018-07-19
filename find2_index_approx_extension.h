@@ -106,10 +106,12 @@ void filter_interval(TDelegate & delegate,
 }
 
 // remove hitsvOutput return vector errors
-template <typename TNeedle,
+template <typename TDelegateD,
+          typename TNeedle,
           size_t nbrBlocks,
           typename TDir>
-void genomeSearch(TNeedle const & needle,
+void genomeSearch(TDelegateD & delegateDirect,
+                  TNeedle const & needle,
                   uint32_t const needleLeftPos,
                   uint32_t const needleRightPos,
                   uint8_t errors,
@@ -117,9 +119,7 @@ void genomeSearch(TNeedle const & needle,
                   uint8_t const blockIndex,
                   TDir const & ,
                   auto const & genome,
-                  Pair<uint16_t, uint32_t> const & sa_info,
-                  vector<Pair<uint16_t, uint32_t>> & hitsvOutput,
-                  vector<uint8_t> & errorsvOutput)
+                  Pair<uint16_t, uint32_t> const & sa_info)
 {
     bool valid = true;
     for(int j = blockIndex; j < s.pi.size(); ++j){
@@ -127,9 +127,8 @@ void genomeSearch(TNeedle const & needle,
         int blockEnd = s.chronBL[s.pi[j] - 1];
         // compare bases to needle
         if(std::is_same<TDir, Rev>::value){
-            if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd){
+            if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd)
                 blockStart = needleRightPos - 1;
-            }
         }
         else
         {
@@ -142,15 +141,11 @@ void genomeSearch(TNeedle const & needle,
         }
         if(errors < s.l[j] || errors > s.u[j]){
             valid = false;
-            // errorsOutput = -1;
-            // return;
             break;
         }
     }
-    // sa_info.i2 = ...;
     if(valid){
-        hitsvOutput.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, sa_info.i2));
-        errorsvOutput.push_back(errors);
+        delegateDirect(sa_info, needle, errors);
     }
 }
 
@@ -172,10 +167,7 @@ void directSearch(TDelegateD & delegateDirect,
                   Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
                   TDir const & )
 {
-    vector<Pair<uint16_t, uint32_t>> hitsv;
 //     hitsv.reserve(countOccurrences(iter.fwdIter)); //TODO fix this
-    vector<uint8_t> errorsv;
-//     errorsv.reserve(iter.fwdIter.countOccurrences());
     auto const & genome = indexText(*iter.fwdIter.index);
     for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
         if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
@@ -193,10 +185,10 @@ void directSearch(TDelegateD & delegateDirect,
                 sa_info.i2 = seqan::length(genome[sa_info.i1]) - sa_info.i2 - needleRightPos + 1;
             }
             //search remaining blocks
-            genomeSearch(needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info, hitsv, errorsv);
+            genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info);
         }
     }
-    delegateDirect(hitsv, needle, errorsv);
+//     delegateDirect(hitsv, needle, errorsv);
 }
 
 //TODO load bitvectors inside a struct to make accessing the correct bitvector easier

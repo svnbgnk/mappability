@@ -37,9 +37,12 @@ Pair<uint8_t, Pair<uint32_t, uint32_t>> get_bitvector_interval_inside(Iter<Index
 }
     
 //search on unidirectional reverse genome
-template <typename TNeedle,
+//sa_info is non const
+template <typename TDelegateD,
+          typename TNeedle,
           size_t nbrBlocks>
-void genomeSearch(bool const unidirectionalOnReverseIndex,
+void genomeSearch(TDelegateD & delegateDirect,
+                  bool const unidirectionalOnReverseIndex,
                   TNeedle const & needle,
                   uint32_t const needleLeftPos,
                   uint32_t const needleRightPos,
@@ -47,9 +50,7 @@ void genomeSearch(bool const unidirectionalOnReverseIndex,
                   OptimalSearch<nbrBlocks> const & s,
                   uint8_t const blockIndex,
                   auto const & rgenome,
-                  Pair<uint16_t, uint32_t> const & sa_info,
-                  vector<Pair<uint16_t, uint32_t>> & hitsvOutput,
-                  vector<uint8_t> & errorsvOutput)
+                  Pair<uint16_t, uint32_t> & sa_info)
 {
     bool valid = true;
     for(int j = blockIndex; j < s.pi.size(); ++j){
@@ -68,9 +69,11 @@ void genomeSearch(bool const unidirectionalOnReverseIndex,
         }
     }
     if(valid){
-        uint32_t occ = seqan::length(rgenome[sa_info.i1]) - sa_info.i2 - length(needle);
-        hitsvOutput.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
-        errorsvOutput.push_back(errors);
+        sa_info.i2 = seqan::length(rgenome[sa_info.i1]) - sa_info.i2 - length(needle);
+        delegateDirect(sa_info, needle, errors);
+//         uint32_t occ = seqan::length(rgenome[sa_info.i1]) - sa_info.i2 - length(needle);
+//         hitsvOutput.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
+//         errorsvOutput.push_back(errors);
     }
 }
 
@@ -93,8 +96,8 @@ void uniDirectSearch(TDelegateD & delegateDirect,
                   Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
                   TDir const & /**/)
 {
-    vector<Pair<uint16_t, uint32_t>> hitsv;
-    vector<uint8_t> errorsv;
+//     vector<Pair<uint16_t, uint32_t>> hitsv;
+//     vector<uint8_t> errorsv;
     auto const & genome = indexText(*iter.index);
     for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
         //this time i use the mappability from "inside" the needle since i can garantue i am at a blockend
@@ -113,16 +116,14 @@ void uniDirectSearch(TDelegateD & delegateDirect,
                 //calculate correct starting position of the needle  on the forward index
                 sa_info.i2 = sa_info.i2 - needleLeftPos;
             }
-            //search remaining blocks
-            int sizebefore = hitsv.size();
             //use modified genomeSearch in case of reverse index
             if(std::is_same<TDir, Rev>::value)
-                genomeSearch(true, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, genome, sa_info, hitsv, errorsv);
+                genomeSearch(delegateDirect, true, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, genome, sa_info);
             else
-                genomeSearch(needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info, hitsv, errorsv);
+                genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info);
         }
     }
-    delegateDirect(hitsv, needle, errorsv);
+//     delegateDirect(hitsv, needle, errorsv);
 }
 
     

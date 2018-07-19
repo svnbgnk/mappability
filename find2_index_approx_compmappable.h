@@ -29,9 +29,8 @@ void directSearch(TDelegateD & delegateDirect,
         //dont need look at the reverse index in this case since i dont use mappability
         sa_info = iter.fwdIter.index->sa[i];
         sa_info.i2 = sa_info.i2 - needleLeftPos;
-        genomeSearch(needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info, hitsv, errorsv);
+        genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info);
     }
-    delegateDirect(hitsv, needle, errorsv);
 }
     
 template <typename TDelegate, typename TDelegateD,
