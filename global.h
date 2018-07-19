@@ -191,7 +191,6 @@ public:
 };
 
 extern myGlobalParameters params;
-extern int global;
 
 
 /*

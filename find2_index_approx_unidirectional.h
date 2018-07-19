@@ -1,17 +1,13 @@
 #ifndef SEQAN_INDEX_FIND2_INDEX_APPROX_UNIDIRECTIONAL_H_
 #define SEQAN_INDEX_FIND2_INDEX_APPROX_UNIDIRECTIONAL_H_
 
-// #include <sdsl/bit_vectors.hpp>
-// #include "common.h"
-// #include "common_auxiliary.h"
+
 using namespace std;
 
 namespace seqan{
 
-//TODO generalize function
+
 //TODO load bitvectors inside a struct to make accessing the correct bitvector easier
-    
-    
 template <typename TText, typename TConfig, typename TIndexSpec,
           typename TVector, typename TVSupport,
           typename TDir,
@@ -42,11 +38,12 @@ inline void get_bitvector_interval_inside(Iter<Index<TText, FMIndex<void, TConfi
 }
 
 //search on unidirectional reverse genome
-//sa_info is non const
+//sa_info is not const
+//TODO calculate the EndPos of the needle maybe than it is easier to merge with the other function
 template <typename TDelegateD,
           typename TNeedle,
           size_t nbrBlocks>
-void genomeSearch(TDelegateD & delegateDirect,
+inline void genomeSearch(TDelegateD & delegateDirect,
                   bool const unidirectionalOnReverseIndex,
                   TNeedle const & needle,
                   uint32_t const needleLeftPos,
@@ -76,20 +73,17 @@ void genomeSearch(TDelegateD & delegateDirect,
     if(valid){
         sa_info.i2 = seqan::length(rgenome[sa_info.i1]) - sa_info.i2 - length(needle);
         delegateDirect(sa_info, needle, errors);
-//         uint32_t occ = seqan::length(rgenome[sa_info.i1]) - sa_info.i2 - length(needle);
-//         hitsvOutput.push_back(Pair<uint16_t,uint32_t>(sa_info.i1, occ));
-//         errorsvOutput.push_back(errors);
     }
 }
 
-//TODO calculate the EndPos of the needle maybe than it is easier to merge with the other function
+
 template <typename TDelegateD,
           typename TText, typename TConfig, typename TIndexSpec,
           typename TNeedle,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir>
-void uniDirectSearch(TDelegateD & delegateDirect,
+inline void uniDirectSearch(TDelegateD & delegateDirect,
                   Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
                   TNeedle const & needle,
                   vector<pair<TVector, TVSupport>> & bitvectors, 
@@ -101,8 +95,6 @@ void uniDirectSearch(TDelegateD & delegateDirect,
                   Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
                   TDir const & /**/)
 {
-//     vector<Pair<uint16_t, uint32_t>> hitsv;
-//     vector<uint8_t> errorsv;
     auto const & genome = indexText(*iter.index);
     for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
         //this time i use the mappability from "inside" the needle since i can garantue i am at a blockend
@@ -128,7 +120,6 @@ void uniDirectSearch(TDelegateD & delegateDirect,
                 genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info);
         }
     }
-//     delegateDirect(hitsv, needle, errorsv);
 }
 
     
@@ -240,8 +231,8 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
     }
 }
 
-/*
-ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
+/* 
+inline ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
                           Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
                           uint8_t const blockSize,
                           bool const done,

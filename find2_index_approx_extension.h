@@ -10,27 +10,17 @@
 #include "find2_index_approx_compmappable.h"
 #include "find2_index_approx_start_unidirectional.h"
 
-#include <assert.h> //TODO remove
-
-
-void testglobal(){
-    std::cout << "Lets test global" << std::endl;
-    std::cout << global << std::endl;
-    params.print();
-}
-
-
 //TODO add //squash interval as function
 
 namespace seqan{
     
 template <typename TVector, typename TVSupport>
-vector<pair<uint32_t, uint32_t>> getConsOnes(vector<pair<TVector, TVSupport>> & bitvectors, // TODO: const
-                                             Pair<uint8_t, Pair<uint32_t, uint32_t>> inside_bit_interval, // TODO: const &
-                                             int const intervalsize)
+inline void getConsOnes(std::vector<std::pair<TVector, TVSupport>> & bitvectors, //TODO const
+                Pair<uint8_t, Pair<uint32_t, uint32_t>> & inside_bit_interval,
+                int const intervalsize,
+                std::vector<std::pair<uint32_t, uint32_t>> & consOnesOutput)
 {
     TVector & b = bitvectors[inside_bit_interval.i1].first;
-    vector<pair<uint32_t, uint32_t>> consOnes;
     uint32_t k = inside_bit_interval.i2.i1;
     uint32_t startOneInterval = inside_bit_interval.i2.i1;
     while(k < inside_bit_interval.i2.i2){
@@ -40,15 +30,14 @@ vector<pair<uint32_t, uint32_t>> getConsOnes(vector<pair<TVector, TVSupport>> & 
             ++interval;
         }
         if(interval >= intervalsize){
-            consOnes.push_back(make_pair(startOneInterval, k));
+            consOnesOutput.push_back(make_pair(startOneInterval, k));
             startOneInterval = k + interval;
         }
         k += interval;
         interval = 0;
         ++k;
     }
-    consOnes.push_back(make_pair(startOneInterval, k));
-    return(consOnes);
+    consOnesOutput.push_back(make_pair(startOneInterval, k));
 }
 
 template <typename TDelegate, typename TDelegateD,
@@ -57,7 +46,7 @@ template <typename TDelegate, typename TDelegateD,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir>
-void filter_interval(TDelegate & delegate,
+inline void filter_interval(TDelegate & delegate,
                      TDelegateD & delegateDirect,
                      Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                      TNeedle const & needle,
@@ -70,8 +59,8 @@ void filter_interval(TDelegate & delegate,
                      Pair<uint8_t, Pair<uint32_t, uint32_t>> & inside_bit_interval,
                      TDir const & )
 {  
-    vector<pair<uint32_t, uint32_t>> consOnes = getConsOnes(bitvectors, inside_bit_interval, params.normal.intervalsize);
-//     consOnes.push_back(make_pair(inside_bit_interval.i2.i1, inside_bit_interval.i2.i2));
+    vector<pair<uint32_t, uint32_t>> consOnes;
+    getConsOnes(bitvectors, inside_bit_interval, params.normal.intervalsize, consOnes);
     uint32_t noi = seqan::length(iter.fwdIter.index->sa) - bitvectors[0].first.size(); // number_of_indeces
     
     for(int i = 0; i < consOnes.size(); ++i){
@@ -95,7 +84,7 @@ template <typename TDelegateD,
           typename TNeedle,
           size_t nbrBlocks,
           typename TDir>
-void genomeSearch(TDelegateD & delegateDirect,
+inline void genomeSearch(TDelegateD & delegateDirect,
                   TNeedle const & needle,
                   uint32_t const needleLeftPos,
                   uint32_t const needleRightPos,
@@ -140,7 +129,7 @@ template <typename TDelegateD,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir>
-void directSearch(TDelegateD & delegateDirect,
+inline void directSearch(TDelegateD & delegateDirect,
                   Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                   TNeedle const & needle,
                   vector<pair<TVector, TVSupport>> & bitvectors, 
@@ -267,29 +256,10 @@ inline bool testUnidirectionalFilter(Iter<Index<TText, BidirectionalIndex<TIndex
     
     while(b2[startPos] == 0 && startPos < endPos)
         ++startPos;
-    
-    
-    //TODO remove
-    for(uint32_t i = startPos2; i < endPos; ++i){
-        if(b2[i] != 0)
-            break; 
-        ++startPos2;
-    }
-    
-    assert(startPos == startPos2);
 
     while(b2[endPos - 1] == 0 && endPos > startPos)
         --endPos;
   
-    //TODO remove
-    for(uint32_t i = endPos2 - 1; i >= startPos2; --i){
-        if(b2[i] != 0)
-            break;
-        --endPos2;
-    }
-    
-    assert(endPos == endPos2);
-    
     if(startPos > endPos){
         cout << "Error bit vector has only zeroes this should have been checked by checkinterval" << endl;
         exit(0);

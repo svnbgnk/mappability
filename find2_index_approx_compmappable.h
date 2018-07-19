@@ -1,8 +1,7 @@
 #ifndef SEQAN_INDEX_FIND2_INDEX_APPROX_COMPMAPPLE_H_
 #define SEQAN_INDEX_FIND2_INDEX_APPROX_COMPMAPPLE_H_
 using namespace std;
-
-   //TODO merge with iterator test into the original code? but added DirectSearch!!!! 
+ 
 namespace seqan{
 
 template <typename TDelegateD,
@@ -10,7 +9,7 @@ template <typename TDelegateD,
           typename TNeedle,
           size_t nbrBlocks,
           typename TDir>
-void directSearch(TDelegateD & delegateDirect,
+inline void directSearch(TDelegateD & delegateDirect,
                   Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                   TNeedle const & needle,
                   uint32_t const needleLeftPos,
