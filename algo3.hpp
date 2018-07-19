@@ -187,15 +187,11 @@ inline void runAlgo3(TIndex & index, auto const & text, unsigned const length, T
 
     const uint64_t max_i = textLength - length + 1;
     const uint64_t step_size = length - overlap + 1;
-    #pragma omp parallel for schedule(guided) num_threads(threads)
-    //#pragma omp parallel for schedule(dynamic, 1000000)
-    // TODO: if we choose a multiple of step_size * |cyclic_rotations of int_vector| as chunks (not just chunksize), we dont need to worry about locking
+    // #pragma omp parallel for schedule(guided) num_threads(threads)
+    #pragma omp parallel for schedule(dynamic, max_i/(step_size*threads*50)) num_threads(threads)
     for (uint64_t i = 0; i < max_i; i += step_size)
     {
         uint64_t max_pos = std::min(i + length - overlap, textLength - length) + 1;
-        // std::cout << "max_pos + 1 = " << max_pos << '\n';
-
-        // all are zero if (std::equal(c.begin() + i, c.begin() + max_pos, c.begin() + i) && c[i] == 0)
 
         if (std::any_of(c.begin() + i, c.begin() + max_pos, [](auto value){ return value == 0; }))
         {
@@ -225,15 +221,13 @@ inline void runAlgo3(TIndex & index, auto const & text, unsigned const length, T
             _optimalSearchScheme(delegate, it, needle, scheme, HammingDistance());
             for (uint64_t j = i; j < max_pos; ++j)
             {
-                // std::cout << "access it_zero[" << j-i << "]\n";
                 if (countOccurrences(it_zero_errors[j - i]) > 1) // guaranteed to exist, since there has to be at least one match!
                 {
-                    // ++count_forward_value;
                     count_forward_positions += countOccurrences(it_zero_errors[j - i]) - 1;
                     for (auto const & occ : getOccurrences(it_zero_errors[j-i], Fwd()))
                     {
                         auto const occ_pos = posGlobalize(occ, limits);
-                        c[occ_pos] = hits[j - i]; // tODO: occ pair ...
+                        c[occ_pos] = hits[j - i];
                     }
                 }
                 else
@@ -241,8 +235,6 @@ inline void runAlgo3(TIndex & index, auto const & text, unsigned const length, T
                     c[j] = hits[j - i];
                 }
             }
-
-
         }
         else
         {

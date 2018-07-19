@@ -9,8 +9,8 @@
 
 // You can switch between different vector implementations. Consider that they have different thread safetyness!
 // typedef sdsl::int_vector<8> TVector;
-typedef std::vector<uint8_t> TVector;
-// constexpr uint64_t max_val = (1 << 8) - 1;
+typedef std::vector<uint8_t> TVector; // thread-safe
+// constexpr uint64_t max_val = (1 << 8) - 1; // not thread-safe
 
 #include "common.h"
 
@@ -19,11 +19,12 @@ struct Options
     unsigned errors;
     unsigned length;
     unsigned overlap = 0;
-    unsigned threshold = 0;
+    // unsigned threshold = 0;
     unsigned threads;
     bool mmap;
     bool indels;
     bool knut;
+    bool knut2;
     bool singleIndex;
     seqan::CharString indexPath;
     seqan::CharString outputPath;
@@ -35,6 +36,7 @@ struct Options
 #include "algo2.hpp"
 #include "algo2_approx.hpp"
 #include "algo3.hpp"
+#include "algo4.hpp"
 
 using namespace std;
 using namespace seqan;
@@ -43,9 +45,12 @@ string get_output_path(Options const & opt, signed const chromosomeId)
 {
     string output_path = toCString(opt.outputPath);
     output_path += "_" + to_string(opt.errors) + "_" + to_string(opt.length) + "_" + to_string(opt.overlap);
+    if (opt.knut)
+        output_path += "_knut";
+    if (opt.knut2)
+        output_path += "_knut2";
     if (chromosomeId >= 0)
         output_path += "-" + to_string(chromosomeId);
-
     return output_path;
 }
 
@@ -89,7 +94,7 @@ inline void run(TIndex & index, TText const & text, Options const & opt, signed 
     //                  exit(1);
     //     }
     // }
-    /*else*/ if (opt.overlap > 0 && opt.threshold == 0 && opt.knut)
+/*else*/ if (opt.overlap > 0 && opt.knut /*&& opt.threshold == 0*/)
     {
         switch (opt.errors)
         {
@@ -107,7 +112,25 @@ inline void run(TIndex & index, TText const & text, Options const & opt, signed 
                      exit(1);
         }
     }
-    else if (opt.overlap > 0 && opt.threshold == 0 && !opt.knut)
+    else if (opt.overlap > 0 && opt.knut2 /*&& opt.threshold == 0*/)
+        {
+            switch (opt.errors)
+            {
+                case 0: runAlgo4<0>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
+                        break;
+                case 1: runAlgo4<1>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
+                        break;
+                case 2: runAlgo4<2>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
+                        break;
+                case 3: runAlgo4<3>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
+                        break;
+                case 4: runAlgo4<4>(index, text, opt.length, c, opt.length - opt.overlap, opt.threads);
+                        break;
+                default: cerr << "E = " << opt.errors << " not yet supported.\n";
+                         exit(1);
+            }
+        }
+    else if (opt.overlap > 0 /*&& opt.threshold == 0*/)
     {
         switch (opt.errors)
         {
@@ -237,6 +260,7 @@ int main(int argc, char *argv[])
         "If not selected, only mismatches will be considered."));
 
     addOption(parser, ArgParseOption("z", "knut", "Turns on knuts trick."));
+    addOption(parser, ArgParseOption("z2", "knut2", "Turns on knuts trick with considering leading/trailing non-zero values."));
 
     addOption(parser, ArgParseOption("o", "overlap", "Length of overlap region (o + 1 Strings will be searched at once beginning with their overlap region)", ArgParseArgument::INTEGER, "INT"));
     // setRequired(parser, "overlap");
@@ -249,7 +273,7 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("t", "threads", "Number of threads", ArgParseArgument::INTEGER, "INT"));
     setDefaultValue(parser, "threads", omp_get_max_threads());
 
-    addOption(parser, ArgParseOption("x", "threshold", "Threshold for approximate calculation", ArgParseArgument::INTEGER, "INT"));
+    // addOption(parser, ArgParseOption("x", "threshold", "Threshold for approximate calculation", ArgParseArgument::INTEGER, "INT"));
     // setDefaultValue(parser, "threshold", "7");
 
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
@@ -269,15 +293,22 @@ int main(int argc, char *argv[])
     opt.mmap = isSet(parser, "mmap");
     opt.indels = isSet(parser, "indels");
     opt.knut = isSet(parser, "knut");
+    opt.knut2 = isSet(parser, "knut2");
 
     if (isSet(parser, "overlap"))
         getOptionValue(opt.overlap, parser, "overlap");
-    if (isSet(parser, "threshold"))
-        getOptionValue(opt.threshold, parser, "threshold");
+    // if (isSet(parser, "threshold"))
+    //     getOptionValue(opt.threshold, parser, "threshold");
+
+    if (opt.knut && opt.knut2)
+    {
+        cerr << "ERROR: --knut and --knut2 are mutually exclusive.\n";
+        exit(1);
+    }
 
     if (opt.overlap > opt.length - opt.errors - 2)
     {
-        cerr << "ERROR: overlap should be <= K - E - 2\n";
+        cerr << "ERROR: overlap should be <= K - E - 2.\n";
         exit(1);
     }
 
