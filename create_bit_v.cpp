@@ -3,6 +3,9 @@
 #include "auxiliary.h"
 #include "common_auxiliary.h"
 
+#include <thread>        
+#include <chrono>         
+
 using namespace std;
 using namespace seqan;
 
@@ -68,7 +71,7 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
         for(int i = 0; i < blocks - 1; ++i){
             sdsl::bit_vector newright(mappability.size() + len - 1, 0); //TODO think 0 or 1 in edge cases
             int shift = s.chronBL[i];
-            #pragma omp parallel for schedule(static)
+//             #pragma omp parallel for schedule(static)
             for(int j = 0; j < righti.size(); ++j){
                 if(j - shift >= 0)
                     newright[j] = righti[j - shift];
@@ -81,7 +84,7 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
         for(int i = 1; i < blocks; ++i){
             sdsl::bit_vector newleft(mappability.size() + len - 1, 0);//TODO think 0 or 1 in edge cases
             int shift = s.revChronBL[blocks - i];
-            #pragma omp parallel for schedule(static)
+//             #pragma omp parallel for schedule(static)
             for(int j = 0; j < righti.size(); ++j){
                 if(j + shift < lefti.size() - 1)
                     newleft[j] = lefti[j + shift];
@@ -400,8 +403,18 @@ int main(int argc, char *argv[])
     
     }
     
+    cout << "Testig Sizes: " << endl;
+    for(int i = 0; i < result.bv.size(); ++i)
+        cout << "i: " << i << "  Size:" << result.bv[i].size() << endl;
+    
+    
     //order in suffix array
     order_bit_vector(result, indexPath, mmap, alphabet, threads);
+    
+    cout << "Testig Sizes again: " << endl;
+    for(int i = 0; i < result.bv.size(); ++i)
+        cout << "i: " << i << "  Size:" << result.bv[i].size() << endl;
+    
     cout << mytime() << "Finished sorting" << endl;
     for(int i = 0; i < result.bv.size(); ++i){
         sdsl::store_to_file(result.bv[i], toCString(outputPath) + result.names[i]);
@@ -410,6 +423,8 @@ int main(int argc, char *argv[])
             std::copy(result.bv[i].begin(), result.bv[i].end(), std::ostream_iterator<bool>(outfile));
             outfile.close();
         }
+        cout << "Saved: " << i << endl;
+        std::this_thread::sleep_for (std::chrono::seconds(2));
     }   
     
     cout << mytime() << "Finished saving bit vectors" << endl;
