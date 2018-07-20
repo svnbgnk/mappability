@@ -25,4 +25,6 @@ inline void runAlgoTrivial(TIndex & index, auto const & text, unsigned const len
         _optimalSearchScheme(delegate, it, needle, scheme, HammingDistance());
         c[i] = hits;
     }
+
+    resetLimits(indexText(index), c, length);
 }

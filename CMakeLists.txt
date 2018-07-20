@@ -4,6 +4,7 @@ cmake_minimum_required (VERSION 3.0.0)
 # Name of project and that it is C++ only.
 project (mappability CXX)
 
+# TODO: if not set, set it to Release type
 #set (CMAKE_BUILD_TYPE "Release")
 set (CUR_DIR "${CMAKE_CURRENT_LIST_DIR}/..")
 
@@ -35,7 +36,7 @@ include_directories (${SEQAN_INCLUDE_DIRS})
 add_definitions (${SEQAN_DEFINITIONS})
 
 # Add CXX flags found by find_package (SeqAn).
-set (CMAKE_CXX_FLAGS "-std=c++14 -DSEQAN_DISABLE_VERSION_CHECK=YES -I ${CUR_DIR}/sdsl-lite/include ${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
+set (CMAKE_CXX_FLAGS "-std=c++14 -fopenmp -DSEQAN_DISABLE_VERSION_CHECK=YES -I ${CUR_DIR}/sdsl-lite/include ${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
 
 # Add executable and link against SeqAn dependencies.
 add_executable (mappability mappability.cpp)

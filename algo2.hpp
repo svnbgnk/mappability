@@ -175,9 +175,7 @@ inline void runAlgo2(TIndex & index, auto const & text, unsigned const length, T
     const uint64_t max_i = textLength - length + 1;
     const uint64_t step_size = length - overlap + 1;
     //#pragma omp parallel for schedule(guided) num_threads(threads)
-    //std::cout << "dynamic: " << (max_i/(step_size*threads*50)) << '\n';
-    #pragma omp parallel for schedule(dynamic, max_i/(step_size*threads*50)) num_threads(threads)
-    // TODO: if we choose a multiple of step_size * |cyclic_rotations of int_vector| as chunks (not just chunksize), we dont need to worry about locking
+    #pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*threads*50))) num_threads(threads)
     for (uint64_t i = 0; i < max_i; i += step_size)
     {
         unsigned hits[length - overlap + 1] = {};
@@ -196,4 +194,6 @@ inline void runAlgo2(TIndex & index, auto const & text, unsigned const length, T
         for (uint64_t j = i; j <= max_pos; ++j)
             c[j] = hits[j - i];
     }
+
+    resetLimits(indexText(index), c, length);
 }

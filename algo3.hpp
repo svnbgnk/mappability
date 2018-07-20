@@ -188,7 +188,7 @@ inline void runAlgo3(TIndex & index, auto const & text, unsigned const length, T
     const uint64_t max_i = textLength - length + 1;
     const uint64_t step_size = length - overlap + 1;
     // #pragma omp parallel for schedule(guided) num_threads(threads)
-    #pragma omp parallel for schedule(dynamic, max_i/(step_size*threads*50)) num_threads(threads)
+    #pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*threads*50))) num_threads(threads)
     for (uint64_t i = 0; i < max_i; i += step_size)
     {
         uint64_t max_pos = std::min(i + length - overlap, textLength - length) + 1;
@@ -241,6 +241,8 @@ inline void runAlgo3(TIndex & index, auto const & text, unsigned const length, T
         //    ++count_skipped_windows;
         //}
     }
+
+    resetLimits(indexText(index), c, length);
     //std::cout << "Forwarded values: " << count_forward_positions << '\n';
     //std::cout << "Skipped windows: " << count_skipped_windows << '\n';
 }

@@ -29,6 +29,24 @@ std::string mytime()
     return buf;
 }
 
+template <typename TChar, typename TConfig>
+void resetLimits(seqan::String<TChar, TConfig> const &, auto const &, unsigned const)
+{ }
+
+template <typename TString, typename TConfig>
+void resetLimits(seqan::StringSet<TString, TConfig> const & text, auto & c, unsigned const length)
+{
+    auto const & limits = seqan::stringSetLimits(text);
+    for (unsigned i = 1; i < seqan::length(limits) - 1; ++i)
+    {
+        for (unsigned j = 1; j < length; ++j)
+        {
+            c[limits[i] - j] = 0;
+            //std::cout << (limits[i] - j) << '\n';
+        }
+    }
+}
+
 using TMyFastConfig = seqan::FastFMIndexConfig<void, uint32_t, 2, 1>;
 using TIndexConfig = seqan::BidirectionalIndex<seqan::FMIndex<void, TMyFastConfig> >;
 
