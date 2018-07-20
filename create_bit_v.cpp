@@ -42,9 +42,8 @@ vector<uint8_t> read(const string mappability_path){
 }
 
 template <unsigned errors>
-bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const int len, double threshold){
+bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const int len, int const threshold){
     bitvectors b;
-    int th = round(1/threshold);
     int e = errors;    
     auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
     _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
@@ -54,8 +53,8 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
     sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
     #pragma omp parallel for schedule(static)   
     for(unsigned i = 0; i < mappability.size(); ++i){
-        lefti[i + len - 1] = (mappability[i] <= th);
-        righti[i] = (mappability[i] <= th);
+        lefti[i + len - 1] = (mappability[i] <= threshold);
+        righti[i] = (mappability[i] <= threshold);
     }
     cout << "Finished Default Bit Vectors.  Length: " << righti.size() << endl;
  
@@ -101,18 +100,17 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
 
 
 template <unsigned errors>
-bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int len, double threshold){
+bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int len, int const threshold){
 
     int e = errors;
-    cout << "Create minimum amount of bitvectors" << endl;
-    int th = round(1/threshold);     
+    cout << "Create minimum amount of bitvectors" << endl; 
     bitvectors b;
     sdsl::bit_vector righti (mappability.size() + len - 1, 0);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
     #pragma omp parallel for schedule(static)   
     for(unsigned i = 0; i < mappability.size(); ++i){
-        lefti[i + len - 1] = (mappability[i] <= th);
-        righti[i] = (mappability[i] <= th);
+        lefti[i + len - 1] = (mappability[i] <= threshold);
+        righti[i] = (mappability[i] <= threshold);
     }
     cout << "Finished Default Bit Vectors.  Length: " << righti.size() << endl;
     vector<sdsl::bit_vector> bit_vectors;
@@ -175,7 +173,7 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int le
 }
 
 
-bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int len, double threshold, bool const bit3, const int errors){
+bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int len, int const threshold, bool const bit3, const int errors){
     bitvectors result;
     if(bit3){
         switch (errors)
@@ -329,7 +327,7 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("K", "length", "Length of k-mers in the mappability vector", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "length");
     
-    addOption(parser, ArgParseOption("T", "threshold", "Threshold for inverse frequency that gets accepted", ArgParseArgument::DOUBLE, "DOUBLE"));
+    addOption(parser, ArgParseOption("T", "threshold", "Number of times a k-mer can occure and still be accepted as mappable", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "threshold");
     
     addOption(parser, ArgParseOption("E", "errors", "Max errors allowed during mapping", ArgParseArgument::INTEGER, "INT"));
@@ -354,7 +352,7 @@ int main(int argc, char *argv[])
     CharString indexPath, _indexPath, outputPath;
     string mappability_path;
     int len, errors, threads = 0; 
-    double threshold;
+    int threshold;
     
     getOptionValue(mappability_path, parser, "map");
     getOptionValue(indexPath, parser, "index");
