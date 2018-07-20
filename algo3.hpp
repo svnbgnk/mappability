@@ -182,8 +182,8 @@ inline void runAlgo3(TIndex & index, auto const & text, unsigned const length, T
 
     uint64_t const textLength = seqan::length(text); // lengthSum() forwards to length() for a single string
 
-    unsigned count_skipped_windows = 0;
-    unsigned count_forward_positions = 0;
+    //unsigned count_skipped_windows = 0;
+    //unsigned count_forward_positions = 0;
 
     const uint64_t max_i = textLength - length + 1;
     const uint64_t step_size = length - overlap + 1;
@@ -223,7 +223,7 @@ inline void runAlgo3(TIndex & index, auto const & text, unsigned const length, T
             {
                 if (countOccurrences(it_zero_errors[j - i]) > 1) // guaranteed to exist, since there has to be at least one match!
                 {
-                    count_forward_positions += countOccurrences(it_zero_errors[j - i]) - 1;
+                    //count_forward_positions += countOccurrences(it_zero_errors[j - i]) - 1;
                     for (auto const & occ : getOccurrences(it_zero_errors[j-i], Fwd()))
                     {
                         auto const occ_pos = posGlobalize(occ, limits);
@@ -236,12 +236,11 @@ inline void runAlgo3(TIndex & index, auto const & text, unsigned const length, T
                 }
             }
         }
-        else
-        {
-            ++count_skipped_windows;
-        }
-
+        //else
+        //{
+        //    ++count_skipped_windows;
+        //}
     }
-    std::cout << "Forwarded values: " << count_forward_positions << '\n';
-    std::cout << "Skipped windows: " << count_skipped_windows << '\n';
+    //std::cout << "Forwarded values: " << count_forward_positions << '\n';
+    //std::cout << "Skipped windows: " << count_skipped_windows << '\n';
 }
