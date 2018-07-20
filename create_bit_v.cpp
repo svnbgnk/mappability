@@ -414,10 +414,13 @@ int main(int argc, char *argv[])
     cout << "Testig Sizes again: " << endl;
     for(int i = 0; i < result.bv.size(); ++i)
         cout << "i: " << i << "  Size:" << result.bv[i].size() << endl;
+
     
     cout << mytime() << "Finished sorting" << endl;
     for(int i = 0; i < result.bv.size(); ++i){
-        sdsl::store_to_file(result.bv[i], toCString(outputPath) + result.names[i]);
+        std::ofstream out((toCString(outputPath) + result.names[i]), std::ios::out | std::ofstream::binary);
+        result.bv[i].serialize(out);
+//         sdsl::store_to_file(result.bv[i], toCString(outputPath) + result.names[i]);
         if(debug){
             std::ofstream outfile((toCString(outputPath) + result.names[i] + "_osa_debug"), std::ios::out | std::ofstream::binary);
             std::copy(result.bv[i].begin(), result.bv[i].end(), std::ostream_iterator<bool>(outfile));
