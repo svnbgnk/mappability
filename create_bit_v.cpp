@@ -4,7 +4,8 @@
 #include "common_auxiliary.h"
 
 #include <thread>        
-#include <chrono>         
+#include <chrono>
+#include <sdsl/util.hpp>
 
 using namespace std;
 using namespace seqan;
@@ -404,22 +405,26 @@ int main(int argc, char *argv[])
     }
     
     cout << "Testig Sizes: " << endl;
-    for(int i = 0; i < result.bv.size(); ++i)
+    for(int i = 0; i < result.bv.size(); ++i){
         cout << "i: " << i << "  Size:" << result.bv[i].size() << endl;
-    
+         cout << "In bytes: " << sdsl::size_in_bytes(result.bv[i]) << endl;
+    }
     
     //order in suffix array
     order_bit_vector(result, indexPath, mmap, alphabet, threads);
     
     cout << "Testig Sizes again: " << endl;
-    for(int i = 0; i < result.bv.size(); ++i)
+    for(int i = 0; i < result.bv.size(); ++i){
         cout << "i: " << i << "  Size:" << result.bv[i].size() << endl;
-
+        cout << "In bytes: " << sdsl::size_in_bytes(result.bv[i]) << endl;
+    }
     
     cout << mytime() << "Finished sorting" << endl;
     for(int i = 0; i < result.bv.size(); ++i){
+        sdsl::bit_vector b = result.bv[i];
+        cout << "Size in Bytes before saving: " << sdsl::size_in_bytes(b) << endl;
         std::ofstream out((toCString(outputPath) + result.names[i]), std::ios::out | std::ofstream::binary);
-        result.bv[i].serialize(out);
+        b.serialize(out);
 //         sdsl::store_to_file(result.bv[i], toCString(outputPath) + result.names[i]);
         if(debug){
             std::ofstream outfile((toCString(outputPath) + result.names[i] + "_osa_debug"), std::ios::out | std::ofstream::binary);
@@ -427,7 +432,7 @@ int main(int argc, char *argv[])
             outfile.close();
         }
         cout << "Saved: " << i << endl;
-        std::this_thread::sleep_for (std::chrono::seconds(2));
+        std::this_thread::sleep_for (std::chrono::seconds(8));
     }   
     
     cout << mytime() << "Finished saving bit vectors" << endl;
