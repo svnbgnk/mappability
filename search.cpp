@@ -47,13 +47,15 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("c", "ecompare",
         "Compare my Version and default version"));
     
+    addOption(parser, ArgParseOption("T", "threshold", "Number of times a k-mer can occure (needed for compare)", ArgParseArgument::INTEGER, "INT"));
+    
     addOption(parser, ArgParseOption("p", "benchparams",
         "Compare my Version and default version"));
     
     addOption(parser, ArgParseOption("n", "notmy",
         "Compare my Version and default version"));
     
-    
+
     
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
     if (res != ArgumentParser::PARSE_OK)
@@ -62,7 +64,7 @@ int main(int argc, char *argv[])
     
     CharString indexPath, bitvectorpath, readspath;
     string outputpath;
-    int K, nerrors, r = 0;
+    int K, nerrors, threshold, r = 0;
     getOptionValue(indexPath, parser, "index");
     getOptionValue(bitvectorpath, parser, "ibitvector");
     getOptionValue(readspath, parser, "ireads");
@@ -70,6 +72,7 @@ int main(int argc, char *argv[])
     getOptionValue(K, parser, "length");
     getOptionValue(nerrors, parser, "errors");
     getOptionValue(r, parser, "r");
+    getOptionValue(threshold, parser, "threshold");
     bool mdefault = isSet(parser, "default");
     bool defaultT = isSet(parser, "defaultT");
     bool ecompare = isSet(parser, "ecompare");
@@ -238,10 +241,9 @@ int main(int argc, char *argv[])
     
     if(ecompare){
         hitsDe = print_readocc_sorted(hitsDe, genome, true);
-        int threshold = 11; 
         cout << "Test if default and my version are the same: " << endl;
 //     cout.setstate(std::ios_base::failbit); //TODO revert this
-        vector<int> whitcount = compare(index, nerrors, threshold, hits, hitsDe);
+        vector<int> whitcount = compare(index, nerrors, threshold + 1, hits, hitsDe);
 //     std::cout.clear();  //TODO revert this
     
         if(whitcount.size() == 0){
