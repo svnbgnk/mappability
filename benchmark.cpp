@@ -69,6 +69,9 @@ int main(int argc, char const ** argv)
     
     addOption(parser, ArgParseOption("r", "r", "number of reads to test ", ArgParseArgument::INTEGER, "INT"));
     
+    addOption(parser, ArgParseOption("t", "testrun", "select which benchmark should be run ", ArgParseArgument::INTEGER, "INT"));
+    
+    addOption(parser, ArgParseOption("su", "startUni", "Start unidirectional"));
     
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
     if (res != ArgumentParser::PARSE_OK)
@@ -76,7 +79,7 @@ int main(int argc, char const ** argv)
     
     CharString indexPath, bitvectorpath, readspath;
     string outputpath;
-    int K, nerrors, r = 0;
+    int K, nerrors,  testrun = -1, r = 0;
     getOptionValue(indexPath, parser, "index");
     getOptionValue(bitvectorpath, parser, "ibitvector");
     getOptionValue(readspath, parser, "ireads");
@@ -84,7 +87,8 @@ int main(int argc, char const ** argv)
     getOptionValue(K, parser, "length");
     getOptionValue(nerrors, parser, "errors");
     getOptionValue(r, parser, "r");
-    
+    getOptionValue(testrun, parser, "testrun");
+    bool startUni = isSet(parser, "startUni");
     
     //load reads
     cout << "Loading reads" << endl;
@@ -146,8 +150,8 @@ int main(int argc, char const ** argv)
     
     params.clocking = true;
     
-    //TODO modify all directSearch parameters otherwise it would be bad to go into another modus this they seem to have the largest influence
-/*    
+  
+    if(testrun == 0){
     //16 runs
     for(int i = 0; i < 16; ++i){
         params.wasStopped = false;
@@ -159,41 +163,51 @@ int main(int argc, char const ** argv)
             bestParams = params;
         }
     }
+    }
     
-    */
 
 
-/*   
+    //TODO maybe make filter_th harsh and turn off flipdensity and take only big intervals
+    if(testrun == 1){
     // 32 runs
-//     bestTime = params.terminateDuration;
-    params.normal.setdefault();
-    
-     
     int intervalsize = 1;
     while(intervalsize < 9){
         float invflipdensity = 0.9;//go lower too 0.1
-        while(invflipdensity > 0){
+        while(invflipdensity > -0.2){
+            if(invflipdensity < 0){
+                params.normal.testflipdensity = false;
+                params.startuni.testflipdensity = false;
+            }else{
+                params.normal.testflipdensity = true;
+                params.startuni.testflipdensity = true;
+            }
+            
             float filter_th = 0.9; // go lower too 0.1
             while(filter_th > 0){
                 params.wasStopped = false;
                 params.normal.intervalsize = intervalsize;
                 params.normal.invflipdensity = invflipdensity;
                 params.normal.filter_th = filter_th;
-                cout << intervalsize << "\t" << invflipdensity << "\t" << filter_th << "\t";
+                cout << intervalsize << "\t" << invflipdensity << "\t" << params.normal.testflipdensity << "\t" << filter_th << "\t" ;
                 auto time = callFunction(nerrors, hits, dhits, delegate, delegateDirect, index, reads, bitvectors);
                 if(bestTime > time){
                     bestTime = time;
                     bestParams = params;
                 }
-                filter_th -= 0.4;
+                filter_th -= 0.2;
             }
             
             invflipdensity -= 0.2;
         }
         intervalsize += 1;
     }
+    params.normal.testflipdensity = true;
+    params.startuni.testflipdensity = true;
+    }
     
+
     
+    if(testrun == 2){
     // 108 runs
 //     bestTime = params.terminateDuration;
     params.normal.setdefault();
@@ -208,6 +222,7 @@ int main(int argc, char const ** argv)
                     params.wasStopped = false;
                     params.normal.directsearchblockoffset = directsearchblockoffset;
                     params.normal.directsearch_th = directsearch_th;
+                    params.copyDirectsearchParamsfromNormal();
                     params.normal.distancetoblockend = distancetoblockend;
                     params.normal.step = step;
                     cout << directsearchblockoffset << "\t" << directsearch_th << "\t" << distancetoblockend << "\t" << step << "\t";
@@ -230,9 +245,48 @@ int main(int argc, char const ** argv)
         directsearchblockoffset += 1;
     }
     
+    }
     
-    */
 
+    if(startUni){
+    params.startUnidirectional = true;
+//     cout << "test without further filtering" << endl;
+//     params.startuni.suspectunidirectional = false;
+//     auto time = callFunction(nerrors, hits, dhits, delegate, delegateDirect, index, reads, bitvectors);
+    
+    params.startuni.suspectunidirectional = true;;
+    cout << "test startUni" << endl;
+    int intervalsize = 2;
+    while(intervalsize < 9){
+        float invflipdensity = 0.9;//go lower too 0.1
+        while(invflipdensity > 0){/*
+            if(invflipdensity < 0){
+                params.startuni.testflipdensity = false;
+            }else{
+                params.startuni.testflipdensity = true;
+            }
+            */
+            float filter_th = 0.9; // go lower too 0.1
+            while(filter_th > 0){
+                params.wasStopped = false;
+                params.startuni.intervalsize = intervalsize;
+                params.startuni.invflipdensity = invflipdensity;
+                params.startuni.filter_th = filter_th;
+                cout << intervalsize << "\t" << invflipdensity << "\t" << params.startuni.testflipdensity << "\t" << filter_th << "\t" ;
+                auto time = callFunction(nerrors, hits, dhits, delegate, delegateDirect, index, reads, bitvectors);
+                if(bestTime > time){
+                    bestTime = time;
+                    bestParams = params;
+                }
+                filter_th -= 0.2;
+            }
+            
+            invflipdensity -= 0.2;
+        }
+        intervalsize += 1;
+    }
+    }
+    
 
 
     cout << "BestParams selected" << endl;

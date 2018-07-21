@@ -120,7 +120,7 @@ inline ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
             return ReturnCode::NOMAPPABILITY;
 
         if(!done){
-            if(params.startuni.directsearch && ivalOne < (blockSize - blockIndex - 1) * params.startuni.directsearch_th){ //<4 
+            if(params.startuni.directsearch && ivalOne < (blockSize - blockIndex - 1 + params.startuni.directsearchblockoffset) * params.startuni.directsearch_th){ //<4 
                 return ReturnCode::DIRECTSEARCH;
             }    
             if(params.startuni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
@@ -145,7 +145,7 @@ inline ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
             return ReturnCode::NOMAPPABILITY;
 
         if(!done){
-            if(params.uni.directsearch && ivalOne < (blockSize - blockIndex - 1) * params.uni.directsearch_th){ //<4 
+            if(params.uni.directsearch && ivalOne < (blockSize - blockIndex - 1 + params.uni.directsearchblockoffset) * params.uni.directsearch_th){
                 return ReturnCode::DIRECTSEARCH;
             }    
             if(params.uni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
