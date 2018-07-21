@@ -163,7 +163,7 @@ int main(int argc, char *argv[])
         elapsed = finish - start;
         cout << "Finished My Search" << endl;
         
-        auto sl =  getSequencesLengths(it, bitvectors);
+        vector<uint32_t> sl =  getSequencesLengths(it, bitvectors);
         cout << "Sequence Lengths: " << endl;
         for(int i = 0; i < sl.size(); ++i)
             cout << sl[i] << endl;

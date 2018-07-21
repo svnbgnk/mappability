@@ -27,17 +27,17 @@ struct isBidirectionalIter<Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTre
 
 template <typename TText, typename TIndex, typename TIndexSpec,
           typename TVector, typename TVSupport>
-std::vector<int> getSequencesLengths(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+std::vector<uint32_t> getSequencesLengths(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                 std::vector<std::pair<TVector, TVSupport>> & bitvectors)
 {
     int size = seqan::length(iter.fwdIter.index->sa);
-    uint32_t number_of_indeces = size - bitvectors[0].first.size();
+    int number_of_indeces = size - bitvectors[0].first.size();
     
-    std::cout << "Number of Indeces" << "\n";
-    std::vector<int> sequenceLengths(number_of_indeces + 1, 0);
+    std::cout << "Number of Indeces: " << number_of_indeces << "\n";
+    std::vector<uint32_t> sequenceLengths(number_of_indeces + 1, 0);
     for(int i = 0; i < number_of_indeces; ++i){
-        int seq = iter.fwdIter.index->sa[i].i1;
-        int sa = iter.fwdIter.index->sa[i].i2;
+        uint16_t seq = iter.fwdIter.index->sa[i].i1;
+        uint32_t sa = iter.fwdIter.index->sa[i].i2;
         sequenceLengths[seq + 1] = sa;
         std::cout << "Saved length: " << sa << "\n";
         std::cout << "At position: " << seq + 1 << "\n";
@@ -53,7 +53,7 @@ void calcfwdPos(TIndex & index,
                 bool verbose = false)
 {
     Iter<TIndex, VSTree<TopDown<> > > it(index);
-    std::vector<int> sl = getSequencesLengths(it, bitvectors);
+    std::vector<uint32_t> sl = getSequencesLengths(it, bitvectors);
     for(int i = 0; i < hitsOutput.size(); ++i){
         if(hitsOutput[i].rev){
             hitsOutput[i].occ.i2 = sl[hitsOutput[i].occ.i1 + 1] - hitsOutput[i].occ.i2 - length(hitsOutput[i].read);
