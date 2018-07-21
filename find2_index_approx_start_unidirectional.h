@@ -205,7 +205,7 @@ inline ReturnCode uniCheckMappability(TDelegate & delegate,
                         iter.vDesc.range.i1 = rangeStart + lastStart;
                         iter.vDesc.range.i2 = rangeStart + i - 1;
                         cout << iter.vDesc.range.i1 << " - " << iter.vDesc.range.i2;
-                        delegate(iter, needle, errors, rev);
+//                         delegate(iter, needle, errors, rev);
                     }
                     lastStart = i + 1;
                 }

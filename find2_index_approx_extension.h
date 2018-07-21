@@ -119,7 +119,7 @@ inline void genomeSearch(TDelegateD & delegateDirect,
         }
     }
     if(valid){
-        delegateDirect(sa_info, needle, errors);
+//         delegateDirect(sa_info, needle, errors);
     }
 }
 
@@ -595,7 +595,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     if (minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1)
     {
         //last input only matters for unidirectional searches (has to be false in this case)
-        delegate(iter, needle, errors, false);
+//         delegate(iter, needle, errors, false);
     }
     // Exact search in current block.
     else if (maxErrorsLeftInBlock == 0 && needleRightPos - needleLeftPos - 1 != s.blocklength[blockIndex])
