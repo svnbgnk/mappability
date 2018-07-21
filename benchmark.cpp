@@ -248,24 +248,24 @@ int main(int argc, char const ** argv)
     }
     
 
-    if(startUni){
+    if(startUni || testrun == 3){
     params.startUnidirectional = true;
-//     cout << "test without further filtering" << endl;
-//     params.startuni.suspectunidirectional = false;
-//     auto time = callFunction(nerrors, hits, dhits, delegate, delegateDirect, index, reads, bitvectors);
+    cout << "test without further filtering" << endl;
+    params.startuni.suspectunidirectional = false;
+    auto time = callFunction(nerrors, hits, dhits, delegate, delegateDirect, index, reads, bitvectors);
     
     params.startuni.suspectunidirectional = true;;
     cout << "test startUni" << endl;
-    int intervalsize = 2;
+    int intervalsize = 1;
     while(intervalsize < 9){
         float invflipdensity = 0.9;//go lower too 0.1
-        while(invflipdensity > 0){/*
+        while(invflipdensity > -0.2){
             if(invflipdensity < 0){
                 params.startuni.testflipdensity = false;
             }else{
                 params.startuni.testflipdensity = true;
             }
-            */
+            
             float filter_th = 0.9; // go lower too 0.1
             while(filter_th > 0){
                 params.wasStopped = false;
@@ -287,6 +287,44 @@ int main(int argc, char const ** argv)
     }
     }
     
+    if(testrun == 4){
+    params.startUnidirectional = true;
+    cout << "test without further filtering" << endl;
+    params.startuni.suspectunidirectional = false;
+    auto time = callFunction(nerrors, hits, dhits, delegate, delegateDirect, index, reads, bitvectors);
+    
+    params.startuni.suspectunidirectional = true;;
+    cout << "test startUni" << endl;
+    int intervalsize = 9;
+    while(intervalsize < 90){
+        float invflipdensity = 0.9;//go lower too 0.1
+        while(invflipdensity > -0.2){
+            if(invflipdensity < 0){
+                params.startuni.testflipdensity = false;
+            }else{
+                params.startuni.testflipdensity = true;
+            }
+            
+            float filter_th = 0.9; // go lower too 0.1
+            while(filter_th > 0){
+                params.wasStopped = false;
+                params.startuni.intervalsize = intervalsize;
+                params.startuni.invflipdensity = invflipdensity;
+                params.startuni.filter_th = filter_th;
+                cout << intervalsize << "\t" << invflipdensity << "\t" << params.startuni.testflipdensity << "\t" << filter_th << "\t" ;
+                auto time = callFunction(nerrors, hits, dhits, delegate, delegateDirect, index, reads, bitvectors);
+                if(bestTime > time){
+                    bestTime = time;
+                    bestParams = params;
+                }
+                filter_th -= 0.2;
+            }
+            
+            invflipdensity -= 0.2;
+        }
+        intervalsize += 10;
+    }
+    }
 
 
     cout << "BestParams selected" << endl;

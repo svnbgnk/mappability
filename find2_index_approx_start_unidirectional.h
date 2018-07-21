@@ -23,10 +23,15 @@ inline void filter_interval(TDelegate & delegate,
                      OptimalSearch<nbrBlocks> const & s,
                      uint8_t const blockIndex,
                      Pair<uint8_t, Pair<uint32_t, uint32_t>> & inside_bit_interval,
-                     TDir const & /**/)
+                     TDir const & /**/,
+                     bool & successfulOutput)
 {
     vector<pair<uint32_t, uint32_t>> consOnes;
     getConsOnes(bitvectors, inside_bit_interval, params.startuni.intervalsize, consOnes);
+    if(consOnes.size() == 1){
+        successfulOutput = false;
+        return;
+    }
     //TODO replace with countSequences when it works
     uint32_t noi = seqan::length(iter.index->sa) - bitvectors[0].first.size(); // number_of_indeces
     for(int i = 0; i < consOnes.size(); ++i){
@@ -37,7 +42,8 @@ inline void filter_interval(TDelegate & delegate,
             _uniOptimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Rev());
         else
             _uniOptimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Fwd());
-    } 
+    }
+    successfulOutput = true;
 }
 
     
@@ -229,8 +235,10 @@ inline ReturnCode uniCheckMappability(TDelegate & delegate,
     if(rcode == ReturnCode::FILTER){
         //test filter also modfied iter range if true;
         if(testFilter(iter, bitvectors, bit_interval, s, blockIndex, TDir())){
-            filter_interval(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir());
-            return(ReturnCode::FINISHED);
+            bool successful;
+            filter_interval(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir(), successful);
+            if(successful)
+                return(ReturnCode::FINISHED);
         }
     }
     return ReturnCode::MAPPABLE;
