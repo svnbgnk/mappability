@@ -338,6 +338,8 @@ int main(int argc, char *argv[])
     setRequired(parser, "errors");
     addOption(parser, ArgParseOption("d", "debug", "Also create chronical bit_vectors (for debugging)"));
     
+    addOption(parser, ArgParseOption("s", "startSa", "Create first 1500 lines from SA array fwd and rev and then quit"));
+    
     addOption(parser, ArgParseOption("m", "mmap",
         "Turns memory-mapping on, i.e. the index is not loaded into RAM but accessed directly in secondary-memory. "
         "This makes the algorithm only slightly slower but the index does not have to be loaded into main memory "
@@ -365,6 +367,7 @@ int main(int argc, char *argv[])
     getOptionValue(threshold, parser, "threshold");
     getOptionValue(errors, parser, "errors");
     bool debug = isSet(parser, "debug");
+    bool startSa = isSet(parser, "startSa");
     bool mmap = isSet(parser, "mmap");
     bool bit3 = isSet(parser, "3bitversion");
     getOptionValue(threads, parser, "threads");
@@ -376,6 +379,18 @@ int main(int argc, char *argv[])
     _indexPath += ".alphabet";
     open(alphabet, toCString(_indexPath));
 
+        
+    if(startSa){
+        typedef String<Dna, Alloc<>> TString;
+        Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index;
+        open(index, toCString(indexPath), OPEN_RDONLY);
+        Iter<Index<TText, TIndexConfig>, VSTree<TopDown<> > > it(index);
+        print_beginsa(it, 500, outputPath, true);
+        print_beginsa(it, 500, outputPath, false);
+        exit(0);
+    }
+    
+    
     if(!file_exists(mappability_path))
     {
         cout << "Cannot find mappability file" << endl;
@@ -399,9 +414,6 @@ int main(int argc, char *argv[])
             outfile.close();
             
         }
-//         print_SA(indexPath, result.bv, outputPath, true);
-//         print_SA(indexPath, result.bv, outputPath, false);
-    
     }
     
     cout << "Testig Sizes: " << endl;
