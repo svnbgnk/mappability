@@ -32,12 +32,16 @@ std::vector<int> getSequencesLengths(Iter<Index<TText, BidirectionalIndex<TIndex
 {
     int size = seqan::length(iter.fwdIter.index->sa);
     uint32_t number_of_indeces = size - bitvectors[0].first.size();
+    
+    std::cout << "Number of Indeces" << "\n";
     std::vector<int> sequenceLengths(number_of_indeces + 1, 0);
-    for(int i = 0; i < number_of_indeces; ++i)
-        sequenceLengths[iter.fwdIter.index->sa[i].i1 + 1] = iter.fwdIter.index->sa[i].i2;
-        // cumulative sum seq
-//     for(int i = 1; i < sequenceLengths.size(); ++i)
-//         sequenceLengths[i] += (sequenceLengths[i - 1]);
+    for(int i = 0; i < number_of_indeces; ++i){
+        int seq = iter.fwdIter.index->sa[i].i1;
+        int sa = iter.fwdIter.index->sa[i].i2;
+        sequenceLengths[seq + 1] = sa;
+        std::cout << "Saved length: " << sa << "\n";
+        std::cout << "At position: " << seq + 1 << "\n";
+    }
     return sequenceLengths;
 }
 
