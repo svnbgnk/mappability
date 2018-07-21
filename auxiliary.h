@@ -60,14 +60,16 @@ void calcfwdPos(TIndex & index,
     }
 }
 
-template <typename TText, typename TIndex, typename TIndexSpec,
-          typename TVector, typename TVSupport>
-void print_fullsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-              std::vector<std::pair<TVector, TVSupport>> & bitvectors,
+
+template <typename TText, typename TIndex, typename TIndexSpec>
+void print_beginsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+              int number_of_indeces,
+              CharString outputPath,
               bool const fwd)
 {
+    std::string name = (fwd) ? "start_fwd" : "start_rev";
+    std::ofstream outfile(toCString(outputPath) + name, std::ios::out | std::ofstream::binary);
     int size = seqan::length(iter.fwdIter.index->sa);
-    uint32_t number_of_indeces = size - bitvectors[0].first.size();
     int noi = number_of_indeces;
     std::vector<int> sequenceLengths(number_of_indeces + 1, 0);
     for(int i = 0; i < number_of_indeces; ++i)
@@ -76,18 +78,57 @@ void print_fullsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown
     for(int i = 1; i < sequenceLengths.size(); ++i)
         sequenceLengths[i] += (sequenceLengths[i - 1]);
     if(!fwd){
-        for(uint32_t i = 0; i < size; ++i){
+        for(uint32_t i = 0; i < size && i < 1500; ++i){
             int seq = iter.revIter.index->sa[i].i1;
             int sa = iter.revIter.index->sa[i].i2;
-            std::cout << i << "(" << seq << ")" << ": " << sa + sequenceLengths[seq] << "\n";
+            outfile << i << "\t(" << seq << ")\t" << sa << ":\t" << sa + sequenceLengths[seq] << "\n";
         }
     }else{
-        for(uint32_t i = 0; i < size; ++i){
+        for(uint32_t i = 0; i < size && i < 1500; ++i){
             int seq = iter.fwdIter.index->sa[i].i1;
             int sa = iter.fwdIter.index->sa[i].i2;
-            std::cout << i << "(" << seq << ")" << ": " << sa + sequenceLengths[seq] << "\n";
+            outfile << i << "\t(" << seq << ")\t" << sa << ":\t" << sa + sequenceLengths[seq] << "\n";
         }
     }
+    outfile.close();
+    
+}
+
+
+
+template <typename TText, typename TIndex, typename TIndexSpec,
+          typename TVector>
+void print_beginsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+              std::vector<TVector> & bitvectors,
+              CharString outputPath,
+              bool const fwd)
+{
+    std::string name = (fwd) ? "start_fwd" : "start_rev";
+    std::ofstream outfile(toCString(outputPath) + name, std::ios::out | std::ofstream::binary);
+    int size = seqan::length(iter.fwdIter.index->sa);
+    uint32_t number_of_indeces = size - bitvectors[0].size();
+    int noi = number_of_indeces;
+    std::vector<int> sequenceLengths(number_of_indeces + 1, 0);
+    for(int i = 0; i < number_of_indeces; ++i)
+        sequenceLengths[iter.fwdIter.index->sa[i].i1 + 1] = iter.fwdIter.index->sa[i].i2;
+        // cumulative sum seq
+    for(int i = 1; i < sequenceLengths.size(); ++i)
+        sequenceLengths[i] += (sequenceLengths[i - 1]);
+    if(!fwd){
+        for(uint32_t i = 0; i < size && i < 1500; ++i){
+            int seq = iter.revIter.index->sa[i].i1;
+            int sa = iter.revIter.index->sa[i].i2;
+            outfile << i << "\t(" << seq << ")\t" << sa << ":\t" << sa + sequenceLengths[seq] << "\n";
+        }
+    }else{
+        for(uint32_t i = 0; i < size && i < 1500; ++i){
+            int seq = iter.fwdIter.index->sa[i].i1;
+            int sa = iter.fwdIter.index->sa[i].i2;
+            outfile << i << "\t(" << seq << ")\t" << sa << ":\t" << sa + sequenceLengths[seq] << "\n";
+        }
+    }
+    outfile.close();
+    
 }
 
 
