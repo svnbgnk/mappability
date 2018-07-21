@@ -136,6 +136,17 @@ public:
         startuni.setdefault();
     }
     
+    void copyDirectsearchParamsfromNormal(){
+        comp.directsearchblockoffset = normal.directsearchblockoffset;
+        comp.directsearch_th = normal.directsearch_th;
+        
+        uni.directsearchblockoffset = normal.directsearchblockoffset;
+        uni.directsearch_th = normal.directsearch_th;
+        
+        startuni.directsearchblockoffset = normal.directsearchblockoffset;
+        startuni.directsearch_th = normal.directsearch_th;
+    }
+    
     void print(){
         std::cout << "\n";
         std::cout << "Start Unidirectional: " << startUnidirectional << "\n";
