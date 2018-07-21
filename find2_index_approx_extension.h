@@ -660,7 +660,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
                                  int counter)
 {
     cout << "Counter: " << counter << endl;
-//     cout << "Range: " << range(it.fwdIter) << endl;
+    cout << "Range: " << range(it.fwdIter) << endl;
     _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, s, counter + 1);
 }
 
