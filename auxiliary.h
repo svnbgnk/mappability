@@ -48,12 +48,10 @@ void calcfwdPos(TIndex & index,
                 std::vector<hit> & hitsOutput,
                 bool verbose = false)
 {
-    std::cout << "Calc reverse Positions" << "\n";
     Iter<TIndex, VSTree<TopDown<> > > it(index);
     std::vector<int> sl = getSequencesLengths(it, bitvectors);
     for(int i = 0; i < hitsOutput.size(); ++i){
         if(hitsOutput[i].rev){
-            std::cout << "before: " << hitsOutput[i].occ << "\n";
             hitsOutput[i].occ.i2 = sl[hitsOutput[i].occ.i1 + 1] - hitsOutput[i].occ.i2 - length(hitsOutput[i].read);
             if(verbose)
                 std::cout << hitsOutput[i].occ << "\n";

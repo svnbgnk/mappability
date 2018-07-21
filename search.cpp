@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
             cout << sl[i] << endl;
         
         auto scalc = std::chrono::high_resolution_clock::now();
-        calcfwdPos(index, bitvectors, hits, true); //TODO revert this
+        calcfwdPos(index, bitvectors, hits);
         auto ecalc = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsedcalc = ecalc - scalc;
         cout << "Calc revPositions to forward positions: "<< elapsedcalc.count() << "s" << endl;
