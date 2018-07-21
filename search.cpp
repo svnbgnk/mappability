@@ -55,6 +55,8 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("n", "notmy",
         "Compare my Version and default version"));
     
+    addOption(parser, ArgParseOption("su", "startuni",
+        "Start Unidirectional"));
 
     
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
@@ -78,6 +80,7 @@ int main(int argc, char *argv[])
     bool ecompare = isSet(parser, "ecompare");
     bool benchparams = isSet(parser, "benchparams");
     bool notmy = isSet(parser, "notmy");
+    bool startuni = isSet(parser, "startuni");
     
     //load reads
     SeqFileIn seqFileIn(toCString(readspath));
@@ -137,8 +140,9 @@ int main(int argc, char *argv[])
         dhits.push_back(me);
     };
     
-    
-    params.startUnidirectional = false;
+    if(startuni){
+        params.startUnidirectional = true;
+    }
     if(benchparams){
         params.normal.setbestnormal();
     }

@@ -240,26 +240,22 @@ inline ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support
                           uint8_t const blockIndex)
 {
     cout << "unicheckInterval no start uni" << endl;
-//     int directsearch_th = 2;
-//     float filter_threshold = 0.5; //TODO less strict
-    sdsl::bit_vector & b = bitvectors[brange.i1].first;
-    sdsl::rank_support_v<> & rb = bitvectors[brange.i1].second; 
-    rb.set_vector(&b);
+        TVector & b = bitvectors[brange.i1].first;
+        TVSupport & rb = bitvectors[brange.i1].second; 
+        rb.set_vector(&b);
     
-    uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
-    if(params.uni.nomappability && ivalOne == 0)
-        return ReturnCode::NOMAPPABILITY;
+        uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
+        if(params.uni.nomappability && ivalOne == 0)
+            return ReturnCode::NOMAPPABILITY;
 
-    if(!done){
-        if(params.uni.directsearch && ivalOne < (blockSize - blockIndex - 1) * params.uni.directsearch_th){ //<4 
-            cout << "UNIDIRECTSEARCHDIRECTSEARCHDIRECTSEARCH" << endl;
-            return ReturnCode::DIRECTSEARCH;
-        }    
-        if(params.uni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
-            return ReturnCode::COMPMAPPABLE;
-    }
-    cout << "MAPPABLEMAPPABLEMAPPABLEMAPPABLEMAPPABLE" << endl;
-    return ReturnCode::MAPPABLE;
+        if(!done){
+            if(params.uni.directsearch && ivalOne < (blockSize - blockIndex - 1 + params.uni.directsearchblockoffset) * params.uni.directsearch_th){ //<4 
+                return ReturnCode::DIRECTSEARCH;
+            }    
+            if(params.uni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
+                return ReturnCode::COMPMAPPABLE;
+        }
+        return ReturnCode::MAPPABLE;
 }
 */
 
