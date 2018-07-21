@@ -171,59 +171,60 @@ inline void extend3(TIter it, unsigned * hits, TIter * it_zero_errors, unsigned 
 }
 
 template <unsigned errors, typename TIndex, typename TContainer>
-inline void runAlgo3(TIndex & index, auto const & text, unsigned const length, TContainer & c, unsigned const overlap, unsigned const threads)
+inline void runAlgo3(TIndex & index, auto const & text, TContainer & c, SearchParams const & params)
 {
     typedef Iter<TIndex, VSTree<TopDown<> > > TIter;
 
     auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
-    _optimalSearchSchemeComputeFixedBlocklength(scheme, overlap);
+    _optimalSearchSchemeComputeFixedBlocklength(scheme, params.overlap);
 
     auto const & limits = stringSetLimits(indexText(index));
 
-    uint64_t const textLength = seqan::length(text); // lengthSum() forwards to length() for a single string
+    uint64_t const textLength = length(text); // lengthSum() forwards to length() for a single string
 
-    //unsigned count_skipped_windows = 0;
-    //unsigned count_forward_positions = 0;
+    const uint64_t max_i = textLength - params.length + 1;
+    const uint64_t step_size = params.length - params.overlap + 1;
 
-    const uint64_t max_i = textLength - length + 1;
-    const uint64_t step_size = length - overlap + 1;
-    // #pragma omp parallel for schedule(guided) num_threads(threads)
-    #pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*threads*50))) num_threads(threads)
+    uint64_t progress_count;
+    uint64_t progress_max;
+    uint64_t progress_step;
+    initProgress<SearchParams::outputProgress>(progress_count, progress_step, progress_max, step_size, max_i);
+
+    #pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*params.threads*50))) num_threads(params.threads)
     for (uint64_t i = 0; i < max_i; i += step_size)
     {
-        uint64_t max_pos = std::min(i + length - overlap, textLength - length) + 1;
+        uint64_t max_pos = std::min(i + params.length - params.overlap, textLength - params.length) + 1;
 
         if (std::any_of(c.begin() + i, c.begin() + max_pos, [](auto value){ return value == 0; }))
         {
-            TIter it_zero_errors[length - overlap + 1];
-            unsigned hits[length - overlap + 1] = {};
+            TIter it_zero_errors[params.length - params.overlap + 1];
+            unsigned hits[params.length - params.overlap + 1] = {};
 
-            auto delegate = [&hits, &it_zero_errors, i, length, textLength, overlap, &text](auto it, auto const & /*read*/, unsigned const errors_spent) {
-                uint64_t const bb = std::min(textLength - 1, i + length - 1 + length - overlap);
+            auto delegate = [&hits, &it_zero_errors, i, textLength, params, &text](auto it, auto const & /*read*/, unsigned const errors_spent) {
+                uint64_t const bb = std::min(textLength - 1, i + params.length - 1 + params.length - params.overlap);
                 if (errors_spent == 0)
                 {
-                    extend3<errors>(it, hits, it_zero_errors, errors - errors_spent, text, length,
-                        i + length - overlap, i + length - 1, // searched interval
+                    extend3<errors>(it, hits, it_zero_errors, errors - errors_spent, text, params.length,
+                        i + params.length - params.overlap, i + params.length - 1, // searched interval
                         i, bb // entire interval
                     );
                 }
                 else
                 {
-                    extend(it, hits, errors - errors_spent, text, length,
-                        i + length - overlap, i + length - 1, // searched interval
+                    extend(it, hits, errors - errors_spent, text, params.length,
+                        i + params.length - params.overlap, i + params.length - 1, // searched interval
                         i, bb // entire interval
                     );
                 }
             };
 
-            auto const & needle = infix(text, i + length - overlap, i + length);
+            auto const & needle = infix(text, i + params.length - params.overlap, i + params.length);
             TIter it(index);
             _optimalSearchScheme(delegate, it, needle, scheme, HammingDistance());
             for (uint64_t j = i; j < max_pos; ++j)
             {
                 if (countOccurrences(it_zero_errors[j - i]) > 1) // guaranteed to exist, since there has to be at least one match!
                 {
-                    //count_forward_positions += countOccurrences(it_zero_errors[j - i]) - 1;
                     for (auto const & occ : getOccurrences(it_zero_errors[j-i], Fwd()))
                     {
                         auto const occ_pos = posGlobalize(occ, limits);
@@ -236,13 +237,8 @@ inline void runAlgo3(TIndex & index, auto const & text, unsigned const length, T
                 }
             }
         }
-        //else
-        //{
-        //    ++count_skipped_windows;
-        //}
+        printProgress<SearchParams::outputProgress>(progress_count, progress_step, progress_max);
     }
 
-    resetLimits(indexText(index), c, length);
-    //std::cout << "Forwarded values: " << count_forward_positions << '\n';
-    //std::cout << "Skipped windows: " << count_skipped_windows << '\n';
+    resetLimits(indexText(index), c, params.length);
 }

@@ -18,6 +18,16 @@ struct SAValue<String<TChar, TAlloc> >
 
 };
 
+struct SearchParams
+{
+    unsigned length;
+    unsigned overlap;
+    unsigned threads;
+    static constexpr bool outputProgress = false;
+    // bool indels;
+    // unsigned threshold = 0;
+};
+
 std::string mytime()
 {
     auto r = time(nullptr);
@@ -42,9 +52,50 @@ void resetLimits(seqan::StringSet<TString, TConfig> const & text, auto & c, unsi
         for (unsigned j = 1; j < length; ++j)
         {
             c[limits[i] - j] = 0;
-            //std::cout << (limits[i] - j) << '\n';
         }
     }
+}
+
+template <bool outputProgress>
+inline void printProgress(uint64_t &, uint64_t const, uint64_t const);
+
+template <>
+inline void printProgress<false>(uint64_t &, uint64_t const, uint64_t const)
+{ }
+
+template <>
+inline void printProgress<true>(uint64_t & progress_count, uint64_t const progress_step, uint64_t const progress_max)
+{
+    #pragma omp atomic
+    ++progress_count; // TODO: necessary?
+    if (omp_get_thread_num() == 0 && (progress_count & progress_step) == 0)
+    {
+        float progress = static_cast<float>(progress_count)/progress_max;
+        std::cout << "\rProgress: " << (truncf(progress*10000)/100) << "%" << std::flush;
+    }
+}
+
+template <bool outputProgress>
+inline void initProgress(uint64_t &, uint64_t &, uint64_t &, uint64_t const, uint64_t const);
+
+template <>
+inline void initProgress<false>(uint64_t & progress_count, uint64_t & progress_step, uint64_t & progress_max, uint64_t const step_size, uint64_t const max_i)
+{ }
+
+template <>
+inline void initProgress<true>(uint64_t & progress_count, uint64_t & progress_step, uint64_t & progress_max, uint64_t const step_size, uint64_t const max_i)
+{
+    progress_count = 0;
+    progress_max = (max_i + step_size - 1) / step_size; // = ceil(max_i / step_size)
+    progress_step = 2;
+    uint64_t progress_step_tmp = std::max(progress_max/10000, static_cast<uint64_t>(1));
+    while (progress_step < progress_step_tmp)
+        progress_step <<= 1;
+    --progress_step;
+    // std::cout << "progress_max: " << progress_max << '\n';
+    // std::cout << "progress_step: " << progress_step << '\n';
+    // std::cout << "progress_step_tmp: " << progress_step_tmp << '\n';
+    // exit(2);
 }
 
 using TMyFastConfig = seqan::FastFMIndexConfig<void, uint32_t, 2, 1>;

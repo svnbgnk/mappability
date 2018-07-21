@@ -165,35 +165,34 @@ inline void extend(TIter it, unsigned * hits, unsigned errors_left, auto & text,
 }
 
 template <unsigned errors, typename TIndex, typename TContainer>
-inline void runAlgo2(TIndex & index, auto const & text, unsigned const length, TContainer & c, unsigned const overlap, unsigned const threads)
+inline void runAlgo2(TIndex & index, auto const & text, TContainer & c, SearchParams const & params)
 {
     auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
-    _optimalSearchSchemeComputeFixedBlocklength(scheme, overlap);
+    _optimalSearchSchemeComputeFixedBlocklength(scheme, params.overlap);
 
-    uint64_t const textLength = seqan::length(text); // lengthSum() forwards to length() for a single string
+    uint64_t const textLength = length(text); // lengthSum() forwards to length() for a single string
 
-    const uint64_t max_i = textLength - length + 1;
-    const uint64_t step_size = length - overlap + 1;
-    //#pragma omp parallel for schedule(guided) num_threads(threads)
-    #pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*threads*50))) num_threads(threads)
+    const uint64_t max_i = textLength - params.length + 1;
+    const uint64_t step_size = params.length - params.overlap + 1;
+    #pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*params.threads*50))) num_threads(params.threads)
     for (uint64_t i = 0; i < max_i; i += step_size)
     {
-        unsigned hits[length - overlap + 1] = {};
-        auto delegate = [&hits, i, length, textLength, overlap, &text](auto it, auto const & /*read*/, unsigned const errors_spent) {
-            uint64_t const bb = std::min(textLength - 1, i + length - 1 + length - overlap);
-            extend(it, hits, errors - errors_spent, text, length,
-                i + length - overlap, i + length - 1, // searched interval
+        unsigned hits[params.length - params.overlap + 1] = {};
+        auto delegate = [&hits, i, textLength, params, &text](auto it, auto const & /*read*/, unsigned const errors_spent) {
+            uint64_t const bb = std::min(textLength - 1, i + params.length - 1 + params.length - params.overlap);
+            extend(it, hits, errors - errors_spent, text, params.length,
+                i + params.length - params.overlap, i + params.length - 1, // searched interval
                 i, bb // entire interval
             );
         };
 
-        auto const & needle = infix(text, i + length - overlap, i + length);
+        auto const & needle = infix(text, i + params.length - params.overlap, i + params.length);
         Iter<TIndex, VSTree<TopDown<> > > it(index);
         _optimalSearchScheme(delegate, it, needle, scheme, HammingDistance());
-        uint64_t max_pos = std::min(i + length - overlap, textLength - length);
+        uint64_t max_pos = std::min(i + params.length - params.overlap, textLength - params.length);
         for (uint64_t j = i; j <= max_pos; ++j)
             c[j] = hits[j - i];
     }
 
-    resetLimits(indexText(index), c, length);
+    resetLimits(indexText(index), c, params.length);
 }

@@ -1,24 +1,20 @@
 using namespace seqan;
 
 template <unsigned errors, typename TIndex, typename TContainer>
-inline void runAlgo4(TIndex & index, auto const & text, unsigned const length, TContainer & c, unsigned const overlap, unsigned const threads)
+inline void runAlgo4(TIndex & index, auto const & text, TContainer & c, SearchParams const & params)
 {
     typedef Iter<TIndex, VSTree<TopDown<> > > TIter;
 
     auto const & limits = stringSetLimits(indexText(index));
 
-    uint64_t const textLength = seqan::length(text); // lengthSum() forwards to length() for a single string
+    uint64_t const textLength = length(text); // lengthSum() forwards to length() for a single string
 
-    //unsigned count_skipped_windows = 0;
-    //unsigned count_forward_positions = 0;
-
-    const uint64_t max_i = textLength - length + 1;
-    const uint64_t step_size = length - overlap + 1;
-    //#pragma omp parallel for schedule(guided) num_threads(threads)
-    #pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*threads*50))) num_threads(threads)
+    const uint64_t max_i = textLength - params.length + 1;
+    const uint64_t step_size = params.length - params.overlap + 1;
+    #pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*params.threads*50))) num_threads(params.threads)
     for (uint64_t i = 0; i < max_i; i += step_size)
     {
-        uint64_t max_pos = std::min(i + length - overlap, textLength - length) + 1;
+        uint64_t max_pos = std::min(i + params.length - params.overlap, textLength - params.length) + 1;
 
         // overlap is the length of the infix!
 
@@ -34,7 +30,7 @@ inline void runAlgo4(TIndex & index, auto const & text, unsigned const length, T
         {
             uint64_t begin_pos = i + leading;
             uint64_t end_pos = max_pos - trailing; // excluding
-            uint64_t new_overlap = length - (end_pos - begin_pos) + 1;
+            uint64_t new_overlap = params.length - (end_pos - begin_pos) + 1;
 
             auto scheme = OptimalSearchSchemes<0, errors>::VALUE; // TODO: move out as array
             _optimalSearchSchemeComputeFixedBlocklength(scheme, new_overlap); // only do when new_overlap != overlap
@@ -42,33 +38,31 @@ inline void runAlgo4(TIndex & index, auto const & text, unsigned const length, T
             TIter it_zero_errors[end_pos - begin_pos];
             unsigned hits[end_pos - begin_pos] = {};
 
-            auto delegate = [&hits, &it_zero_errors, begin_pos, length, textLength, new_overlap, &text](auto it, auto const & /*read*/, unsigned const errors_spent) {
-                uint64_t const bb = std::min(textLength - 1, begin_pos + length - 1 + length - new_overlap);
+            auto delegate = [&hits, &it_zero_errors, begin_pos, params, textLength, new_overlap, &text](auto it, auto const & /*read*/, unsigned const errors_spent) {
+                uint64_t const bb = std::min(textLength - 1, begin_pos + params.length - 1 + params.length - new_overlap);
                 if (errors_spent == 0)
                 {
-                    extend3<errors>(it, hits, it_zero_errors, errors - errors_spent, text, length,
-                        begin_pos + length - new_overlap, begin_pos + length - 1, // searched interval
+                    extend3<errors>(it, hits, it_zero_errors, errors - errors_spent, text, params.length,
+                        begin_pos + params.length - new_overlap, begin_pos + params.length - 1, // searched interval
                         begin_pos, bb // entire interval
                     );
                 }
                 else
                 {
-                    extend(it, hits, errors - errors_spent, text, length,
-                        begin_pos + length - new_overlap, begin_pos + length - 1, // searched interval
+                    extend(it, hits, errors - errors_spent, text, params.length,
+                        begin_pos + params.length - new_overlap, begin_pos + params.length - 1, // searched interval
                         begin_pos, bb // entire interval
                     );
                 }
             };
 
-            auto const & needle = infix(text, begin_pos + length - new_overlap, begin_pos + length);
+            auto const & needle = infix(text, begin_pos + params.length - new_overlap, begin_pos + params.length);
             TIter it(index);
             _optimalSearchScheme(delegate, it, needle, scheme, HammingDistance());
             for (uint64_t j = begin_pos; j < end_pos; ++j)
             {
                 if (countOccurrences(it_zero_errors[j - begin_pos]) > 1) // guaranteed to exist, since there has to be at least one match!
-                {
-                    //if (c[j] == 0)
-                    //    count_forward_positions += countOccurrences(it_zero_errors[j - begin_pos]) - 1;
+                {;
                     for (auto const & occ : getOccurrences(it_zero_errors[j-begin_pos], Fwd()))
                     {
                         auto const occ_pos = posGlobalize(occ, limits);
@@ -81,14 +75,7 @@ inline void runAlgo4(TIndex & index, auto const & text, unsigned const length, T
                 }
             }
         }
-        //else
-        //{
-        //    ++count_skipped_windows;
-        //}
-
     }
 
-    resetLimits(indexText(index), c, length);
-    //std::cout << "Forwarded values: " << count_forward_positions << '\n';
-    //std::cout << "Skipped windows: " << count_skipped_windows << '\n';
+    resetLimits(indexText(index), c, params.length);
 }
