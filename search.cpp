@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
     
     CharString indexPath, bitvectorpath, readspath;
     string outputpath;
-    int K, nerrors, threshold, r = 0;
+    int K, nerrors, threshold = 10, r = 0;
     getOptionValue(indexPath, parser, "index");
     getOptionValue(bitvectorpath, parser, "ibitvector");
     getOptionValue(readspath, parser, "ireads");
@@ -162,7 +162,12 @@ int main(int argc, char *argv[])
         finish = std::chrono::high_resolution_clock::now();
         elapsed = finish - start;
         cout << "Finished My Search" << endl;
-
+        
+        auto sl =  getSequencesLengths(it, bitvectors);
+        cout << "Sequence Lengths: " << endl;
+        for(int i = 0; i < sl.size(); ++i)
+            cout << sl[i] << endl;
+        
         auto scalc = std::chrono::high_resolution_clock::now();
         calcfwdPos(index, bitvectors, hits);
         auto ecalc = std::chrono::high_resolution_clock::now();
@@ -179,7 +184,7 @@ int main(int argc, char *argv[])
         
         for(int i = 0; i < hits.size(); ++i){
             cout << "Errors: "<< (int)hits[i].errors;
-            cout << "   "  << hits[i].occ << endl;
+            cout << "   "  << hits[i].occ << " " << hits[i].read << endl;
             cout << infix(genome[hits[i].occ.i1], hits[i].occ.i2, hits[i].occ.i2 + seqan::length(hits[i].read)) << endl;
         }
     }

@@ -36,8 +36,8 @@ std::vector<int> getSequencesLengths(Iter<Index<TText, BidirectionalIndex<TIndex
     for(int i = 0; i < number_of_indeces; ++i)
         sequenceLengths[iter.fwdIter.index->sa[i].i1 + 1] = iter.fwdIter.index->sa[i].i2;
         // cumulative sum seq
-    for(int i = 1; i < sequenceLengths.size(); ++i)
-        sequenceLengths[i] += (sequenceLengths[i - 1]);
+//     for(int i = 1; i < sequenceLengths.size(); ++i)
+//         sequenceLengths[i] += (sequenceLengths[i - 1]);
     return sequenceLengths;
 }
 
@@ -45,13 +45,18 @@ template<typename TIndex,
          typename TVector, typename TVSupport>
 void calcfwdPos(TIndex & index,
                 std::vector<std::pair<TVector, TVSupport>> & bitvectors,
-                std::vector<hit> & hitsOutput)
+                std::vector<hit> & hitsOutput,
+                bool verbose = false)
 {
     Iter<TIndex, VSTree<TopDown<> > > it(index);
     std::vector<int> sl = getSequencesLengths(it, bitvectors);
     for(int i = 0; i < hitsOutput.size(); ++i){
-        if(hitsOutput[i].rev)
+        if(hitsOutput[i].rev){
             hitsOutput[i].occ.i2 = sl[hitsOutput[i].occ.i1 + 1] - hitsOutput[i].occ.i2 - length(hitsOutput[i].read);
+            if(verbose)
+                std::cout << hitsOutput[i].occ << "\n";
+        }
+
     }
 }
 
@@ -158,7 +163,7 @@ std::vector<hit> print_readocc_sorted(std::vector<hit> hits, auto const & genome
     std::sort(hits.begin(), hits.end(), occ_smaller);
     for(int i = 0; i < hits.size(); ++i){
         std::cout << "Errors: "<< (int)hits[i].errors;
-        std::cout << "   " << hits[i].occ << "\n";
+        std::cout << "   " << hits[i].occ << " " << hits[i].read << "\n";
         if(occEnabled)
             std::cout << infix(genome[hits[i].occ.i1], hits[i].occ.i2, hits[i].occ.i2 + seqan::length(hits[i].read)) << "\n";
         
