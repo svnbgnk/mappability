@@ -618,7 +618,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir());
     }
 }
-
+/*
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
@@ -643,7 +643,28 @@ inline void _optimalSearchScheme(TDelegate & delegate,
         else
             _uniOptimalSearchScheme(delegate, delegateDirect, it.fwdIter, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Fwd());
     }
+}*/
+
+
+template <typename TDelegate, typename TDelegateD,
+          typename TText, typename TIndex, typename TIndexSpec,
+          typename TNeedle,
+          typename TVector, typename TVSupport,
+          size_t nbrBlocks>
+inline void _optimalSearchScheme(TDelegate & delegate,
+                                 TDelegateD & delegateDirect,
+                                 Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it,
+                                 TNeedle const & needle,
+                                 vector<pair<TVector, TVSupport>> & bitvectors,
+                                 OptimalSearch<nbrBlocks> const & s,
+                                 int counter)
+{
+    cout << "Counter: " << counter << endl;
+//     cout << "Range: " << range(it.fwdIter) << endl;
+    _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, s, counter + 1);
 }
+
+
 
 //TODO use TDistanceTag in fucntions before
 template <typename TDelegate, typename TDelegateD,
@@ -678,7 +699,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
                                  std::array<OptimalSearch<nbrBlocks>, N> const & ss)
 {
     for (auto & s : ss)
-        _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, s);
+        _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, s, 0);
 }  
 
 template <typename TDelegate, typename TDelegateD,
