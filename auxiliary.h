@@ -399,7 +399,7 @@ std::vector<std::pair<TBitvector, TSupport>> loadBitvectors(CharString const bit
     if(file_exists(std::string("") + toCString(bitvectorpath) + "l_bit_vector_" +  std::to_string(K) + "_" +  std::to_string(errors) + "_shift_" +  std::to_string(0)))
     {
     std::cout << "Load the following Bitvectors:" << "\n";
-    for(int i = 0; i < 10; ++i){
+    for(int i = 0; i < K + 2; ++i){
         std::string file_name = std::string("") + toCString(bitvectorpath) + "r_bit_vector_" +  std::to_string(K) + "_" +  std::to_string(errors) + "_shift_" +  std::to_string(i);
         if(file_exists(file_name)){
             TBitvector b;
@@ -407,11 +407,10 @@ std::vector<std::pair<TBitvector, TSupport>> loadBitvectors(CharString const bit
             load_from_file(b, file_name);
             TSupport rb(& b);
             bit_vectors.push_back(std::make_pair(b, rb));
-//              bit_vectors[i + 1].second.set_vector(&bit_vectors[i + 1].first);
          }
     }
     
-    for(int i = 0; i < 10; ++i){
+    for(int i = 0; i < K + 2; ++i){
          std::string file_name = std::string("") + toCString(bitvectorpath) + "l_bit_vector_" +  std::to_string(K) + "_" +  std::to_string(errors) + "_shift_" +  std::to_string(i);
          if(file_exists(file_name)){
              TBitvector b;
@@ -419,7 +418,6 @@ std::vector<std::pair<TBitvector, TSupport>> loadBitvectors(CharString const bit
              load_from_file(b, file_name);
              TSupport rb(& b);
              bit_vectors.push_back(std::make_pair(b, rb));
-//              bit_vectors[i + 1].second.set_vector(&bit_vectors[i + 1].first);
          }
     }
     }else{

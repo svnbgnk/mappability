@@ -42,23 +42,19 @@ vector<uint8_t> read(const string mappability_path){
 }
 
 template <unsigned errors>
-bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const int len, double threshold){
+bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const int len, int const threshold){
     bitvectors b;
-    int th = round(1/threshold);
     int e = errors;    
     auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
     _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
     _optimalSearchSchemeSetMapParams(scheme);
-    auto s = scheme[0];
-//     for(int i = 0; i < s.pi.size(); ++i)
-//         cout << (int)s.revChronBL[i] << endl;
-    
+    auto s = scheme[0];  
     sdsl::bit_vector righti (mappability.size() + len - 1, 0);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
     #pragma omp parallel for schedule(static)   
     for(unsigned i = 0; i < mappability.size(); ++i){
-        lefti[i + len - 1] = (mappability[i] <= th);
-        righti[i] = (mappability[i] <= th);
+        lefti[i + len - 1] = (mappability[i] <= threshold);
+        righti[i] = (mappability[i] <= threshold);
     }
     cout << "Finished Default Bit Vectors.  Length: " << righti.size() << endl;
  
@@ -72,9 +68,7 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
         for(int i = 0; i < blocks - 1; ++i){
             sdsl::bit_vector newright(mappability.size() + len - 1, 0); //TODO think 0 or 1 in edge cases
             int shift = s.chronBL[i];
-            cout << "shift for r_bit  " << shift << endl;
-            cout << "name:  " << i + 1 << endl; 
-            //TODO add parallization here
+            #pragma omp parallel for schedule(static)
             for(int j = 0; j < righti.size(); ++j){
                 if(j - shift >= 0)
                     newright[j] = righti[j - shift];
@@ -87,9 +81,7 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
         for(int i = 1; i < blocks; ++i){
             sdsl::bit_vector newleft(mappability.size() + len - 1, 0);//TODO think 0 or 1 in edge cases
             int shift = s.revChronBL[blocks - i];
-            cout << "shift for l_bit  " << shift << endl;
-            cout << "name:  " << i << endl; 
-            //TODO add parallization here
+            #pragma omp parallel for schedule(static)
             for(int j = 0; j < righti.size(); ++j){
                 if(j + shift < lefti.size() - 1)
                     newleft[j] = lefti[j + shift];
@@ -108,18 +100,17 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
 
 
 template <unsigned errors>
-bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int len, double threshold){
+bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int len, int const threshold){
 
     int e = errors;
-    cout << "Create minimum amount of bitvectors" << endl;
-    int th = round(1/threshold);     
+    cout << "Create minimum amount of bitvectors" << endl; 
     bitvectors b;
     sdsl::bit_vector righti (mappability.size() + len - 1, 0);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
     #pragma omp parallel for schedule(static)   
     for(unsigned i = 0; i < mappability.size(); ++i){
-        lefti[i + len - 1] = (mappability[i] <= th);
-        righti[i] = (mappability[i] <= th);
+        lefti[i + len - 1] = (mappability[i] <= threshold);
+        righti[i] = (mappability[i] <= threshold);
     }
     cout << "Finished Default Bit Vectors.  Length: " << righti.size() << endl;
     vector<sdsl::bit_vector> bit_vectors;
@@ -182,7 +173,7 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int le
 }
 
 
-bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int len, double threshold, bool const bit3, const int errors){
+bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int len, int const threshold, bool const bit3, const int errors){
     bitvectors result;
     if(bit3){
         switch (errors)
@@ -249,18 +240,11 @@ void print_SA(CharString const indexPath, vector<sdsl::bit_vector> &bit_vectors,
         outfile << j << " " << "(" << seq << ", " << sa_j << "):\t" << sa_j + sequenceLengths[seq] << "\n";
     }
     outfile.close();
-//     for(int i = 0; i < 10; ++i){
-//         cout << index.fwd.sa[i] << endl;
-//     }
-//     cout << "reverse:" << endl;
-//        for(int i = 0; i < 10; ++i){
-//         cout << index.rev.sa[i] << endl;
-//     }
 }
 
-
+// num_threads(3)
 template <typename TChar, typename TAllocConfig>
-void loadIndex(bitvectors & b, CharString const indexPath)
+void loadIndex(bitvectors & b, CharString const indexPath, int const threads)
 {
     cout << mytime() << "Loading Index" << endl;
     typedef String<TChar, TAllocConfig> TString;
@@ -270,7 +254,7 @@ void loadIndex(bitvectors & b, CharString const indexPath)
     vector<sdsl::bit_vector> bit_vectors_ordered (b.bv);    
     int number_of_indeces = seqan::length(index.fwd.sa) - b.bv[0].size();
     vector<int> sequenceLengths(number_of_indeces + 1, 0);
-    cout << "Number of Indeces: " << number_of_indeces << endl;
+    cout << "Number of Sequences in Index: " << number_of_indeces << endl;
     
     int ssize = sequenceLengths.size();
     //sequenceLengths first value is 0
@@ -278,13 +262,17 @@ void loadIndex(bitvectors & b, CharString const indexPath)
         sequenceLengths[(index.fwd.sa[i]).i1 + 1] = index.fwd.sa[i].i2;  
     for(int i = 1; i < ssize; ++i)
         sequenceLengths[i] += (sequenceLengths[i - 1]);
-    cout << "Sequence Lengths:" << endl;
-    for(int i = 1; i < ssize; ++i){
-        cout << sequenceLengths[i] << endl;        
-    }
 
+    cout << mytime() << "Start sorting bitvectors" << endl;
     // skip sentinels
-    #pragma omp parallel for schedule(static)
+    
+    int mythreads;
+    if(threads == 0)
+        int mythreads = omp_get_max_threads();
+    else
+        mythreads = threads;
+    
+    #pragma omp parallel for schedule(static) num_threads(mythreads)
     for (unsigned j = 0; j < seqan::length(index.fwd.sa) - number_of_indeces; ++j)
     {
         uint32_t sa_f = index.fwd.sa[j + number_of_indeces].i2;
@@ -307,19 +295,19 @@ void loadIndex(bitvectors & b, CharString const indexPath)
 
 
 template <typename TChar>
-void loadIndex(bitvectors & bit_vectors, CharString const indexPath, bool const mmap)
+void loadIndex(bitvectors & bit_vectors, CharString const indexPath, bool const mmap, int const threads)
 {
     if(mmap)
-        loadIndex<TChar, MMap<> >(bit_vectors, indexPath);
+        loadIndex<TChar, MMap<> >(bit_vectors, indexPath,threads);
     else
-        loadIndex<TChar, Alloc<> >(bit_vectors, indexPath);
+        loadIndex<TChar, Alloc<> >(bit_vectors, indexPath, threads);
 }
 
-void order_bit_vector(bitvectors & bit_vectors, CharString const indexPath, bool const mmap, CharString const alphabet){
+void order_bit_vector(bitvectors & bit_vectors, CharString const indexPath, bool const mmap, CharString const alphabet, int const threads){
      if(alphabet == "dna4")
-         loadIndex<Dna>(bit_vectors, indexPath, mmap);
+         loadIndex<Dna>(bit_vectors, indexPath, mmap, threads);
      else
-         loadIndex<Dna5>(bit_vectors, indexPath, mmap);
+         loadIndex<Dna5>(bit_vectors, indexPath, mmap, threads);
 }
 
 
@@ -339,7 +327,7 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("K", "length", "Length of k-mers in the mappability vector", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "length");
     
-    addOption(parser, ArgParseOption("T", "threshold", "Threshold for inverse frequency that gets accepted", ArgParseArgument::DOUBLE, "DOUBLE"));
+    addOption(parser, ArgParseOption("T", "threshold", "Number of times a k-mer can occure and still be accepted as mappable", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "threshold");
     
     addOption(parser, ArgParseOption("E", "errors", "Max errors allowed during mapping", ArgParseArgument::INTEGER, "INT"));
@@ -354,6 +342,8 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("min", "3bitversion",
         "Only create the required 3 bitvectors needed for acquiring mappability in non-unidirectional cases"));
     
+    addOption(parser, ArgParseOption("t", "threads", "Number of threads used", ArgParseArgument::INTEGER, "INT"));
+    
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
     if (res != ArgumentParser::PARSE_OK)
         return res == ArgumentParser::PARSE_ERROR;
@@ -361,8 +351,8 @@ int main(int argc, char *argv[])
     //Retrieve input parameters
     CharString indexPath, _indexPath, outputPath;
     string mappability_path;
-    int len, errors; 
-    double threshold;
+    int len, errors, threads = 0; 
+    int threshold;
     
     getOptionValue(mappability_path, parser, "map");
     getOptionValue(indexPath, parser, "index");
@@ -373,6 +363,7 @@ int main(int argc, char *argv[])
     bool debug = isSet(parser, "debug");
     bool mmap = isSet(parser, "mmap");
     bool bit3 = isSet(parser, "3bitversion");
+    getOptionValue(threads, parser, "threads");
     
     StringSet<CharString> ids;
     CharString alphabet;
@@ -409,9 +400,8 @@ int main(int argc, char *argv[])
     
     }
     
-    cout << "Start sorting of bit vectors" << endl;
     //order in suffix array
-    order_bit_vector(result, indexPath, mmap, alphabet);
+    order_bit_vector(result, indexPath, mmap, alphabet, threads);
     cout << mytime() << "Finished sorting" << endl;
     for(int i = 0; i < result.bv.size(); ++i){
         sdsl::store_to_file(result.bv[i], toCString(outputPath) + result.names[i]);
