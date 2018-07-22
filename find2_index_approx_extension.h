@@ -141,7 +141,6 @@ inline void directSearch(TDelegateD & delegateDirect,
                   Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
                   TDir const & )
 {
-//     hitsv.reserve(countOccurrences(iter.fwdIter)); //TODO fix this
     auto const & genome = indexText(*iter.fwdIter.index);
     for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
         if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
@@ -184,11 +183,9 @@ inline void get_bitvector_interval_inside(Iter<Index<TText, BidirectionalIndex<T
     else
         needed_bitvector = s.min[blockIndex - 1] - 1;
 
-    //TODO use countSequences if it works
-    std::cout << "Count Sequences test: "<< countSequences(*iter.fwdIter.index) << "\n";
-    uint32_t number_of_indeces = seqan::length(iter.fwdIter.index->sa) - bitvectors[needed_bitvector].first.size();
-    dirrange.i1 = dirrange.i1 - number_of_indeces;
-    dirrange.i2 = dirrange.i2 - number_of_indeces;
+    uint32_t nseq = countSequences(*iter.fwdIter.index);
+    dirrange.i1 = dirrange.i1 - nseq;
+    dirrange.i2 = dirrange.i2 - nseq;
     
     brangeOutput.i1 = needed_bitvector;
     brangeOutput.i2 = dirrange;
@@ -224,11 +221,9 @@ inline void get_bitvector_interval(Iter<Index<TText, BidirectionalIndex<TIndex> 
             else
                 needed_bitvector = bitvsize - s.max[blockIndex];// + 1 - 1//mymax(s.pi, blockIndex) - 1; 
     }
-    //TODO find out why this does not work
-    //uint32_t number_of_indeces = countSequences(iter.fwdIter.index);
-    uint32_t number_of_indeces = seqan::length(iter.fwdIter.index->sa) - bitvectors[needed_bitvector].first.size(); 
-    dirrange.i1 = dirrange.i1 - number_of_indeces;
-    dirrange.i2 = dirrange.i2 - number_of_indeces;
+    uint32_t nseq = countSequences(*iter.fwdIter.index);
+    dirrange.i1 = dirrange.i1 - nseq;
+    dirrange.i2 = dirrange.i2 - nseq;
     
    brangeOutput.i1 = needed_bitvector;
    brangeOutput.i2 = dirrange;

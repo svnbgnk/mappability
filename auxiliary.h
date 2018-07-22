@@ -54,15 +54,12 @@ std::vector<uint32_t> getSequencesLengths(Iter<Index<TText, BidirectionalIndex<T
     return sequenceLengths;
 }
 
-template<typename TIndex,
-         typename TVector, typename TVSupport>
+template<typename TIndex>
 void calcfwdPos(TIndex & index,
-                std::vector<std::pair<TVector, TVSupport>> & bitvectors,
                 std::vector<hit> & hitsOutput,
                 bool verbose = false)
 {
-    Iter<TIndex, VSTree<TopDown<> > > it(index);
-    std::vector<uint32_t> sl = getSequencesLengths(it, bitvectors);
+    auto sl = getSeqLengths(index);
     
     for(int i = 0; i < hitsOutput.size(); ++i){
         if(hitsOutput[i].rev){

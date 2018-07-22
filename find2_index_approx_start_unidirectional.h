@@ -33,10 +33,10 @@ inline void filter_interval(TDelegate & delegate,
         return;
     }
     //TODO replace with countSequences when it works
-    uint32_t noi = seqan::length(iter.index->sa) - bitvectors[0].first.size(); // number_of_indeces
+    uint32_t nseq = countSequences(*iter.index);
     for(int i = 0; i < consOnes.size(); ++i){
-        iter.vDesc.range.i1 = consOnes[i].first + noi;
-        iter.vDesc.range.i2 = consOnes[i].second + noi;
+        iter.vDesc.range.i1 = consOnes[i].first + nseq;
+        iter.vDesc.range.i2 = consOnes[i].second + nseq;
         //TODO Maybe Link to old Funtion to not filter multiple times?
         if (std::is_same<TDir, Rev>::value)
             _uniOptimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Rev());

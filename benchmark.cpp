@@ -38,7 +38,7 @@ std::chrono::duration<double> callFunction(int nerrors,
     for(int i = 0; i < dhits.size(); ++i){
         hits.push_back(dhits[i]);
     }
-    calcfwdPos(index, bitvectors, hits);
+    calcfwdPos(index, hits);
     
     return(elapsed);
 }
