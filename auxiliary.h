@@ -68,9 +68,11 @@ void calcfwdPos(TIndex & index,
     
     for(int i = 0; i < hitsOutput.size(); ++i){
         if(hitsOutput[i].rev){
+            if(verbose)
+                std::cout << "before: " << hitsOutput[i].occ << "\n";
             hitsOutput[i].occ.i2 = sl[hitsOutput[i].occ.i1 + 1] - hitsOutput[i].occ.i2 - length(hitsOutput[i].read);
             if(verbose)
-                std::cout << hitsOutput[i].occ << "\n";
+                std::cout << "after: " << hitsOutput[i].occ << "\n";
         }
 
     }

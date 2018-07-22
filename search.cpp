@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
             cout << "sll:" << sll[i + 1] << "gen:" << length(genome[i]) << endl;
             exit(0);
         }
-        cout << sll[i+1] << " ";
+        cout << i << ":" << sll[i+1] << " ";
     }
     cout << endl;
     
@@ -197,7 +197,7 @@ int main(int argc, char *argv[])
         cout << "Finished My Search" << endl;
         
         auto scalc = std::chrono::high_resolution_clock::now();
-        calcfwdPos(index, hits);
+        calcfwdPos(index, hits, true);
         auto ecalc = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsedcalc = ecalc - scalc;
         cout << "Calc revPositions to forward positions: "<< elapsedcalc.count() << "s" << endl;
