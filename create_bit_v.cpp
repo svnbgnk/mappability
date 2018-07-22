@@ -68,7 +68,10 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
         for(int i = 0; i < blocks - 1; ++i){
             sdsl::bit_vector newright(mappability.size() + len - 1, 0); //TODO think 0 or 1 in edge cases
             int shift = s.chronBL[i];
-            #pragma omp parallel for schedule(static)
+            cout << "r  name: " << to_string(i + 1) << endl;
+            cout << "shift: " << shift << endl;
+            
+//             #pragma omp parallel for schedule(static)
             for(int j = 0; j < righti.size(); ++j){
                 if(j - shift >= 0)
                     newright[j] = righti[j - shift];
@@ -81,7 +84,9 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
         for(int i = 1; i < blocks; ++i){
             sdsl::bit_vector newleft(mappability.size() + len - 1, 0);//TODO think 0 or 1 in edge cases
             int shift = s.revChronBL[blocks - i];
-            #pragma omp parallel for schedule(static)
+            cout << "l  name: " << to_string(i) << endl;
+            cout << "shift: " << shift << endl;
+//             #pragma omp parallel for schedule(static)
             for(int j = 0; j < righti.size(); ++j){
                 if(j + shift < lefti.size() - 1)
                     newleft[j] = lefti[j + shift];
