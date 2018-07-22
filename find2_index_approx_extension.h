@@ -18,7 +18,7 @@ template <typename TVector, typename TVSupport>
 inline void getConsOnes(std::vector<std::pair<TVector, TVSupport>> & bitvectors, //TODO const
                 Pair<uint8_t, Pair<uint16_t, uint32_t>> & inside_bit_interval,
                 int const intervalsize,
-                std::vector<std::Pair<uint16_t, uint32_t>> & consOnesOutput)
+                std::vector<std::pair<uint32_t, uint32_t>> & consOnesOutput)
 {
     TVector & b = bitvectors[inside_bit_interval.i1].first;
     uint32_t k = inside_bit_interval.i2.i1;
@@ -59,7 +59,7 @@ inline void filter_interval(TDelegate & delegate,
                      Pair<uint8_t, Pair<uint16_t, uint32_t>> & inside_bit_interval,
                      TDir const & )
 {  
-    vector<Pair<uint16_t, uint32_t>> consOnes;
+    vector<std::pair<uint32_t, uint32_t>> consOnes;
     getConsOnes(bitvectors, inside_bit_interval, params.normal.intervalsize, consOnes);
     uint32_t noi = seqan::length(iter.fwdIter.index->sa) - bitvectors[0].first.size(); // number_of_indeces
     
