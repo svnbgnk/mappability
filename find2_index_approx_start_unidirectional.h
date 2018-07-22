@@ -26,7 +26,7 @@ inline void filter_interval(TDelegate & delegate,
                      TDir const & /**/,
                      bool & successfulOutput)
 {
-    vector<std::pair<uint32_t, uint32_t>> consOnes;
+    vector<Pair<uint16_t, uint32_t>> consOnes;
     getConsOnes(bitvectors, inside_bit_interval, params.startuni.intervalsize, consOnes);
     if(consOnes.size() == 1){
         successfulOutput = false;
