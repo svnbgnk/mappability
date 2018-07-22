@@ -24,6 +24,15 @@ struct isBidirectionalIter<Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTre
      static constexpr bool VALUE = true;
 };
 
+template <typename TIndex>
+auto getSeqLengths(TIndex & index){
+    auto mylimits = stringSetLimits(indexText(index));
+    for(int i = 2; i < length(mylimits); ++i)
+        mylimits[i] -= mylimits[i - 1];
+    return(mylimits);
+        
+}
+
 
 template <typename TText, typename TIndex, typename TIndexSpec,
           typename TVector, typename TVSupport>
@@ -40,7 +49,7 @@ std::vector<uint32_t> getSequencesLengths(Iter<Index<TText, BidirectionalIndex<T
         uint32_t sa = iter.fwdIter.index->sa[i].i2;
         sequenceLengths[seq + 1] = sa;
         std::cout << "Saved length: " << sa << "\n";
-        std::cout << "At position: " << seq + 1 << "\n";
+        std::cout << "At position: " << seq + 1 << "\n"; //seq is 50%  448???????? debug
     }
     return sequenceLengths;
 }
@@ -54,6 +63,7 @@ void calcfwdPos(TIndex & index,
 {
     Iter<TIndex, VSTree<TopDown<> > > it(index);
     std::vector<uint32_t> sl = getSequencesLengths(it, bitvectors);
+    
     for(int i = 0; i < hitsOutput.size(); ++i){
         if(hitsOutput[i].rev){
             hitsOutput[i].occ.i2 = sl[hitsOutput[i].occ.i1 + 1] - hitsOutput[i].occ.i2 - length(hitsOutput[i].read);
