@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
     setRequired(parser, "index");
     
     addOption(parser, ArgParseOption("R", "ireads", "Path to the index", ArgParseArgument::INPUT_FILE, "IN"));
-    setRequired(parser, "index");
+//     setRequired(parser, "index");
     
     addOption(parser, ArgParseOption("O", "output", "Path to output directory", ArgParseArgument::OUTPUT_FILE, "OUT"));
 //     setRequired(parser, "output");
@@ -106,6 +106,7 @@ int main(int argc, char *argv[])
     Iter<Index<TText, TIndexConfig>, VSTree<TopDown<> > > it(index);
     auto const & genome = indexText(index);
     
+    
     cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
 //     auto iter = it.revIter;
 //     print_genome(it, outputpath, 1); //TODO find solution for bidrectional iter test
@@ -116,7 +117,31 @@ int main(int argc, char *argv[])
     vector<pair<TBitvector, TSupport>> bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
     cout << "Bit vectors loaded. Number: " << bitvectors.size() << endl;
 
-
+    cout << "Test Index" << endl;
+    // Test index
+    vector<uint32_t> sl =  getSequencesLengths(it, bitvectors);
+    cout << "Sequence Lengths: " << endl;
+    for(int i = 0; i < sl.size(); ++i)
+        cout << sl[i] << endl;
+    cout << "count Sequences" << endl;
+    cout << countSequences(index) << endl;
+    cout << "count Sequences from iter" << endl;
+    cout << countSequences(*it.fwdIter.index) << endl;
+    
+    
+//     auto mylimits = stringSetLimits(genome);
+    auto mylimits = getSeqLengths(index);
+    cout << "print limits: " << endl;
+    for(int i = 0; i < length(mylimits); ++i)
+        cout << mylimits[i] << endl;
+    cout << "end of mylimits" << endl;
+    Pair<uint16_t, uint32_t> pos(2, 40000);
+    auto pos2 = posGlobalize(pos, mylimits);
+    cout << pos2 << endl;
+    cout << endl;
+    exit(0);
+    
+    
     std::vector<hit> dhits;
     std::vector<hit> hits;
     auto delegate = [&hits](auto const & iter, DnaString const & needle, uint8_t errors, bool const rev)
@@ -160,17 +185,11 @@ int main(int argc, char *argv[])
         elapsed = finish - start;
         cout << "Finished My Search" << endl;
         
-        vector<uint32_t> sl =  getSequencesLengths(it, bitvectors);
-        cout << "Sequence Lengths: " << endl;
-        for(int i = 0; i < sl.size(); ++i)
-            cout << sl[i] << endl;
-        
         auto scalc = std::chrono::high_resolution_clock::now();
         calcfwdPos(index, bitvectors, hits);
         auto ecalc = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsedcalc = ecalc - scalc;
         cout << "Calc revPositions to forward positions: "<< elapsedcalc.count() << "s" << endl;
-    //     stringSetLimits(text)
     }
     
     if(ecompare){
@@ -223,11 +242,11 @@ int main(int argc, char *argv[])
         {
             for (auto occ : getOccurrences(iter)){
                 hit me;
-            me.occ = occ;
-            me.read = needle;
-            me.errors = errors;
-            me.rev = false;
-            hitsDe.push_back(me);
+                me.occ = occ;
+                me.read = needle;
+                me.errors = errors;
+                me.rev = false;
+                hitsDe.push_back(me);
             }
         };
         auto delegateDirect2 = [&dhitsDe](Pair<uint16_t, uint32_t> const & pos, DnaString const & needle, uint8_t const errors)

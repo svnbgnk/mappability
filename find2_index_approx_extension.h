@@ -185,6 +185,7 @@ inline void get_bitvector_interval_inside(Iter<Index<TText, BidirectionalIndex<T
         needed_bitvector = s.min[blockIndex - 1] - 1;
 
     //TODO use countSequences if it works
+    std::cout << "Count Sequences test: "<< countSequences(*iter.fwdIter.index) << "\n";
     uint32_t number_of_indeces = seqan::length(iter.fwdIter.index->sa) - bitvectors[needed_bitvector].first.size();
     dirrange.i1 = dirrange.i1 - number_of_indeces;
     dirrange.i2 = dirrange.i2 - number_of_indeces;
