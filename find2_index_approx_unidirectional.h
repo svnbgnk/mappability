@@ -28,10 +28,9 @@ inline void get_bitvector_interval_inside(Iter<Index<TText, FMIndex<void, TConfi
     else
         needed_bitvector = s.min[blockIndex - 1] - 1;
 
-    //TODO use working? countSequences
-    uint32_t number_of_indeces = seqan::length(iter.index->sa) - bitvectors[needed_bitvector].first.size();
-    dirrange.i1 = dirrange.i1 - number_of_indeces;
-    dirrange.i2 = dirrange.i2 - number_of_indeces;
+    uint32_t nseq = countSequences(*iter.index);
+    dirrange.i1 = dirrange.i1 - nseq;
+    dirrange.i2 = dirrange.i2 - nseq;
 //     Pair<uint8_t, Pair<uint32_t, uint32_t>> brangeOutput(needed_bitvector, dirrange);
     brangeOutput.i1 = needed_bitvector;
     brangeOutput.i2 = dirrange;

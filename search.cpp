@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
     cout << "Loading bitvectors" << endl;
     vector<pair<TBitvector, TSupport>> bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
     cout << "Bit vectors loaded. Number: " << bitvectors.size() << endl;
-
+/*
     cout << "Test Index" << endl;
     // Test index
     vector<uint32_t> sl =  getSequencesLengths(it, bitvectors);
@@ -136,11 +136,12 @@ int main(int argc, char *argv[])
         cout << mylimits[i] << endl;
     cout << "end of mylimits" << endl;
     Pair<uint16_t, uint32_t> pos(2, 40000);
-    auto pos2 = posGlobalize(pos, mylimits);
+    auto pos2 = posGlobalize(pos, mylimits); //TODO use this?
+    //     hitsv.reserve(countOccurrences(iter.fwdIter)); //TODO fix this
     cout << pos2 << endl;
     cout << endl;
     exit(0);
-    
+    */
     
     std::vector<hit> dhits;
     std::vector<hit> hits;
@@ -186,7 +187,7 @@ int main(int argc, char *argv[])
         cout << "Finished My Search" << endl;
         
         auto scalc = std::chrono::high_resolution_clock::now();
-        calcfwdPos(index, bitvectors, hits);
+        calcfwdPos(index, hits);
         auto ecalc = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsedcalc = ecalc - scalc;
         cout << "Calc revPositions to forward positions: "<< elapsedcalc.count() << "s" << endl;
