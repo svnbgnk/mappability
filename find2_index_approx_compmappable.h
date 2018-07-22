@@ -19,12 +19,9 @@ inline void directSearch(TDelegateD & delegateDirect,
                   uint8_t const blockIndex,
                   TDir const & /**/)
 {
-    vector<Pair<uint16_t, uint32_t>> hitsv;
-    vector<uint8_t> errorsv;
     auto const & genome = indexText(*iter.fwdIter.index);
     for(int i = iter.fwdIter.vDesc.range.i1; i < iter.fwdIter.vDesc.range.i2; ++i){
         Pair<uint16_t, uint32_t> sa_info;
-        uint32_t startPos;
         //dont need look at the reverse index in this case since i dont use mappability
         sa_info = iter.fwdIter.index->sa[i];
         sa_info.i2 = sa_info.i2 - needleLeftPos;
