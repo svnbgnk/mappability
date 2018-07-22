@@ -212,7 +212,7 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int le
     return(result);    
 }
 
-
+/* //TODO fix sequenceLengths and number_of_indeces before using
 void print_SA(CharString const indexPath, vector<sdsl::bit_vector> &bit_vectors, CharString const & outputPath, bool const fwd){
     string name = "_SA_debug";
     string dir = (fwd) ? "fwd" : "rev";
@@ -245,7 +245,7 @@ void print_SA(CharString const indexPath, vector<sdsl::bit_vector> &bit_vectors,
         outfile << j << " " << "(" << seq << ", " << sa_j << "):\t" << sa_j + sequenceLengths[seq] << "\n";
     }
     outfile.close();
-}
+}*/
 
 // num_threads(3)
 template <typename TChar, typename TAllocConfig>
@@ -256,16 +256,16 @@ void loadIndex(bitvectors & b, CharString const indexPath, int const threads)
     Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index;
     open(index, toCString(indexPath), OPEN_RDONLY);
     cout << mytime() << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
-    vector<sdsl::bit_vector> bit_vectors_ordered (b.bv);    
-    int number_of_indeces = seqan::length(index.fwd.sa) - b.bv[0].size();
-    vector<int> sequenceLengths(number_of_indeces + 1, 0);
-    cout << "Number of Sequences in Index: " << number_of_indeces << endl;
+    vector<sdsl::bit_vector> bit_vectors_ordered (b.bv);   
     
-    int ssize = sequenceLengths.size();
-    //sequenceLengths first value is 0
-    for(int i = 0; i < ssize - 1; ++i)
-        sequenceLengths[(index.fwd.sa[i]).i1 + 1] = index.fwd.sa[i].i2;  
-    for(int i = 1; i < ssize; ++i)
+    uint32_t number_of_indeces = countSequences(index);
+    auto const & genome = indexText(index);
+    std::vector<int> sequenceLengths;
+    sequenceLengths.push_back(0);
+    for(int i = 0; i < countSequences(index)/*seqan::length(genome)*/; ++i)
+        sequenceLengths.push_back(seqan::length(genome[i]));
+    
+    for(int i = 1; i < sequenceLengths.size(); ++i)
         sequenceLengths[i] += (sequenceLengths[i - 1]);
 
     cout << mytime() << "Start sorting bitvectors" << endl;

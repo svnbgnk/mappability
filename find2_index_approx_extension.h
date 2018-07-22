@@ -61,7 +61,7 @@ inline void filter_interval(TDelegate & delegate,
 {  
     vector<pair<uint32_t, uint32_t>> consOnes;
     getConsOnes(bitvectors, inside_bit_interval, params.normal.intervalsize, consOnes);
-    uint32_t noi = seqan::length(iter.fwdIter.index->sa) - bitvectors[0].first.size(); // number_of_indeces
+    uint32_t noi = countSequences(*iter.fwdIter.index);
     
     for(int i = 0; i < consOnes.size(); ++i){
         if (std::is_same<TDir, Rev>::value){
