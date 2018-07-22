@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
         cout << "Finished My Search" << endl;
         
         auto scalc = std::chrono::high_resolution_clock::now();
-        calcfwdPos(index, hits, true);
+        calcfwdPos(index, hits);
         auto ecalc = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsedcalc = ecalc - scalc;
         cout << "Calc revPositions to forward positions: "<< elapsedcalc.count() << "s" << endl;
