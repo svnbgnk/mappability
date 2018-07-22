@@ -82,6 +82,12 @@ int main(int argc, char *argv[])
     bool notmy = isSet(parser, "notmy");
     bool startuni = isSet(parser, "startuni");
     
+    /*
+    //modify params //TODO revert this
+    params.normal.directsearch_th = 30;
+    params.normal.directsearchblockoffset = 0;
+    params.copyDirectsearchParamsfromNormal();
+    */
     //load reads
     SeqFileIn seqFileIn(toCString(readspath));
     StringSet<CharString> ids;
@@ -142,6 +148,7 @@ int main(int argc, char *argv[])
     cout << endl;
     exit(0);
     */
+
     auto sll = getSeqLengths(index);
     for(int i = 0; i < countSequences(*it.fwdIter.index); ++i){
         if(sll[i + 1] != length(genome[i])){
@@ -149,7 +156,8 @@ int main(int argc, char *argv[])
             cout << "sll:" << sll[i + 1] << "gen:" << length(genome[i]) << endl;
             exit(0);
         }
-        cout << i << ":" << sll[i+1] << " ";
+        if(ecompare)
+            cout << i << ":" << sll[i+1] << " ";
     }
     cout << endl;
     
@@ -202,6 +210,8 @@ int main(int argc, char *argv[])
         std::chrono::duration<double> elapsedcalc = ecalc - scalc;
         cout << "Calc revPositions to forward positions: "<< elapsedcalc.count() << "s" << endl;
     }
+    
+    cout << "DirectHits: " << dhits.size() << endl;
     
     if(ecompare){
         for(int i = 0; i < dhits.size(); ++i){
