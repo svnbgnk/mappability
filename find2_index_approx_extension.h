@@ -142,24 +142,28 @@ inline void directSearch(TDelegateD & delegateDirect,
                   Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
                   TDir const & )
 {
+    std::cout << "DS start:" << "\n";
     auto const & genome = indexText(*iter.fwdIter.index);
-    for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
+    for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
         if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
             Pair<uint16_t, uint32_t> sa_info;
             uint32_t startPos;
             // mappability information is in reverse index order if we use the forward index
+            uint32_t saPos;
             if(std::is_same<TDir, Rev>::value){
-                sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
+                saPos = static_cast<uint32_t> (iter.fwdIter.vDesc.range.i1) + i;
+                sa_info = iter.fwdIter.index->sa[saPos/*iter.fwdIter.vDesc.range.i1 + i*/];
                 sa_info.i2 = sa_info.i2 - needleLeftPos;
             }
             else
             {
-                sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
+                saPos = static_cast<uint32_t> (iter.revIter.vDesc.range.i1) + i;
+                sa_info = iter.revIter.index->sa[saPos/*iter.revIter.vDesc.range.i1 + i*/];
                 //calculate correct starting position of the needle  on the forward index
                 sa_info.i2 = seqan::length(genome[sa_info.i1]) - sa_info.i2 - needleRightPos + 1;
             }
             //search remaining blocks
-            std::cout << "Potential Hits Extension: " << sa_info << "\n";
+            std::cout << "Potential Hits Extension: " << sa_info << " atSA: " << saPos << "\n";
             genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info);
         }
     }
