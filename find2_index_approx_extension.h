@@ -119,6 +119,7 @@ inline void genomeSearch(TDelegateD & delegateDirect,
         }
     }
     if(valid){
+        std::cout << "Direct Hit: " << sa_info << "\n";
         delegateDirect(sa_info, needle, errors);
     }
 }
@@ -158,6 +159,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                 sa_info.i2 = seqan::length(genome[sa_info.i1]) - sa_info.i2 - needleRightPos + 1;
             }
             //search remaining blocks
+            std::cout << "Potential Hits Extension: " << sa_info << "\n";
             genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info);
         }
     }
