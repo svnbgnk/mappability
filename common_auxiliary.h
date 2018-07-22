@@ -13,7 +13,7 @@ struct hit{
 };
 
 template <size_t nbrBlocks, size_t N>
-constexpr inline void _optimalSearchSchemeSetMapParams(std::array<OptimalSearch<nbrBlocks>, N> & ss)
+/*constexpr */inline void _optimalSearchSchemeSetMapParams(std::array<OptimalSearch<nbrBlocks>, N> & ss)
 {
     for (OptimalSearch<nbrBlocks> & s : ss){
         int bsize = s.pi.size();

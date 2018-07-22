@@ -95,6 +95,8 @@ inline void genomeSearch(TDelegateD & delegateDirect,
                   auto const & genome,
                   Pair<uint16_t, uint32_t> const & sa_info)
 {
+    std::cout << "Testing Pos: " << sa_info << "\n" << std::is_same<TDir, Rev>::value <<"SS: ";
+    printv(s.pi);
     bool valid = true;
     for(int j = blockIndex; j < s.pi.size(); ++j){
         int blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
@@ -109,12 +111,14 @@ inline void genomeSearch(TDelegateD & delegateDirect,
             if(needleLeftPos > blockStart && needleLeftPos < blockEnd)
                 blockEnd = needleLeftPos;
         }
+        std::cout << "blockStart: " << blockStart << " blockEnd: " << blockEnd << "\n";
         for(int k = blockStart; k <  blockEnd; ++k){
             if(needle[k] != genome[sa_info.i1][sa_info.i2 + k])
                 ++errors;
         }
         if(errors < s.l[j] || errors > s.u[j]){
             valid = false;
+            std::cout << "Trig  " << errors << endl;
             break;
         }
     }
