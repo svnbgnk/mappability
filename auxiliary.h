@@ -26,11 +26,16 @@ struct isBidirectionalIter<Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTre
 
 template <typename TIndex>
 auto getSeqLengths(TIndex & index){
-    auto mylimits = stringSetLimits(indexText(index));
-    for(int i = 2; i < length(mylimits); ++i)
-        mylimits[i] -= mylimits[i - 1];
-    return(mylimits);
-        
+//     auto mylimits = stringSetLimits(indexText(index));
+//     for(int i = 2; i < length(mylimits); ++i)
+//         mylimits[i] -= mylimits[i - 1];
+//     return(mylimits);
+    auto const & genome = indexText(index);
+    std::vector<int> sl;
+    sl.push_back(0);
+    for(int i = 0; i < countSequences(index)/*seqan::length(genome)*/; ++i)
+        sl.push_back(seqan::length(genome[i]));
+    return sl;
 }
 
 

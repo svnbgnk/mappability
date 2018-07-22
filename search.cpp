@@ -142,6 +142,16 @@ int main(int argc, char *argv[])
     cout << endl;
     exit(0);
     */
+    auto sll = getSeqLengths(index);
+    for(int i = 0; i < countSequences(*it.fwdIter.index); ++i){
+        if(sll[i + 1] != length(genome[i])){
+            cout << "Wrong Lengths" << endl;
+            cout << "sll:" << sll[i + 1] << "gen:" << length(genome[i]) << endl;
+            exit(0);
+        }
+        cout << sll[i+1] << " ";
+    }
+    cout << endl;
     
     std::vector<hit> dhits;
     std::vector<hit> hits;
