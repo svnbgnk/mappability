@@ -95,6 +95,7 @@ inline void genomeSearch(TDelegateD & delegateDirect,
                   auto const & genome,
                   Pair<uint16_t, uint32_t> const & sa_info)
 {
+    std::cout << "NPL: " << needleLeftPos << " NPR: " << needleRightPos << "\n";
     std::cout << "Testing Pos: " << sa_info << "\n" << std::is_same<TDir, Rev>::value <<"SS: ";
     printv(s.pi);
     bool valid = true;
@@ -118,7 +119,7 @@ inline void genomeSearch(TDelegateD & delegateDirect,
         }
         if(errors < s.l[j] || errors > s.u[j]){
             valid = false;
-            std::cout << "Trig  " << errors << endl;
+            std::cout << "Trig  " << (int)errors << endl;
             break;
         }
     }
@@ -351,8 +352,13 @@ inline ReturnCode checkCurrentMappability(TDelegate & delegate,
                             uint8_t const minErrorsLeftInBlock,
                             TDir const & )
 {
+    std::cout << "ccM    NPL: " << needleLeftPos << " NPR: " << needleRightPos << "\n";
+    printv(s.pi);
+    
     Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
     get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, TDir());
+    std::cout << "selected bitvector: " << (int)bit_interval.i1 << "\n";
+    std::cout << "Range bitvector: " << bit_interval.i2 << "\n";
     ReturnCode rcode = checkInterval(bitvectors, bit_interval, s, blockIndex);
     
     switch(rcode){
@@ -396,6 +402,10 @@ inline ReturnCode checkMappability(TDelegate & delegate,
                             bool const goToRight2,
                             TDir const & )
 {
+    
+    std::cout << "cM    NPL: " << current_needleLeftPos << " NPR: " << current_needleRightPos << "\n";
+    printv(s.pi);
+    
     bool finished = current_needleLeftPos == 0 && current_needleRightPos == length(needle) + 1;
     //check if we are done with the needle    
     if(!finished){
@@ -404,7 +414,7 @@ inline ReturnCode checkMappability(TDelegate & delegate,
             get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, Rev());
         else
             get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, Fwd());
-        
+        std::cout << "selected bitvector: " << (int)bit_interval.i1 << "\n";
         ReturnCode rcode = checkInterval(bitvectors, bit_interval, s, blockIndex);
         //TODO switch
          switch(rcode)
