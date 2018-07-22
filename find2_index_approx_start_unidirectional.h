@@ -22,11 +22,11 @@ inline void filter_interval(TDelegate & delegate,
                      uint8_t const errors,
                      OptimalSearch<nbrBlocks> const & s,
                      uint8_t const blockIndex,
-                     Pair<uint8_t, Pair<uint16_t, uint32_t>> & inside_bit_interval,
+                     Pair<uint8_t, Pair<uint32_t, uint32_t>> & inside_bit_interval,
                      TDir const & /**/,
                      bool & successfulOutput)
 {
-    vector<Pair<uint16_t, uint32_t>> consOnes;
+    vector<pair<uint32_t, uint32_t>> consOnes;
     getConsOnes(bitvectors, inside_bit_interval, params.startuni.intervalsize, consOnes);
     if(consOnes.size() == 1){
         successfulOutput = false;
@@ -54,14 +54,14 @@ template<typename TText, typename TConfig, typename TIndexSpec,
          typename TDir>
 inline bool testFilter(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
                           vector<pair<TVector, TVSupport>> & bitvectors,
-                          Pair<uint8_t, Pair<uint16_t, uint32_t>> & brange,
+                          Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
                           OptimalSearch<nbrBlocks> const & s,
                           uint8_t const blockIndex,
                           TDir const & )
 {
     // need bitinterval from inside the pattern to filter according to the mappability form
     //therefore i also need to acces the block before because of that block i got mappability of both sides
-    Pair<uint8_t, Pair<uint16_t, uint32_t>> bit_interval;
+    Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
     get_bitvector_interval_inside(iter, bitvectors, s, blockIndex, bit_interval, TDir());
     TVector & b2 = bitvectors[bit_interval.i1].first;
     
@@ -110,7 +110,7 @@ inline bool testFilter(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDow
 
 template <typename TVector, typename TVSupport>
 inline ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
-                          Pair<uint8_t, Pair<uint16_t, uint32_t>> & brange,
+                          Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
                           uint8_t const blockSize,
                           bool const done,
                           bool const nofilter,
@@ -187,7 +187,7 @@ inline ReturnCode uniCheckMappability(TDelegate & delegate,
                                  bool const nofilter,
                                  TDir const & )
 {
-    Pair<uint8_t, Pair<uint16_t, uint32_t>> bit_interval;
+    Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
     get_bitvector_interval_inside(iter, bitvectors, s, blockIndex + done, bit_interval, TDir());
     ReturnCode rcode = checkInterval(bitvectors, bit_interval, s.pi.size(), done, nofilter, blockIndex);
     

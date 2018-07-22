@@ -16,9 +16,9 @@ namespace seqan{
     
 template <typename TVector, typename TVSupport>
 inline void getConsOnes(std::vector<std::pair<TVector, TVSupport>> & bitvectors, //TODO const
-                Pair<uint8_t, Pair<uint16_t, uint32_t>> & inside_bit_interval,
+                Pair<uint8_t, Pair<uint32_t, uint32_t>> & inside_bit_interval,
                 int const intervalsize,
-                std::vector<std::Pair<uint16_t, uint32_t>> & consOnesOutput)
+                std::vector<std::pair<uint32_t, uint32_t>> & consOnesOutput)
 {
     TVector & b = bitvectors[inside_bit_interval.i1].first;
     uint32_t k = inside_bit_interval.i2.i1;
@@ -56,10 +56,10 @@ inline void filter_interval(TDelegate & delegate,
                      uint8_t const errors,
                      OptimalSearch<nbrBlocks> const & s,
                      uint8_t const blockIndex,
-                     Pair<uint8_t, Pair<uint16_t, uint32_t>> & inside_bit_interval,
+                     Pair<uint8_t, Pair<uint32_t, uint32_t>> & inside_bit_interval,
                      TDir const & )
 {  
-    vector<Pair<uint16_t, uint32_t>> consOnes;
+    vector<pair<uint32_t, uint32_t>> consOnes;
     getConsOnes(bitvectors, inside_bit_interval, params.normal.intervalsize, consOnes);
     uint32_t noi = seqan::length(iter.fwdIter.index->sa) - bitvectors[0].first.size(); // number_of_indeces
     
@@ -138,7 +138,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                   uint8_t const errors,
                   OptimalSearch<nbrBlocks> const & s,
                   uint8_t const blockIndex,
-                  Pair<uint8_t, Pair<uint16_t, uint32_t>> const & brange,
+                  Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
                   TDir const & )
 {
     auto const & genome = indexText(*iter.fwdIter.index);
@@ -171,10 +171,10 @@ inline void get_bitvector_interval_inside(Iter<Index<TText, BidirectionalIndex<T
                               vector<pair<TVector, TVSupport>> & bitvectors,    
                               OptimalSearch<nbrBlocks> const & s,
                               uint8_t const blockIndex,
-                              Pair<uint8_t, Pair<uint16_t, uint32_t>> & brangeOutput,
+                              Pair<uint8_t, Pair<uint32_t, uint32_t>> & brangeOutput,
                               bool const goToRight2) 
 {
-    Pair<uint16_t, uint32_t> dirrange = (goToRight2) ? range(iter.revIter) : range(iter.fwdIter);
+    Pair<uint32_t, uint32_t> dirrange = (goToRight2) ? range(iter.revIter) : range(iter.fwdIter);
     uint8_t needed_bitvector;
     uint8_t size = s.pi.size();
     uint8_t bitvsize = bitvectors.size();
@@ -200,10 +200,10 @@ inline void get_bitvector_interval(Iter<Index<TText, BidirectionalIndex<TIndex> 
                        vector<pair<TVector, TVSupport>> & bitvectors,    
                        OptimalSearch<nbrBlocks> const & s,
                        uint8_t const blockIndex,
-                       Pair<uint8_t, Pair<uint16_t, uint32_t>> & brangeOutput,
+                       Pair<uint8_t, Pair<uint32_t, uint32_t>> & brangeOutput,
                        TDir const & ) 
 {
-    Pair<uint16_t, uint32_t> dirrange = (std::is_same<TDir, Rev>::value) ? range(iter.fwdIter) : range(iter.revIter);
+    Pair<uint32_t, uint32_t> dirrange = (std::is_same<TDir, Rev>::value) ? range(iter.fwdIter) : range(iter.revIter);
     uint8_t needed_bitvector;
     uint8_t bitvsize = bitvectors.size();
     uint8_t size = s.pi.size();
@@ -234,14 +234,14 @@ template<typename TText, typename TIndex, typename TIndexSpec,
          size_t nbrBlocks>
 inline bool testUnidirectionalFilter(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                           vector<pair<TVector, TVSupport>> & bitvectors,
-                          Pair<uint8_t, Pair<uint16_t, uint32_t>> & brange,
+                          Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
                           OptimalSearch<nbrBlocks> const & s,
                           uint8_t const blockIndex,
                           bool const goToRight2)
 {
     // need bitinterval from inside the pattern to filter according to the mappability form
     //therefore i also need to acces the block before because of that block i got mappability of both sides
-    Pair<uint8_t, Pair<uint16_t, uint32_t>> bit_interval;
+    Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
     get_bitvector_interval_inside(iter, bitvectors, s, blockIndex, bit_interval, goToRight2);
     TVector & b2 = bitvectors[bit_interval.i1].first;
     
@@ -295,7 +295,7 @@ inline bool testUnidirectionalFilter(Iter<Index<TText, BidirectionalIndex<TIndex
 template<typename TVector, typename TVSupport,
          size_t nbrBlocks>
 inline ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
-                          Pair<uint8_t, Pair<uint16_t, uint32_t>> & brange,
+                          Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
                           OptimalSearch<nbrBlocks> const & s,
                           uint8_t const blockIndex)
 {
@@ -341,7 +341,7 @@ inline ReturnCode checkCurrentMappability(TDelegate & delegate,
                             uint8_t const minErrorsLeftInBlock,
                             TDir const & )
 {
-    Pair<uint8_t, Pair<uint16_t, uint32_t>> bit_interval;
+    Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
     get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, TDir());
     ReturnCode rcode = checkInterval(bitvectors, bit_interval, s, blockIndex);
     
@@ -389,7 +389,7 @@ inline ReturnCode checkMappability(TDelegate & delegate,
     bool finished = current_needleLeftPos == 0 && current_needleRightPos == length(needle) + 1;
     //check if we are done with the needle    
     if(!finished){
-        Pair<uint8_t, Pair<uint16_t, uint32_t>> bit_interval;
+        Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
         if(goToRight2)
             get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, Rev());
         else
