@@ -17,7 +17,7 @@ namespace seqan{
 template <typename TVector, typename TVSupport>
 inline void getConsOnes(std::vector<std::pair<TVector, TVSupport>> & bitvectors, //TODO const
                 Pair<uint8_t, Pair<uint32_t, uint32_t>> & inside_bit_interval,
-                int const intervalsize,
+                uint32_t const intervalsize,
                 std::vector<std::pair<uint32_t, uint32_t>> & consOnesOutput)
 {
     TVector & b = bitvectors[inside_bit_interval.i1].first;
@@ -63,7 +63,7 @@ inline void filter_interval(TDelegate & delegate,
     getConsOnes(bitvectors, inside_bit_interval, params.normal.intervalsize, consOnes);
     uint32_t noi = countSequences(*iter.fwdIter.index);
     
-    for(int i = 0; i < consOnes.size(); ++i){
+    for(uint32_t i = 0; i < consOnes.size(); ++i){
         if (std::is_same<TDir, Rev>::value){
             //TODO call DirectSearch here if the interval is to small also use block Index ....?
             iter.revIter.vDesc.range.i1 = consOnes[i].first + noi;
@@ -99,9 +99,9 @@ inline void genomeSearch(TDelegateD & delegateDirect,
     std::cout << "Testing Pos: " << sa_info << "\n" << std::is_same<TDir, Rev>::value <<"SS: ";
     printv(s.pi);
     bool valid = true;
-    for(int j = blockIndex; j < s.pi.size(); ++j){
-        int blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
-        int blockEnd = s.chronBL[s.pi[j] - 1];
+    for(uint32_t j = blockIndex; j < s.pi.size(); ++j){
+        uint32_t blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
+        uint32_t blockEnd = s.chronBL[s.pi[j] - 1];
         // compare bases to needle
         if(std::is_same<TDir, Rev>::value){
             if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd)
@@ -113,7 +113,7 @@ inline void genomeSearch(TDelegateD & delegateDirect,
                 blockEnd = needleLeftPos;
         }
         std::cout << "blockStart: " << blockStart << " blockEnd: " << blockEnd << "\n";
-        for(int k = blockStart; k <  blockEnd; ++k){
+        for(uint32_t k = blockStart; k <  blockEnd; ++k){
             if(needle[k] != genome[sa_info.i1][sa_info.i2 + k])
                 ++errors;
         }
@@ -644,8 +644,8 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     else
     {
     //int dfbe = 2; //distanceFromBlockEnd
-    int pblocklength = (blockIndex > 0) ? s.blocklength[blockIndex - 1] : 0;
-    int step = (needleRightPos - needleLeftPos - 1);
+    uint32_t pblocklength = (blockIndex > 0) ? s.blocklength[blockIndex - 1] : 0;
+    uint32_t step = (needleRightPos - needleLeftPos - 1);
     if(((step & params.normal.step) == 0) && 
         needleRightPos - needleLeftPos - 1 + params.normal.distancetoblockend < s.blocklength[blockIndex] && static_cast<int>(needleRightPos - needleLeftPos - 1) - params.normal.distancetoblockend > pblocklength)
     {

@@ -15,7 +15,7 @@ template<typename Tdelegate, typename TdelegateD,
         typename TIndex,
         typename Treads,
         typename TBitvectors>
-std::chrono::duration<double> callFunction(int nerrors,
+std::chrono::duration<double> callFunction(uint32_t nerrors,
                   vector<hit> & hits,
                   vector<hit> & dhits,
                   Tdelegate & delegate,
@@ -35,7 +35,7 @@ std::chrono::duration<double> callFunction(int nerrors,
     cout << "MyVersion elapsed: " << elapsed.count() << "s" << endl;  
 
     
-    for(int i = 0; i < dhits.size(); ++i){
+    for(uint32_t i = 0; i < dhits.size(); ++i){
         hits.push_back(dhits[i]);
     }
     calcfwdPos(index, hits);
@@ -153,7 +153,7 @@ int main(int argc, char const ** argv)
   
     if(testrun == 0){
     //16 runs
-    for(int i = 0; i < 16; ++i){
+    for(uint32_t i = 0; i < 16; ++i){
         params.wasStopped = false;
         params.normal.setCases(i);
         params.normal.printCases();

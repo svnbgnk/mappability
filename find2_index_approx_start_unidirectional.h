@@ -34,7 +34,7 @@ inline void filter_interval(TDelegate & delegate,
     }
     //TODO replace with countSequences when it works
     uint32_t nseq = countSequences(*iter.index);
-    for(int i = 0; i < consOnes.size(); ++i){
+    for(uint32_t i = 0; i < consOnes.size(); ++i){
         iter.vDesc.range.i1 = consOnes[i].first + nseq;
         iter.vDesc.range.i2 = consOnes[i].second + nseq;
         //TODO Maybe Link to old Funtion to not filter multiple times?
@@ -202,8 +202,8 @@ inline ReturnCode uniCheckMappability(TDelegate & delegate,
         {
             uint32_t rangeStart = iter.vDesc.range.i1;
             uint32_t rangeEnd = iter.vDesc.range.i2;
-            int lastStart = 0;
-            for(int i = 0; i < rangeEnd - rangeStart; ++i)
+            uint32_t lastStart = 0;
+            for(uint32_t i = 0; i < rangeEnd - rangeStart; ++i)
             {
                 if(bitvectors[bit_interval.i1].first[bit_interval.i2.i1 + i] == 0 )
                 {

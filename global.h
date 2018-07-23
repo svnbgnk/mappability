@@ -18,7 +18,7 @@ distancetoblockend: 1  // 2
 
 struct majorCaseParameters{
 private:
-    int cases;
+    uint32_t cases;
 public:
     bool nomappability;
     bool directsearch;
@@ -26,13 +26,13 @@ public:
     bool suspectunidirectional;
     
     bool testflipdensity;
-    int step;
-    int distancetoblockend;
-    int directsearch_th;
-    int directsearchblockoffset;
+    uint32_t step;
+    uint32_t distancetoblockend;
+    uint32_t directsearch_th;
+    uint32_t directsearchblockoffset;
     float filter_th;
     float invflipdensity;
-    int intervalsize;
+    uint32_t intervalsize;
     
     majorCaseParameters(){
         setdefault();
@@ -68,7 +68,7 @@ public:
         intervalsize = 3;
     }
     
-    void setCases(int a){
+    void setCases(uint32_t a){
         if(a > 16){
             std::cerr << "Integer to large. Try again!!! (<16)" << "\n";
         }else{

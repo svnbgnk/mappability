@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
     // Test index
     vector<uint32_t> sl =  getSequencesLengths(it, bitvectors);
     cout << "Sequence Lengths: " << endl;
-    for(int i = 0; i < sl.size(); ++i)
+    for(uint32_t i = 0; i < sl.size(); ++i)
         cout << sl[i] << endl;
     cout << "count Sequences" << endl;
     cout << countSequences(index) << endl;
@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
 //     auto mylimits = stringSetLimits(genome);
     auto mylimits = getSeqLengths(index);
     cout << "print limits: " << endl;
-    for(int i = 0; i < length(mylimits); ++i)
+    for(uint32_t i = 0; i < length(mylimits); ++i)
         cout << mylimits[i] << endl;
     cout << "end of mylimits" << endl;
     Pair<uint16_t, uint32_t> pos(2, 40000);
@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
     */
 
     auto sll = getSeqLengths(index);
-    for(int i = 0; i < countSequences(*it.fwdIter.index); ++i){
+    for(uint32_t i = 0; i < countSequences(*it.fwdIter.index); ++i){
         if(sll[i + 1] != length(genome[i])){
             cout << "Wrong Lengths" << endl;
             cout << "sll:" << sll[i + 1] << "gen:" << length(genome[i]) << endl;
@@ -215,13 +215,13 @@ int main(int argc, char *argv[])
     cout << "DirectHits: " << dhits.size() << endl;
     
     if(ecompare){
-        for(int i = 0; i < dhits.size(); ++i){
+        for(uint32_t i = 0; i < dhits.size(); ++i){
             hits.push_back(dhits[i]);
         }
         std::sort(hits.begin(), hits.end(), occ_smaller);
         
-        for(int i = 0; i < hits.size(); ++i){
-            cout << "Errors: "<< (int)hits[i].errors;
+        for(uint32_t i = 0; i < hits.size(); ++i){
+            cout << "Errors: "<< (uint32_t)hits[i].errors;
             cout << "   "  << hits[i].occ << " " << hits[i].read << endl;
             cout << infix(genome[hits[i].occ.i1], hits[i].occ.i2, hits[i].occ.i2 + seqan::length(hits[i].read)) << endl;
         }
@@ -293,7 +293,7 @@ int main(int argc, char *argv[])
         hitsDe = print_readocc_sorted(hitsDe, genome, true);
         cout << "Test if default and my version are the same: " << endl;
 //     cout.setstate(std::ios_base::failbit); //TODO revert this
-        vector<int> whitcount = compare(index, nerrors, threshold + 1, hits, hitsDe);
+        vector<uint32_t> whitcount = compare(index, nerrors, threshold + 1, hits, hitsDe);
 //     std::cout.clear();  //TODO revert this
     
         if(whitcount.size() == 0){
@@ -303,7 +303,7 @@ int main(int argc, char *argv[])
         }
         cout << endl;
         cout << "M: " << endl;
-        for(int i = 0; i < whitcount.size(); ++i)
+        for(uint32_t i = 0; i < whitcount.size(); ++i)
             cout << whitcount[i] << endl;
         cout << endl;
     }
