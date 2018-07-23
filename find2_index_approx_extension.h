@@ -139,23 +139,30 @@ inline void directSearch(TDelegateD & delegateDirect,
                   TDir const & )
 {
     auto const & genome = indexText(*iter.fwdIter.index);
+    uint32_t needleL = length(needle);
     for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
         if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
             Pair<uint16_t, uint32_t> sa_info;
-            uint32_t startPos;
+            uint32_t chromlength;
             // mappability information is in reverse index order if we use the forward index
-            uint32_t saPos;
             if(std::is_same<TDir, Rev>::value){
-                saPos = static_cast<uint32_t> (iter.fwdIter.vDesc.range.i1) + i;
-                sa_info = iter.fwdIter.index->sa[saPos/*iter.fwdIter.vDesc.range.i1 + i*/];
+                sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
+                chromlength = length(genome[sa_info.i1]);
+                //Info make sure we dont DS search something going over the chromosom edge
+                //check left chromosom boundry && check right chromosom boundry
+                if(!(needleLeftPos <= sa_info.i2 && chromlength > sa_info.i2 - needleLeftPos + needleL - 1))
+                    continue;
                 sa_info.i2 = sa_info.i2 - needleLeftPos;
             }
             else
             {
-                saPos = static_cast<uint32_t> (iter.revIter.vDesc.range.i1) + i;
-                sa_info = iter.revIter.index->sa[saPos/*iter.revIter.vDesc.range.i1 + i*/];
+                sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
+                chromlength = length(genome[sa_info.i1]);
+                //check left chromosom boundry && check right chromosom boundry
+                if(!(chromlength > sa_info.i2 + needleRightPos - 1 && sa_info.i2 + needleRightPos > needleL - 1))
+                    continue;
                 //calculate correct starting position of the needle  on the forward index
-                sa_info.i2 = seqan::length(genome[sa_info.i1]) - sa_info.i2 - needleRightPos + 1;
+                sa_info.i2 = chromlength - sa_info.i2 - needleRightPos + 1;
             }
             //search remaining blocks
             genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info);
