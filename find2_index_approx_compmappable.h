@@ -20,7 +20,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                   TDir const & /**/)
 {
     auto const & genome = indexText(*iter.fwdIter.index);
-    for(int i = iter.fwdIter.vDesc.range.i1; i < iter.fwdIter.vDesc.range.i2; ++i){
+    for(uint32_t i = iter.fwdIter.vDesc.range.i1; i < iter.fwdIter.vDesc.range.i2; ++i){
         Pair<uint16_t, uint32_t> sa_info;
         //dont need look at the reverse index in this case since i dont use mappability
         sa_info = iter.fwdIter.index->sa[i];

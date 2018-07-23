@@ -31,9 +31,9 @@ auto getSeqLengths(TIndex & index){
 //         mylimits[i] -= mylimits[i - 1];
 //     return(mylimits);
     auto const & genome = indexText(index);
-    std::vector<int> sl;
+    std::vector<uint32_t> sl;
     sl.push_back(0);
-    for(int i = 0; i < countSequences(index)/*seqan::length(genome)*/; ++i)
+    for(uint32_t i = 0; i < countSequences(index)/*seqan::length(genome)*/; ++i)
         sl.push_back(seqan::length(genome[i]));
     return sl;
 }
@@ -44,12 +44,12 @@ template <typename TText, typename TIndex, typename TIndexSpec,
 std::vector<uint32_t> getSequencesLengths(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                 std::vector<std::pair<TVector, TVSupport>> & bitvectors)
 {
-    int size = seqan::length(iter.fwdIter.index->sa);
-    int number_of_indeces = size - bitvectors[0].first.size();
+    uint32_t size = seqan::length(iter.fwdIter.index->sa);
+    uint32_t number_of_indeces = size - bitvectors[0].first.size();
     
     std::cout << "Number of Indeces: " << number_of_indeces << "\n";
     std::vector<uint32_t> sequenceLengths(number_of_indeces + 1, 0);
-    for(int i = 0; i < number_of_indeces; ++i){
+    for(uint32_t i = 0; i < number_of_indeces; ++i){
         uint16_t seq = iter.fwdIter.index->sa[i].i1;
         uint32_t sa = iter.fwdIter.index->sa[i].i2;
         sequenceLengths[seq + 1] = sa;
@@ -66,7 +66,7 @@ void calcfwdPos(TIndex & index,
 {
     auto sl = getSeqLengths(index);
     
-    for(int i = 0; i < hitsOutput.size(); ++i){
+    for(uint32_t i = 0; i < hitsOutput.size(); ++i){
         if(hitsOutput[i].rev){
             if(verbose)
                 std::cout << "before: " << hitsOutput[i].occ << "\n";
@@ -81,30 +81,30 @@ void calcfwdPos(TIndex & index,
 
 template <typename TText, typename TIndex, typename TIndexSpec>
 void print_beginsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-              int number_of_indeces,
+              uint32_t number_of_indeces,
               CharString outputPath,
               bool const fwd)
 {
     std::string name = (fwd) ? "start_fwd" : "start_rev";
     std::ofstream outfile(toCString(outputPath) + name, std::ios::out | std::ofstream::binary);
-    int size = seqan::length(iter.fwdIter.index->sa);
-    int noi = number_of_indeces;
-    std::vector<int> sequenceLengths(number_of_indeces + 1, 0);
-    for(int i = 0; i < number_of_indeces; ++i)
+    uint32_t size = seqan::length(iter.fwdIter.index->sa);
+    uint32_t noi = number_of_indeces;
+    std::vector<uint32_t> sequenceLengths(number_of_indeces + 1, 0);
+    for(uint32_t i = 0; i < number_of_indeces; ++i)
         sequenceLengths[iter.fwdIter.index->sa[i].i1 + 1] = iter.fwdIter.index->sa[i].i2;
         // cumulative sum seq
-    for(int i = 1; i < sequenceLengths.size(); ++i)
+    for(uint32_t i = 1; i < sequenceLengths.size(); ++i)
         sequenceLengths[i] += (sequenceLengths[i - 1]);
     if(!fwd){
         for(uint32_t i = 0; i < size && i < 1500; ++i){
-            int seq = iter.revIter.index->sa[i].i1;
-            int sa = iter.revIter.index->sa[i].i2;
+            uint32_t seq = iter.revIter.index->sa[i].i1;
+            uint32_t sa = iter.revIter.index->sa[i].i2;
             outfile << i << "\t(" << seq << ")\t" << sa << ":\t" << sa + sequenceLengths[seq] << "\n";
         }
     }else{
         for(uint32_t i = 0; i < size && i < 1500; ++i){
-            int seq = iter.fwdIter.index->sa[i].i1;
-            int sa = iter.fwdIter.index->sa[i].i2;
+            uint32_t seq = iter.fwdIter.index->sa[i].i1;
+            uint32_t sa = iter.fwdIter.index->sa[i].i2;
             outfile << i << "\t(" << seq << ")\t" << sa << ":\t" << sa + sequenceLengths[seq] << "\n";
         }
     }
@@ -123,25 +123,25 @@ void print_beginsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDow
 {
     std::string name = (fwd) ? "start_fwd" : "start_rev";
     std::ofstream outfile(toCString(outputPath) + name, std::ios::out | std::ofstream::binary);
-    int size = seqan::length(iter.fwdIter.index->sa);
+    uint32_t size = seqan::length(iter.fwdIter.index->sa);
     uint32_t number_of_indeces = size - bitvectors[0].size();
-    int noi = number_of_indeces;
-    std::vector<int> sequenceLengths(number_of_indeces + 1, 0);
-    for(int i = 0; i < number_of_indeces; ++i)
+    uint32_t noi = number_of_indeces;
+    std::vector<uint32_t> sequenceLengths(number_of_indeces + 1, 0);
+    for(uint32_t i = 0; i < number_of_indeces; ++i)
         sequenceLengths[iter.fwdIter.index->sa[i].i1 + 1] = iter.fwdIter.index->sa[i].i2;
         // cumulative sum seq
-    for(int i = 1; i < sequenceLengths.size(); ++i)
+    for(uint32_t i = 1; i < sequenceLengths.size(); ++i)
         sequenceLengths[i] += (sequenceLengths[i - 1]);
     if(!fwd){
         for(uint32_t i = 0; i < size && i < 1500; ++i){
-            int seq = iter.revIter.index->sa[i].i1;
-            int sa = iter.revIter.index->sa[i].i2;
+            uint32_t seq = iter.revIter.index->sa[i].i1;
+            uint32_t sa = iter.revIter.index->sa[i].i2;
             outfile << i << "\t(" << seq << ")\t" << sa << ":\t" << sa + sequenceLengths[seq] << "\n";
         }
     }else{
         for(uint32_t i = 0; i < size && i < 1500; ++i){
-            int seq = iter.fwdIter.index->sa[i].i1;
-            int sa = iter.fwdIter.index->sa[i].i2;
+            uint32_t seq = iter.fwdIter.index->sa[i].i1;
+            uint32_t sa = iter.fwdIter.index->sa[i].i2;
             outfile << i << "\t(" << seq << ")\t" << sa << ":\t" << sa + sequenceLengths[seq] << "\n";
         }
     }
@@ -152,26 +152,26 @@ void print_beginsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDow
 
 template <typename TText, typename TIndex, typename TIndexSpec>
 void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-              int const number_of_indeces,
+              uint32_t const number_of_indeces,
               bool const fwd)
 {
     Pair<uint32_t, uint32_t> dirrange = (fwd) ? range(iter.fwdIter) : range(iter.revIter);
     std::vector<int> sequenceLengths(number_of_indeces + 1, 0);
-    for(int i = 0; i < number_of_indeces; ++i)
+    for(uint32_t i = 0; i < number_of_indeces; ++i)
         sequenceLengths[iter.fwdIter.index->sa[i].i1 + 1] = iter.fwdIter.index->sa[i].i2;
         // cumulative sum seq
-    for(int i = 1; i < sequenceLengths.size(); ++i)
+    for(uint32_t i = 1; i < sequenceLengths.size(); ++i)
         sequenceLengths[i] += (sequenceLengths[i - 1]);
     if(fwd){
         for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
-            int seq = iter.fwdIter.index->sa[i].i1;
-            int sa = iter.fwdIter.index->sa[i].i2;
+            uint32_t seq = iter.fwdIter.index->sa[i].i1;
+            uint32_t sa = iter.fwdIter.index->sa[i].i2;
             std::cout << i << ": " << sa + sequenceLengths[seq] << "\n";
         }
     }else{
         for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
-            int seq = iter.revIter.index->sa[i].i1;
-            int sa = iter.revIter.index->sa[i].i2;
+            uint32_t seq = iter.revIter.index->sa[i].i1;
+            uint32_t sa = iter.revIter.index->sa[i].i2;
             std::cout << i << ": " << sequenceLengths[seq + 1] - sa - 1 << "\n";
         }
 
@@ -184,25 +184,25 @@ void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIn
               std::vector<std::pair<TVector, TVSupport>> & bitvectors,
               bool const fwd)
 {
-    int size = seqan::length(iter.fwdIter.index->sa);
+    uint32_t size = seqan::length(iter.fwdIter.index->sa);
     Pair<uint32_t, uint32_t> dirrange = (fwd) ? range(iter.fwdIter) : range(iter.revIter);
     uint32_t number_of_indeces = size - bitvectors[0].first.size();
-    std::vector<int> sequenceLengths(number_of_indeces + 1, 0);
-    for(int i = 0; i < number_of_indeces; ++i)
+    std::vector<uint32_t> sequenceLengths(number_of_indeces + 1, 0);
+    for(uint32_t i = 0; i < number_of_indeces; ++i)
         sequenceLengths[iter.fwdIter.index->sa[i].i1 + 1] = iter.fwdIter.index->sa[i].i2;
         // cumulative sum seq
-    for(int i = 1; i < sequenceLengths.size(); ++i)
+    for(uint32_t i = 1; i < sequenceLengths.size(); ++i)
         sequenceLengths[i] += (sequenceLengths[i - 1]);
     if(fwd){
         for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
-            int seq = iter.fwdIter.index->sa[i].i1;
-            int sa = iter.fwdIter.index->sa[i].i2;
+            uint32_t seq = iter.fwdIter.index->sa[i].i1;
+            uint32_t sa = iter.fwdIter.index->sa[i].i2;
             std::cout << i << ": " << sa + sequenceLengths[seq] << "\n";
         }
     }else{
         for(uint32_t i = dirrange.i1; i < dirrange.i2; ++i){
-            int seq = iter.revIter.index->sa[i].i1;
-            int sa = iter.revIter.index->sa[i].i2;
+            uint32_t seq = iter.revIter.index->sa[i].i1;
+            uint32_t sa = iter.revIter.index->sa[i].i2;
             std::cout << i << ": " << sequenceLengths[seq + 1] - sa - 1 << "\n";
         }
 
@@ -220,8 +220,8 @@ bool occ_smaller(const hit & x, const hit & y)
 std::vector<hit> print_readocc_sorted(std::vector<hit> hits, auto const & genome, bool const occEnabled)
 {
     std::sort(hits.begin(), hits.end(), occ_smaller);
-    for(int i = 0; i < hits.size(); ++i){
-        std::cout << "Errors: "<< (int)hits[i].errors;
+    for(uint32_t i = 0; i < hits.size(); ++i){
+        std::cout << "Errors: "<< (uint32_t)hits[i].errors;
         std::cout << "   " << hits[i].occ << " " << hits[i].read << "\n";
         if(occEnabled)
             std::cout << infix(genome[hits[i].occ.i1], hits[i].occ.i2, hits[i].occ.i2 + seqan::length(hits[i].read)) << "\n";
@@ -234,7 +234,7 @@ std::vector<hit> print_readocc_sorted(std::vector<hit> hits, auto const & genome
 
 template <size_t minErrors, size_t maxErrors,
           typename TText, typename TIndexSpec>
-int testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+uint32_t testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
               hit testhit)
 {
     auto const & genome = indexText(index);
@@ -254,7 +254,7 @@ int testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
     StringSet<DnaString> testocc;
     DnaString part = infix(genome[testhit.occ.i1], testhit.occ.i2, testhit.occ.i2 + seqan::length(testhit.read));
     appendValue(testocc, part);
-    std::cout << "Search occ: " << (int)testhit.occ.i2 << " which has seq: " << "\n";
+    std::cout << "Search occ: " << (uint32_t)testhit.occ.i2 << " which has seq: " << "\n";
     std::cout << part << "\n"; //TODO revert this
 
     find<minErrors, maxErrors>(delegate, index, testocc, HammingDistance());
@@ -263,7 +263,7 @@ int testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
 }
 
 template <typename TText, typename TIndexSpec>
-int testread(int minErrors, int maxErrors, Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+uint32_t testread(int minErrors, int maxErrors, Index<TText, BidirectionalIndex<TIndexSpec> > & index,
               hit testhit){
     int nhits;
     switch (maxErrors)
@@ -285,13 +285,13 @@ int testread(int minErrors, int maxErrors, Index<TText, BidirectionalIndex<TInde
 
 
 template <typename TText, typename TIndexSpec>
-std::vector<int> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+std::vector<uint32_t> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
                     int errors,
-                    int threshold,
+                    uint32_t threshold,
                     std::vector<hit> x,
                     std::vector<hit> y)
 {
-    std::vector<int> wrongHitCount; 
+    std::vector<uint32_t> wrongHitCount; 
     bool same2 = true;
     bool same = true;
     if(!(x.size() == y.size())){
@@ -299,7 +299,7 @@ std::vector<int> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
         std::cout << "MyVersion has: " << x.size() << "hits while default version has: " << y.size() << " hits" << "\n";
     }   
     int offset = 0;
-    for(int i = 0; i + offset < y.size(); ++i){
+    for(uint32_t i = 0; i + offset < y.size(); ++i){
         same = false;
         same = (i < x.size() && x[i].occ.i1 == y[i + offset].occ.i1 && x[i].occ.i2 == y[i + offset].occ.i2);
         while(!same && i + offset < y.size()){
@@ -308,7 +308,7 @@ std::vector<int> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
             if(i < x.size())//TODO revert this
                 std::cout << "MyVersion has: " << x[i].occ.i2 << " while " ; //TODO revert this
             std::cout << "default version has: " << y[i + offset].occ.i2 << "\n";//TODO revert this
-            int nhits = testread(0, errors, index, y[i + offset]); //TODO  3 lines down
+            uint32_t nhits = testread(0, errors, index, y[i + offset]); //TODO  3 lines down
             if(nhits < threshold){      //TODO //3 lines down
                 std::cout << "To few hits should have found this part!!!!" << "\n";
                 wrongHitCount.push_back(nhits);
@@ -353,7 +353,7 @@ template<typename TVector, typename TVSupport>
 void printbit(std::vector<std::pair<TVector, TVSupport>> & bitvectors, Pair<uint8_t, Pair<uint32_t, uint32_t>> brange){
     TVector const & rb = bitvectors[brange.i1].first;
     std::cout << "bitvector: " << (int)brange.i1 << " brange start: " << brange.i2.i1 << "  brange end: " << brange.i2.i2 << "\n";
-    for(int i = brange.i2.i1; i < brange.i2.i2; ++i)
+    for(uint32_t i = brange.i2.i1; i < brange.i2.i2; ++i)
         std::cout << i << " Bit: " << rb[i] << "\n";
 }
 

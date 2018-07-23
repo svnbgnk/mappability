@@ -54,13 +54,13 @@ inline void genomeSearch(TDelegateD & delegateDirect,
                   Pair<uint16_t, uint32_t> & sa_info)
 {
     bool valid = true;
-    for(int j = blockIndex; j < s.pi.size(); ++j){
-        int blockStart = (s.pi[j] == s.pi.size()) ? 0 : s.revChronBL[s.pi[j]];
-        int blockEnd = s.revChronBL[s.pi[j] - 1];
+    for(uint8_t j = blockIndex; j < s.pi.size(); ++j){
+        uint32_t blockStart = (s.pi[j] == s.pi.size()) ? 0 : s.revChronBL[s.pi[j]];
+        uint32_t blockEnd = s.revChronBL[s.pi[j] - 1];
         if(needleLeftPos < length(needle) - blockStart && needleLeftPos > length(needle) - blockEnd){
             blockStart = length(needle) - needleLeftPos; //- 1 + 1
         }
-        for(int k = blockStart; k < blockEnd; ++k){
+        for(uint32_t k = blockStart; k < blockEnd; ++k){
             if(needle[length(needle) - k - 1] != rgenome[sa_info.i1][sa_info.i2 + k])
                 ++errors;
         }
@@ -97,7 +97,7 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
                   TDir const & /**/)
 {
     auto const & genome = indexText(*iter.index);
-    for(int i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
+    for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
         //this time i use the mappability from "inside" the needle since i can garantue i am at a blockend
         if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
             uint8_t errors2 = errors;
