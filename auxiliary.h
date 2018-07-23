@@ -26,7 +26,7 @@ struct isBidirectionalIter<Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTre
 
 template <typename TIndex>
 auto getSeqLengths(TIndex & index){
-//     auto mylimits = stringSetLimits(indexText(index));
+//     auto mylimits = stringSetLimits(indexText(index)); //TODO test this
 //     for(int i = 2; i < length(mylimits); ++i)
 //         mylimits[i] -= mylimits[i - 1];
 //     return(mylimits);
@@ -305,11 +305,11 @@ std::vector<uint32_t> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & in
         while(!same && i + offset < y.size()){
             if(wrongHitCount.size() > 0)
                 std::cout << "Something went wrong" << "\n";
-            if(i < x.size())//TODO revert this
-                std::cout << "MyVersion has: " << x[i].occ.i2 << " while " ; //TODO revert this
-            std::cout << "default version has: " << y[i + offset].occ.i2 << "\n";//TODO revert this
-            uint32_t nhits = testread(0, errors, index, y[i + offset]); //TODO  3 lines down
-            if(nhits < threshold){      //TODO //3 lines down
+            if(i < x.size())
+                std::cout << "MyVersion has: " << x[i].occ.i2 << " while " ; /
+            std::cout << "default version has: " << y[i + offset].occ.i2 << "\n";
+            uint32_t nhits = testread(0, errors, index, y[i + offset]); 
+            if(nhits < threshold){
                 std::cout << "To few hits should have found this part!!!!" << "\n";
                 wrongHitCount.push_back(nhits);
 //                 --offset;

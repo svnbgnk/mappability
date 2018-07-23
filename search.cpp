@@ -82,12 +82,6 @@ int main(int argc, char *argv[])
     bool notmy = isSet(parser, "notmy");
     bool startuni = isSet(parser, "startuni");
     
-    /*
-    //modify params //TODO revert this
-    params.normal.directsearch_th = 30;
-    params.normal.directsearchblockoffset = 0;
-    params.copyDirectsearchParamsfromNormal();
-    */
     //load reads
     SeqFileIn seqFileIn(toCString(readspath));
     StringSet<CharString> ids;
@@ -112,44 +106,14 @@ int main(int argc, char *argv[])
     //TODO load index with auto?
     Iter<Index<TText, TIndexConfig>, VSTree<TopDown<> > > it(index);
     auto const & genome = indexText(index);
-    
-    
     cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
-//     auto iter = it.revIter;
-//     print_genome(it, outputpath, 1); //TODO find solution for bidrectional iter test
-//     print_genome(iter, outputpath, 1); //TODO use the solution
 
-     // load bitvectors
+    // load bitvectors
     cout << "Loading bitvectors" << endl;
     vector<pair<TBitvector, TSupport>> bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
     cout << "Bit vectors loaded. Number: " << bitvectors.size() << " Length: " << bitvectors[0].first.size() << endl;
-/*
-    cout << "Test Index" << endl;
-    // Test index
-    vector<uint32_t> sl =  getSequencesLengths(it, bitvectors);
-    cout << "Sequence Lengths: " << endl;
-    for(uint32_t i = 0; i < sl.size(); ++i)
-        cout << sl[i] << endl;
-    cout << "count Sequences" << endl;
-    cout << countSequences(index) << endl;
-    cout << "count Sequences from iter" << endl;
-    cout << countSequences(*it.fwdIter.index) << endl;
-    
-    
-//     auto mylimits = stringSetLimits(genome);
-    auto mylimits = getSeqLengths(index);
-    cout << "print limits: " << endl;
-    for(uint32_t i = 0; i < length(mylimits); ++i)
-        cout << mylimits[i] << endl;
-    cout << "end of mylimits" << endl;
-    Pair<uint16_t, uint32_t> pos(2, 40000);
-    auto pos2 = posGlobalize(pos, mylimits); //TODO use this?
-    //     hitsv.reserve(countOccurrences(iter.fwdIter)); //TODO fix this
-    cout << pos2 << endl;
-    cout << endl;
-    exit(0);
-    */
 
+/*
     auto sll = getSeqLengths(index);
     for(uint32_t i = 0; i < countSequences(*it.fwdIter.index); ++i){
         if(sll[i + 1] != length(genome[i])){
@@ -160,7 +124,7 @@ int main(int argc, char *argv[])
         if(ecompare)
             cout << i << ":" << sll[i+1] << " ";
     }
-    cout << endl;
+    cout << endl;*/
     
     std::vector<hit> dhits;
     std::vector<hit> hits;

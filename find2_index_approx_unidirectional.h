@@ -70,9 +70,7 @@ inline void genomeSearch(TDelegateD & delegateDirect,
         }
     }
     if(valid){
-        std::cout << "DirectHit Uni Reverse Index: " << sa_info << "\n";
         sa_info.i2 = seqan::length(rgenome[sa_info.i1]) - sa_info.i2 - length(needle);
-        std::cout << "DirectHit Uni calc fwd Position : " << sa_info << "\n";
         delegateDirect(sa_info, needle, errors);
     }
 }
@@ -108,16 +106,14 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
             if(std::is_same<TDir, Rev>::value){
                 sa_info = iter.index->sa[iter.vDesc.range.i1 + i];
                 sa_info.i2 = sa_info.i2 - (length(needle) - needleRightPos + 1);
-                std::cout << "Potential Hits Uni RevI: " << sa_info << "\n";
             }
             else{
                 sa_info = iter.index->sa[iter.vDesc.range.i1 + i];
                 //calculate correct starting position of the needle  on the forward index
                 sa_info.i2 = sa_info.i2 - needleLeftPos;
-                std::cout << "Potential Hits Uni FwdI: " << sa_info << "\n";
             }
-            //use modified genomeSearch in case of reverse index
             
+            //use modified genomeSearch in case of reverse index
             if(std::is_same<TDir, Rev>::value)
                 genomeSearch(delegateDirect, true, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, genome, sa_info);
             else
