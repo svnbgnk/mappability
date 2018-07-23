@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
      // load bitvectors
     cout << "Loading bitvectors" << endl;
     vector<pair<TBitvector, TSupport>> bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
-    cout << "Bit vectors loaded. Number: " << bitvectors.size() << endl;
+    cout << "Bit vectors loaded. Number: " << bitvectors.size() << " Length: " << bitvectors[0].first.size() << endl;
 /*
     cout << "Test Index" << endl;
     // Test index
