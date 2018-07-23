@@ -306,7 +306,7 @@ std::vector<uint32_t> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & in
             if(wrongHitCount.size() > 0)
                 std::cout << "Something went wrong" << "\n";
             if(i < x.size())
-                std::cout << "MyVersion has: " << x[i].occ.i2 << " while " ; /
+                std::cout << "MyVersion has: " << x[i].occ.i2 << " while " ;
             std::cout << "default version has: " << y[i + offset].occ.i2 << "\n";
             uint32_t nhits = testread(0, errors, index, y[i + offset]); 
             if(nhits < threshold){
