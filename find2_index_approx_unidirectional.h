@@ -95,20 +95,25 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
                   TDir const & /**/)
 {
     auto const & genome = indexText(*iter.index);
+    uint32_t needleL = length(needle);
     for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
         //this time i use the mappability from "inside" the needle since i can garantue i am at a blockend
         if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
-            uint8_t errors2 = errors;
             bool valid = true;
-            Pair<uint16_t, uint32_t> sa_info;
-            uint32_t startPos;
+            Pair<uint16_t, uint32_t> sa_info = iter.index->sa[iter.vDesc.range.i1 + i];
+            uint32_t chromlength = length(genome[sa_info.i1]);
             // mappability information is this time in reverse index order even if we use reverse index (we get_bitvector_interval_inside)
             if(std::is_same<TDir, Rev>::value){
-                sa_info = iter.index->sa[iter.vDesc.range.i1 + i];
-                sa_info.i2 = sa_info.i2 - (length(needle) - needleRightPos + 1);
+                //check left chromosom boundry && check right chromosom boundry
+                if(!(sa_info.i2 > needleL - needleRightPos - 1 && chromlength > sa_info.i2 + needleRightPos + needleL - 2))
+                    continue;
+                sa_info.i2 = sa_info.i2 - needleL + needleRightPos - 1;
             }
-            else{
-                sa_info = iter.index->sa[iter.vDesc.range.i1 + i];
+            else
+            {
+                //check left chromosom boundry && check right chromosom boundry
+                if(!(needleLeftPos >= sa_info.i2 && chromlength > sa_info.i2 - needleLeftPos + needleL - 1))
+                    continue;
                 //calculate correct starting position of the needle  on the forward index
                 sa_info.i2 = sa_info.i2 - needleLeftPos;
             }
