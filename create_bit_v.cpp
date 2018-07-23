@@ -68,8 +68,8 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, uint32_t
         for(int i = 0; i < blocks - 1; ++i){
             sdsl::bit_vector newright(mappability.size() + len - 1, 0); //TODO think 0 or 1 in edge cases
             int shift = s.chronBL[i];
-            cout << "r  name: " << to_string(i + 1) << endl;
-            cout << "shift: " << shift << endl;
+            cout << "r bitvector  name: " << to_string(i + 1) << endl;
+            cout << "with shift: " << shift << endl;
             
 //             #pragma omp parallel for schedule(static)
             for(int j = 0; j < righti.size(); ++j){
@@ -84,8 +84,8 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, uint32_t
         for(int i = 1; i < blocks; ++i){
             sdsl::bit_vector newleft(mappability.size() + len - 1, 0);//TODO think 0 or 1 in edge cases
             int shift = s.revChronBL[blocks - i];
-            cout << "l  name: " << to_string(i) << endl;
-            cout << "shift: " << shift << endl;
+            cout << "l bitvector  name: " << to_string(i) << endl;
+            cout << "with shift: " << shift << endl;
 //             #pragma omp parallel for schedule(static)
             for(int j = 0; j < righti.size(); ++j){
                 if(j + shift < lefti.size() - 1)
@@ -150,9 +150,8 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, uint32_t con
                 if(fwd){
                     sdsl::bit_vector newright(mappability.size() + len - 1, 0); //TODO think 0 or 1 in edge cases
                     uint32_t shift = s.chronBL[pos - 2];
-                    cout << "shift r_bit for" << shift << endl;
+                    cout << "shift r_bit for: " << shift << endl;
                     cout << "pos:  " << pos << endl; 
-//                     #pragma omp parallel for schedule(static) 
                     for(uint32_t j = 0; j < righti.size(); ++j){
                         if(j >= shift)
                             newright[j] = righti[j - shift];
@@ -164,7 +163,7 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, uint32_t con
                     //NOTE int32_t is not large enought to handle all the positions in the hg
                     sdsl::bit_vector newleft(mappability.size() + len - 1, 0);//TODO think 0 or 1 in edge cases
                     uint32_t shift = s.revChronBL[pos];
-                    cout << "shift l_bit for" << shift << endl;
+                    cout << "shift l_bit for: " << shift << endl;
                     cout << "pos:  " << pos << endl;
                     for(uint32_t j = 0; j < righti.size(); ++j){
                         if(j + shift < lefti.size() - 1)
@@ -288,7 +287,7 @@ void loadIndex(bitvectors & b, CharString const indexPath, uint32_t const thread
         uint32_t sa_r = index.rev.sa[j + number_of_indeces].i2;
         uint16_t seq_r = index.rev.sa[j + number_of_indeces].i1;
         
-
+    //                     auto pos2 = posGlobalize(pos, mylimits); //TODO use this?
         for(int i = 0; i < b.bv.size(); ++i){
             if(b.fwdd[i])
                 bit_vectors_ordered[i][j] = b.bv[i][sa_f + sequenceLengths[seq_f]];

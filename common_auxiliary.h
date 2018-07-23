@@ -60,10 +60,6 @@ enum class ReturnCode {
 	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, ONEDIRECTION, MAPPABLE, FINISHED, UNIDIRECTIONAL, SUSPECTUNIDIRECTIONAL, FILTER, ERROR
 };
 
-enum class BV {
-	RIGHT = 0, MIDDLE = 1, LEFT = 2
-};
-
 template <typename TVector, typename TVSupport>
 inline void getConsOnes(std::vector<std::pair<TVector, TVSupport>> & bitvectors,
                  Pair<uint8_t, Pair<uint32_t, uint32_t>> & inside_bit_interval,

@@ -75,8 +75,8 @@ inline bool testFilter(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDow
         --endPos;
     
     if(startPos > endPos){
-        cout << "Error bit vector has only zeroes this should have been checked by checkinterval" << endl;
-        cout << "Size: " << endPos - startPos << endl;
+        std::cout << "Error bit vector has only zeroes this should have been checked by checkinterval" << "\n";
+        std::cout << "Size: " << endPos - startPos << endl;
         exit(0);
     }
     

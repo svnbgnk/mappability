@@ -10,12 +10,10 @@
 #include "find2_index_approx_compmappable.h"
 #include "find2_index_approx_start_unidirectional.h"
 
-//TODO add //squash interval as function
-
 namespace seqan{
     
 template <typename TVector, typename TVSupport>
-inline void getConsOnes(std::vector<std::pair<TVector, TVSupport>> & bitvectors, //TODO const
+inline void getConsOnes(std::vector<std::pair<TVector, TVSupport>> & bitvectors, 
                 Pair<uint8_t, Pair<uint32_t, uint32_t>> & inside_bit_interval,
                 uint32_t const intervalsize,
                 std::vector<std::pair<uint32_t, uint32_t>> & consOnesOutput)
@@ -65,7 +63,6 @@ inline void filter_interval(TDelegate & delegate,
     
     for(uint32_t i = 0; i < consOnes.size(); ++i){
         if (std::is_same<TDir, Rev>::value){
-            //TODO call DirectSearch here if the interval is to small also use block Index ....?
             iter.revIter.vDesc.range.i1 = consOnes[i].first + noi;
             iter.revIter.vDesc.range.i2 = consOnes[i].second + noi;
             _optimalSearchScheme(delegate, delegateDirect, iter.revIter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Rev());
@@ -95,9 +92,6 @@ inline void genomeSearch(TDelegateD & delegateDirect,
                   auto const & genome,
                   Pair<uint16_t, uint32_t> const & sa_info)
 {
-    std::cout << "NPL: " << needleLeftPos << " NPR: " << needleRightPos << "\n";
-    std::cout << "Testing Pos: " << sa_info << "\n" << std::is_same<TDir, Rev>::value <<"SS: ";
-    printv(s.pi);
     bool valid = true;
     for(uint32_t j = blockIndex; j < s.pi.size(); ++j){
         uint32_t blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
@@ -112,19 +106,16 @@ inline void genomeSearch(TDelegateD & delegateDirect,
             if(needleLeftPos > blockStart && needleLeftPos < blockEnd)
                 blockEnd = needleLeftPos;
         }
-        std::cout << "blockStart: " << blockStart << " blockEnd: " << blockEnd << "\n";
         for(uint32_t k = blockStart; k <  blockEnd; ++k){
             if(needle[k] != genome[sa_info.i1][sa_info.i2 + k])
                 ++errors;
         }
         if(errors < s.l[j] || errors > s.u[j]){
             valid = false;
-            std::cout << "Trig  " << (int)errors << endl;
             break;
         }
     }
     if(valid){
-        std::cout << "Direct Hit: " << sa_info << "\n";
         delegateDirect(sa_info, needle, errors);
     }
 }
@@ -147,7 +138,6 @@ inline void directSearch(TDelegateD & delegateDirect,
                   Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
                   TDir const & )
 {
-    std::cout << "DS start:" << "\n";
     auto const & genome = indexText(*iter.fwdIter.index);
     for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
         if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
@@ -168,7 +158,6 @@ inline void directSearch(TDelegateD & delegateDirect,
                 sa_info.i2 = seqan::length(genome[sa_info.i1]) - sa_info.i2 - needleRightPos + 1;
             }
             //search remaining blocks
-            std::cout << "Potential Hits Extension: " << sa_info << " atSA: " << saPos << "\n";
             genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info);
         }
     }
@@ -193,9 +182,6 @@ inline void get_bitvector_interval_inside(Iter<Index<TText, BidirectionalIndex<T
         needed_bitvector = bitvsize - s.max[blockIndex - 1];      
     else
         needed_bitvector = s.min[blockIndex - 1] - 1;
-
-    std::cout << "inside" << (int)blockIndex << " " << goToRight2 << "\n";
-    printv(s.pi);
     
     uint32_t nseq = countSequences(*iter.fwdIter.index);
     dirrange.i1 = dirrange.i1 - nseq;
@@ -218,43 +204,18 @@ inline void get_bitvector_interval(Iter<Index<TText, BidirectionalIndex<TIndex> 
                        TDir const & ) 
 {
     Pair<uint32_t, uint32_t> dirrange = (std::is_same<TDir, Rev>::value) ? range(iter.fwdIter) : range(iter.revIter);
-    uint8_t needed_bitvector;
-    uint8_t bitvsize = bitvectors.size();
-    uint8_t size = s.pi.size();
-    uint8_t firstE = s.pi[0];
-    if(bitvsize == 3){
-        if(firstE == size)
-            needed_bitvector = 2; //BV::LEFT;
-        else if(firstE == 1)
-            needed_bitvector = 0; //BV::RIGHT;
-        else 
-            needed_bitvector = 1; //BV::MIDDLE;
-    }else{
-        if (std::is_same<TDir, Rev>::value)
-                needed_bitvector = s.min[blockIndex] - 1;//mymin(s.pi, blockIndex) - 1;
-            else
-                needed_bitvector = bitvsize - s.max[blockIndex];// + 1 - 1//mymax(s.pi, blockIndex) - 1; 
-    }
+    uint8_t needed_bitvector;    
+    if (std::is_same<TDir, Rev>::value)
+        needed_bitvector = s.min[blockIndex] - 1;
+    else
+        needed_bitvector = bitvectors.size() - s.max[blockIndex];// + 1 - 1
     
-    std::cout << "selected bitvector(interv) " << needed_bitvector << "\n";
-    if(needed_bitvector == 0 &&  (std::is_same<TDir, Rev>::value) || needed_bitvector == 5 && (!std::is_same<TDir, Rev>::value) || needed_bitvector == 4 && (!std::is_same<TDir, Rev>::value)){
-        
-        std::cout << "wwww" << (int)blockIndex << " " << (std::is_same<TDir, Rev>::value) << "\n";
-        printv(s.pi);
-        
-    }else{
-        std::cout << "Something went wrong" << "\n";
-        exit(0);
-    }
-
-    std::cout << "selected range sa: " << dirrange << "\n";
     uint32_t nseq = countSequences(*iter.fwdIter.index);
     dirrange.i1 = dirrange.i1 - nseq;
     dirrange.i2 = dirrange.i2 - nseq;
 
     brangeOutput.i1 = needed_bitvector;
     brangeOutput.i2 = dirrange;
-    std::cout << "selected range bit: " << brangeOutput.i2 << "nSeq: " << nseq << "\n";
 }
 
 template<typename TText, typename TIndex, typename TIndexSpec,
@@ -369,13 +330,9 @@ inline ReturnCode checkCurrentMappability(TDelegate & delegate,
                             uint8_t const minErrorsLeftInBlock,
                             TDir const & )
 {
-    std::cout << "ccM    NPL: " << needleLeftPos << " NPR: " << needleRightPos << "\n";
-    printv(s.pi);
-    
     Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
     get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, TDir());
-    std::cout << "selected bitvector: " << (int)bit_interval.i1 << "\n";
-    std::cout << "Range bitvector: " << bit_interval.i2 << "\n";
+    
     ReturnCode rcode = checkInterval(bitvectors, bit_interval, s, blockIndex);
     
     switch(rcode){
@@ -419,10 +376,6 @@ inline ReturnCode checkMappability(TDelegate & delegate,
                             bool const goToRight2,
                             TDir const & )
 {
-    
-    std::cout << "cM    NPL: " << current_needleLeftPos << " NPR: " << current_needleRightPos << "\n";
-    printv(s.pi);
-    
     bool finished = current_needleLeftPos == 0 && current_needleRightPos == length(needle) + 1;
     //check if we are done with the needle    
     if(!finished){
@@ -431,11 +384,6 @@ inline ReturnCode checkMappability(TDelegate & delegate,
             get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, Rev());
         else
             get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, Fwd());
-        std::cout << "selected bitvector: " << (int)bit_interval.i1 << "\n";
-        std::cout << "PrintBit" << "\n";
-        printbit(bitvectors, bit_interval);
-        std::cout << "PrintSa" << "\n";
-        print_sa(iter, (int)countSequences(*iter.fwdIter.index), goToRight2);
         
         ReturnCode rcode = checkInterval(bitvectors, bit_interval, s, blockIndex);
         //TODO switch
