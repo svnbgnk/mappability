@@ -236,18 +236,25 @@ inline void get_bitvector_interval(Iter<Index<TText, BidirectionalIndex<TIndex> 
                 needed_bitvector = bitvsize - s.max[blockIndex];// + 1 - 1//mymax(s.pi, blockIndex) - 1; 
     }
     
-    if(needed_bitvector == 0 || needed_bitvector == 5 || needed_bitvector == 4){
+    std::cout << "selected bitvector(interv) " << needed_bitvector << "\n";
+    if(needed_bitvector == 0 &&  (std::is_same<TDir, Rev>::value) || needed_bitvector == 5 && (!std::is_same<TDir, Rev>::value) || needed_bitvector == 4 && (!std::is_same<TDir, Rev>::value)){
         
         std::cout << "wwww" << (int)blockIndex << " " << (std::is_same<TDir, Rev>::value) << "\n";
         printv(s.pi);
+        
+    }else{
+        std::cout << "Something went wrong" << "\n";
+        exit(0);
     }
 
+    std::cout << "selected range sa: " << dirrange << "\n";
     uint32_t nseq = countSequences(*iter.fwdIter.index);
     dirrange.i1 = dirrange.i1 - nseq;
     dirrange.i2 = dirrange.i2 - nseq;
-    
-   brangeOutput.i1 = needed_bitvector;
-   brangeOutput.i2 = dirrange;
+
+    brangeOutput.i1 = needed_bitvector;
+    brangeOutput.i2 = dirrange;
+    std::cout << "selected range bit: " << brangeOutput.i2 << "nSeq: " << nseq << "\n";
 }
 
 template<typename TText, typename TIndex, typename TIndexSpec,
@@ -425,6 +432,11 @@ inline ReturnCode checkMappability(TDelegate & delegate,
         else
             get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, Fwd());
         std::cout << "selected bitvector: " << (int)bit_interval.i1 << "\n";
+        std::cout << "PrintBit" << "\n";
+        printbit(bitvectors, bit_interval);
+        std::cout << "PrintSa" << "\n";
+        print_sa(iter, (int)countSequences(*iter.fwdIter.index), goToRight2);
+        
         ReturnCode rcode = checkInterval(bitvectors, bit_interval, s, blockIndex);
         //TODO switch
          switch(rcode)
