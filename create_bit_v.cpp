@@ -359,8 +359,7 @@ int main(int argc, char *argv[])
     //Retrieve input parameters
     CharString indexPath, _indexPath, outputPath;
     string mappability_path;
-    uint32_t len, threshold, threads = 0;
-    uint8_t errors;
+    unsigned len, threshold, errors, threads = 0;
     
     getOptionValue(mappability_path, parser, "map");
     getOptionValue(indexPath, parser, "index");
