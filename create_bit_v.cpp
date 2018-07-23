@@ -42,7 +42,7 @@ vector<uint8_t> read(const string mappability_path){
 }
 
 template <unsigned errors>
-bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const int len, int const threshold){
+bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, uint32_t const len, uint32_t const threshold){
     bitvectors b;
     int e = errors;    
     auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
@@ -52,7 +52,7 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
     sdsl::bit_vector righti (mappability.size() + len - 1, 0);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
     #pragma omp parallel for schedule(static)   
-    for(unsigned i = 0; i < mappability.size(); ++i){
+    for(uint32_t i = 0; i < mappability.size(); ++i){
         lefti[i + len - 1] = (mappability[i] <= threshold);
         righti[i] = (mappability[i] <= threshold);
     }
@@ -105,7 +105,7 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, const in
 
 
 template <unsigned errors>
-bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int len, int const threshold){
+bitvectors create_bit_vectors(const vector <uint8_t> & mappability, uint32_t const len, uint32_t const threshold){
 
     int e = errors;
     cout << "Create minimum amount of bitvectors" << endl; 
@@ -113,7 +113,7 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int le
     sdsl::bit_vector righti (mappability.size() + len - 1, 0);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
     #pragma omp parallel for schedule(static)   
-    for(unsigned i = 0; i < mappability.size(); ++i){
+    for(uint32_t i = 0; i < mappability.size(); ++i){
         lefti[i + len - 1] = (mappability[i] <= threshold);
         righti[i] = (mappability[i] <= threshold);
     }
@@ -178,7 +178,7 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int le
 }
 
 
-bitvectors create_bit_vectors(const vector <uint8_t> & mappability, const int len, int const threshold, bool const bit3, const int errors){
+bitvectors create_bit_vectors(const vector <uint8_t> & mappability, uint32_t const len, uint32_t const threshold, bool const bit3, uint8_t const errors){
     bitvectors result;
     if(bit3){
         switch (errors)
@@ -249,7 +249,7 @@ void print_SA(CharString const indexPath, vector<sdsl::bit_vector> &bit_vectors,
 
 // num_threads(3)
 template <typename TChar, typename TAllocConfig>
-void loadIndex(bitvectors & b, CharString const indexPath, int const threads)
+void loadIndex(bitvectors & b, CharString const indexPath, uint32_t const threads)
 {
     cout << mytime() << "Loading Index" << endl;
     typedef String<TChar, TAllocConfig> TString;
@@ -262,18 +262,19 @@ void loadIndex(bitvectors & b, CharString const indexPath, int const threads)
     auto const & genome = indexText(index);
     std::vector<int> sequenceLengths;
     sequenceLengths.push_back(0);
-    for(int i = 0; i < countSequences(index)/*seqan::length(genome)*/; ++i)
+    for(uint32_t i = 0; i < countSequences(index)/*seqan::length(genome)*/; ++i)
         sequenceLengths.push_back(seqan::length(genome[i]));
     
-    for(int i = 1; i < sequenceLengths.size(); ++i)
+    for(uint32_t i = 1; i < sequenceLengths.size(); ++i)
         sequenceLengths[i] += (sequenceLengths[i - 1]);
 
+    cout << "Number of Sequences in index: " << countSequences(index) << endl;
     cout << mytime() << "Start sorting bitvectors" << endl;
     // skip sentinels
     
-    int mythreads;
+    uint32_t mythreads;
     if(threads == 0)
-        int mythreads = omp_get_max_threads();
+        mythreads = omp_get_max_threads();
     else
         mythreads = threads;
     
@@ -300,7 +301,7 @@ void loadIndex(bitvectors & b, CharString const indexPath, int const threads)
 
 
 template <typename TChar>
-void loadIndex(bitvectors & bit_vectors, CharString const indexPath, bool const mmap, int const threads)
+void loadIndex(bitvectors & bit_vectors, CharString const indexPath, bool const mmap, uint32_t const threads)
 {
     if(mmap)
         loadIndex<TChar, MMap<> >(bit_vectors, indexPath,threads);
@@ -308,7 +309,7 @@ void loadIndex(bitvectors & bit_vectors, CharString const indexPath, bool const 
         loadIndex<TChar, Alloc<> >(bit_vectors, indexPath, threads);
 }
 
-void order_bit_vector(bitvectors & bit_vectors, CharString const indexPath, bool const mmap, CharString const alphabet, int const threads){
+void order_bit_vector(bitvectors & bit_vectors, CharString const indexPath, bool const mmap, CharString const alphabet, uint32_t const threads){
      if(alphabet == "dna4")
          loadIndex<Dna>(bit_vectors, indexPath, mmap, threads);
      else
@@ -358,8 +359,8 @@ int main(int argc, char *argv[])
     //Retrieve input parameters
     CharString indexPath, _indexPath, outputPath;
     string mappability_path;
-    int len, errors, threads = 0; 
-    int threshold;
+    uint32_t len, threshold, threads = 0;
+    uint8_t errors;
     
     getOptionValue(mappability_path, parser, "map");
     getOptionValue(indexPath, parser, "index");

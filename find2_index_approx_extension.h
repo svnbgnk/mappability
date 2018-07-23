@@ -194,6 +194,9 @@ inline void get_bitvector_interval_inside(Iter<Index<TText, BidirectionalIndex<T
     else
         needed_bitvector = s.min[blockIndex - 1] - 1;
 
+    std::cout << "inside" << (int)blockIndex << " " << goToRight2 << "\n";
+    printv(s.pi);
+    
     uint32_t nseq = countSequences(*iter.fwdIter.index);
     dirrange.i1 = dirrange.i1 - nseq;
     dirrange.i2 = dirrange.i2 - nseq;
@@ -232,6 +235,13 @@ inline void get_bitvector_interval(Iter<Index<TText, BidirectionalIndex<TIndex> 
             else
                 needed_bitvector = bitvsize - s.max[blockIndex];// + 1 - 1//mymax(s.pi, blockIndex) - 1; 
     }
+    
+    if(needed_bitvector == 0 || needed_bitvector == 5 || needed_bitvector == 4){
+        
+        std::cout << "wwww" << (int)blockIndex << " " << (std::is_same<TDir, Rev>::value) << "\n";
+        printv(s.pi);
+    }
+
     uint32_t nseq = countSequences(*iter.fwdIter.index);
     dirrange.i1 = dirrange.i1 - nseq;
     dirrange.i2 = dirrange.i2 - nseq;

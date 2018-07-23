@@ -109,6 +109,7 @@ int main(int argc, char *argv[])
     cout << "Loading Index" << endl;
     MyIndex index;      
     open(index, toCString(indexPath), OPEN_RDONLY);
+    //TODO load index with auto?
     Iter<Index<TText, TIndexConfig>, VSTree<TopDown<> > > it(index);
     auto const & genome = indexText(index);
     
