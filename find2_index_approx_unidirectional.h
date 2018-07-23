@@ -13,18 +13,18 @@ template <typename TText, typename TConfig, typename TIndexSpec,
           typename TDir,
           size_t nbrBlocks>
 inline void get_bitvector_interval_inside(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
-                                          vector<pair<TVector, TVSupport>> & bitvectors,    
+                                          vector<pair<TVector, TVSupport>> & bitvectors,
                                           OptimalSearch<nbrBlocks> const & s,
                                           uint8_t const blockIndex,
                                           Pair<uint8_t, Pair<uint32_t, uint32_t>> & brangeOutput,
-                                          TDir const & ) 
+                                          TDir const & )
 {
     Pair<uint32_t, uint32_t> dirrange = range(iter);
     uint8_t needed_bitvector;
     uint8_t size = s.pi.size();
     uint8_t bitvsize = bitvectors.size();
     if (std::is_same<TDir, Rev>::value)
-        needed_bitvector = bitvsize - s.max[blockIndex - 1];      
+        needed_bitvector = bitvsize - s.max[blockIndex - 1];
     else
         needed_bitvector = s.min[blockIndex - 1] - 1;
 
@@ -85,7 +85,7 @@ template <typename TDelegateD,
 inline void uniDirectSearch(TDelegateD & delegateDirect,
                   Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
                   TNeedle const & needle,
-                  vector<pair<TVector, TVSupport>> & bitvectors, 
+                  vector<pair<TVector, TVSupport>> & bitvectors,
                   uint32_t const needleLeftPos,
                   uint32_t const needleRightPos,
                   uint8_t const errors,
@@ -105,19 +105,19 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
             // mappability information is this time in reverse index order even if we use reverse index (we get_bitvector_interval_inside)
             if(std::is_same<TDir, Rev>::value){
                 //check left chromosom boundry && check right chromosom boundry
-                if(!(sa_info.i2 > needleL - needleRightPos - 1 && chromlength > sa_info.i2 + needleRightPos + needleL - 2))
-                    continue;
+//                 if(!(sa_info.i2 > needleL - needleRightPos - 1 && chromlength > sa_info.i2 + needleRightPos + needleL - 2))
+//                     continue;
                 sa_info.i2 = sa_info.i2 - needleL + needleRightPos - 1;
             }
             else
             {
                 //check left chromosom boundry && check right chromosom boundry
-                if(!(needleLeftPos >= sa_info.i2 && chromlength > sa_info.i2 - needleLeftPos + needleL - 1))
-                    continue;
+//                 if(!(needleLeftPos >= sa_info.i2 && chromlength > sa_info.i2 - needleLeftPos + needleL - 1))
+//                     continue;
                 //calculate correct starting position of the needle  on the forward index
                 sa_info.i2 = sa_info.i2 - needleLeftPos;
             }
-            
+
             //use modified genomeSearch in case of reverse index
             if(std::is_same<TDir, Rev>::value)
                 genomeSearch(delegateDirect, true, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, genome, sa_info);
@@ -127,7 +127,7 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
     }
 }
 
-    
+
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TConfig, typename TIndexSpec,
           typename TNeedle,
@@ -138,16 +138,16 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
                                          TDelegateD & delegateDirect,
                                          Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
                                          TNeedle const & needle,
-                                         vector<pair<TVector, TVSupport>> & bitvectors,   
+                                         vector<pair<TVector, TVSupport>> & bitvectors,
                                          uint32_t const needleLeftPos,
                                          uint32_t const needleRightPos,
                                          uint8_t const errors,
                                          OptimalSearch<nbrBlocks> const & s,
                                          uint8_t const blockIndex,
                                          uint8_t const minErrorsLeftInBlock,
-                                         TDir const & /**/)                                 
-{    
-    bool goToRight = std::is_same<TDir, Rev>::value;                                 
+                                         TDir const & /**/)
+{
+    bool goToRight = std::is_same<TDir, Rev>::value;
     if (goDown(iter))
     {
         uint32_t charsLeft = s.blocklength[blockIndex] - (needleRightPos - needleLeftPos - 1);
@@ -166,8 +166,8 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
             {
                 uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
                 bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
-                
-                //TODO remove goToRight2 and input should be TDIR 
+
+                //TODO remove goToRight2 and input should be TDIR
                 if (goToRight2)
                     _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, Rev());
                 else
@@ -180,8 +180,8 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
         } while (goRight(iter));
     }
 }
-    
-    
+
+
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TConfig, typename TIndexSpec,
           typename TNeedle,
@@ -192,7 +192,7 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
                                       TDelegateD & delegateDirect,
                                       Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
                                       TNeedle const & needle,
-                                      vector<pair<TVector, TVSupport>> & bitvectors,    
+                                      vector<pair<TVector, TVSupport>> & bitvectors,
                                       uint32_t const needleLeftPos,
                                       uint32_t const needleRightPos,
                                       uint8_t const errors,
@@ -207,10 +207,10 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
         //search take rest of the block and search it forward
         uint32_t infixPosLeft = needleRightPos - 1;
         uint32_t infixPosRight = needleLeftPos + s.blocklength[blockIndex] - 1;
-        
+
         if (!goDown(iter, infix(needle, infixPosLeft, infixPosRight + 1)))
             return;
-        
+
         if (goToRight2)
             _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, blockIndex2, Rev());
         else
@@ -221,14 +221,14 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
         // has to be signed, otherwise we run into troubles when checking for -1 >= 0u
         int32_t infixPosLeft = needleRightPos - s.blocklength[blockIndex] - 1;
         int32_t infixPosRight = needleLeftPos - 1;
-        
+
         while (infixPosRight >= infixPosLeft)
         {
             if (!goDown(iter, needle[infixPosRight]))
                 return;
             --infixPosRight;
         }
-        
+
         if (goToRight2)
             _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, infixPosLeft, needleRightPos, errors, s, blockIndex2, Rev());
         else
@@ -236,7 +236,7 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
     }
 }
 
-/* 
+/*
 inline ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
                           Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
                           uint8_t const blockSize,
@@ -246,17 +246,17 @@ inline ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support
 {
     cout << "unicheckInterval no start uni" << endl;
         TVector & b = bitvectors[brange.i1].first;
-        TVSupport & rb = bitvectors[brange.i1].second; 
+        TVSupport & rb = bitvectors[brange.i1].second;
         rb.set_vector(&b);
-    
+
         uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
         if(params.uni.nomappability && ivalOne == 0)
             return ReturnCode::NOMAPPABILITY;
 
         if(!done){
-            if(params.uni.directsearch && ivalOne < (blockSize - blockIndex - 1 + params.uni.directsearchblockoffset) * params.uni.directsearch_th){ //<4 
+            if(params.uni.directsearch && ivalOne < (blockSize - blockIndex - 1 + params.uni.directsearchblockoffset) * params.uni.directsearch_th){ //<4
                 return ReturnCode::DIRECTSEARCH;
-            }    
+            }
             if(params.uni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
                 return ReturnCode::COMPMAPPABLE;
         }
@@ -274,10 +274,10 @@ inline void _optimalSearchScheme(TDelegate & delegate,
                                  TDelegateD & delegateDirect,
                                  Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
                                  TNeedle const & needle,
-                                 vector<pair<TVector, TVSupport>> & bitvectors,   
+                                 vector<pair<TVector, TVSupport>> & bitvectors,
                                  uint32_t const needleLeftPos,
                                  uint32_t const needleRightPos,
-                                 uint8_t const errors,                             
+                                 uint8_t const errors,
                                  OptimalSearch<nbrBlocks> const & s,
                                  uint8_t const blockIndex,
                                  TDir const & /**/)
@@ -291,7 +291,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
         if(rcode == ReturnCode::FINISHED)
             return;
     }
-    
+
     // Exact search in current block.
     if (maxErrorsLeftInBlock == 0 && needleRightPos - needleLeftPos - 1 != s.blocklength[blockIndex])
     {
@@ -302,7 +302,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     {
     _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir());
     }
-}    
-    
+}
+
 }
 #endif
