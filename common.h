@@ -20,6 +20,70 @@ struct SAValue<String<TChar, TAlloc> >
     typedef uint32_t Type;
 };
 
+template <typename TText, typename TSpec, typename TConfig>
+inline bool open(Index<TText, BidirectionalIndex<FMIndex<TSpec, TConfig> > > & index, const char * fileName, int openMode)
+{
+    String<char> name;
+
+    {
+        name = fileName;    append(name, ".txt");
+        if (!open(getFibre(index.fwd, FibreText()), toCString(name), openMode)) return false;
+
+        name = fileName;    append(name, ".sa");
+        if (!open(getFibre(index.fwd, FibreSA()), toCString(name), openMode)) return false;
+
+        name = fileName;    append(name, ".lf");
+        if (!open(getFibre(index.fwd, FibreLF()), toCString(name), openMode)) return false;
+
+        setFibre(getFibre(index.fwd, FibreSA()), getFibre(index.fwd, FibreLF()), FibreLF());
+    }
+
+    {
+        // name = fileName;    append(name, ".rev.txt");
+        // if (!open(getFibre(index.rev, FibreText()), toCString(name), openMode)) return false;
+
+        name = fileName;    append(name, ".rev.sa");
+        if (!open(getFibre(index.rev, FibreSA()), toCString(name), openMode)) return false;
+
+        name = fileName;    append(name, ".rev.lf");
+        if (!open(getFibre(index.rev, FibreLF()), toCString(name), openMode)) return false;
+
+        setFibre(getFibre(index.rev, FibreSA()), getFibre(index.rev, FibreLF()), FibreLF());
+    }
+
+    return true;
+}
+
+template <typename TText, typename TSpec, typename TConfig>
+inline bool save(Index<TText, BidirectionalIndex<FMIndex<TSpec, TConfig> > > const & index, const char * fileName, int openMode)
+{
+    String<char> name;
+
+    {
+        name = fileName;    append(name, ".txt");
+        if (!save(getFibre(index.fwd, FibreText()), toCString(name), openMode)) return false;
+
+        name = fileName;    append(name, ".sa");
+        if (!save(getFibre(index.fwd, FibreSA()), toCString(name), openMode)) return false;
+
+        name = fileName;    append(name, ".lf");
+        if (!save(getFibre(index.fwd, FibreLF()), toCString(name), openMode)) return false;
+    }
+
+    {
+        // name = fileName;    append(name, ".rev.txt");
+        // if (!save(getFibre(index.rev, FibreText()), toCString(name), openMode)) return false;
+
+        name = fileName;    append(name, ".rev.sa");
+        if (!save(getFibre(index.rev, FibreSA()), toCString(name), openMode)) return false;
+
+        name = fileName;    append(name, ".rev.lf");
+        if (!save(getFibre(index.rev, FibreLF()), toCString(name), openMode)) return false;
+    }
+
+    return true;
+}
+
 };
 
 struct SearchParams

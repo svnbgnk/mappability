@@ -13,6 +13,8 @@ void buildIndex(StringSet<TString, TStringSetConfig> const & chromosomes, CharSt
     StringSet<TString, Owner<ConcatDirect<> > > chromosomesConcat(chromosomes);
     Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index(chromosomesConcat);
     indexCreateProgress(index, FibreSALF());
+    clear(getFibre(getFibre(getFibre(index.rev, FibreSA()), FibreSparseString()), FibreValues()));
+    clear(getFibre(getFibre(getFibre(index.rev, FibreSA()), FibreSparseString()), FibreIndicators()));
     save(index, toCString(indexPath));
 }
 
