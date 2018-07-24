@@ -107,7 +107,7 @@ public:
     bool clocking;
     bool wasStopped;
 //     std::chrono::duration<double> terminateDuration;
-    std::chrono::seconds dtd = std::chrono::seconds{20};
+    std::chrono::seconds dtd = std::chrono::seconds{13};
     std::chrono::seconds terminateDuration;
     
     majorCaseParameters normal;
