@@ -65,14 +65,14 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, uint32_t
 
     uint8_t blocks = s.pi.size();
     if(errors != 0){
-        for(int i = 0; i < blocks - 1; ++i){
+        for(uint32_t i = 0; i < blocks - 1; ++i){
             sdsl::bit_vector newright(mappability.size() + len - 1, 0); //TODO think 0 or 1 in edge cases
-            int shift = s.chronBL[i];
+            uint32_t shift = s.chronBL[i];
             cout << "r bitvector  name: " << to_string(i + 1) << endl;
             cout << "with shift: " << shift << endl;
 
-//             #pragma omp parallel for schedule(static)
-            for(int j = 0; j < righti.size(); ++j){
+            #pragma omp parallel for schedule(static)
+            for(uint32_t j = 0; j < righti.size(); ++j){
                 if(j - shift >= 0)
                     newright[j] = righti[j - shift];
             }
@@ -81,13 +81,13 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, uint32_t
             b.fwdd.push_back(true);
         }
 
-        for(int i = 1; i < blocks; ++i){
+        for(uint32_t i = 1; i < blocks; ++i){
             sdsl::bit_vector newleft(mappability.size() + len - 1, 0);//TODO think 0 or 1 in edge cases
-            int shift = s.revChronBL[blocks - i];
+            uint32_t shift = s.revChronBL[blocks - i];
             cout << "l bitvector  name: " << to_string(i) << endl;
             cout << "with shift: " << shift << endl;
-//             #pragma omp parallel for schedule(static)
-            for(int j = 0; j < righti.size(); ++j){
+            #pragma omp parallel for schedule(static)
+            for(uint32_t j = 0; j < righti.size(); ++j){
                 if(j + shift < lefti.size() - 1)
                     newleft[j] = lefti[j + shift];
             }
@@ -127,7 +127,7 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, uint32_t con
     _optimalSearchSchemeComputeChronBlocklength(scheme);
     for (auto & s : scheme){
         bool fwd = (s.pi[0] < s.pi[1]);
-        int pos = s.pi[0];
+        uint32_t pos = s.pi[0];
         cout << pos << endl;
         cout << "Direction forward " << fwd << endl;
         uint8_t blocks = s.pi.size();
@@ -260,39 +260,43 @@ void loadIndex(bitvectors & b, CharString const indexPath, uint32_t const thread
     vector<sdsl::bit_vector> bit_vectors_ordered (b.bv);
 
     uint32_t number_of_indeces = countSequences(index);
-    auto const & genome = indexText(index);
-    std::vector<int> sequenceLengths;
-    sequenceLengths.push_back(0);
-    for(uint32_t i = 0; i < countSequences(index)/*seqan::length(genome)*/; ++i)
-        sequenceLengths.push_back(seqan::length(genome[i]));
 
-    for(uint32_t i = 1; i < sequenceLengths.size(); ++i)
+    std::vector<uint32_t> sequenceLengths = getSeqLengths(index);
+    for(uint32_t i = 2; i < sequenceLengths.size(); ++i)
         sequenceLengths[i] += (sequenceLengths[i - 1]);
 
     cout << "Number of Sequences in index: " << countSequences(index) << endl;
     cout << mytime() << "Start sorting bitvectors" << endl;
-    // skip sentinels
 
     uint32_t mythreads;
     if(threads == 0)
         mythreads = omp_get_max_threads();
     else
         mythreads = threads;
-
     #pragma omp parallel for schedule(static) num_threads(mythreads)
     for (unsigned j = 0; j < seqan::length(index.fwd.sa) - number_of_indeces; ++j)
     {
+        // skip sentinels
+/*
         uint32_t sa_f = index.fwd.sa[j + number_of_indeces].i2;
         uint16_t seq_f = index.fwd.sa[j + number_of_indeces].i1;
         uint32_t sa_r = index.rev.sa[j + number_of_indeces].i2;
-        uint16_t seq_r = index.rev.sa[j + number_of_indeces].i1;
+        uint16_t seq_r = index.rev.sa[j + number_of_indeces].i1;*/
 
-    //                     auto pos2 = posGlobalize(pos, mylimits); //TODO use this?
-        for(int i = 0; i < b.bv.size(); ++i){
-            if(b.fwdd[i])
-                bit_vectors_ordered[i][j] = b.bv[i][sa_f + sequenceLengths[seq_f]];
+        Pair<uint16_t, uint32_t> sa_f = index.fwd.sa[j + number_of_indeces];
+        Pair<uint16_t, uint32_t> sa_r = index.rev.sa[j + number_of_indeces];
+
+        for(uint32_t i = 0; i < b.bv.size(); ++i){
+            if(b.fwdd[i]){
+                bit_vectors_ordered[i][j] = b.bv[i][sa_f.i2 + sequenceLengths[sa_f.i1]];
+//                 auto mylimits = stringSetLimits(indexText(index));
+//                 auto sa_info = index.fwd.sa[j + number_of_indeces];
+//                 bit_vectors_ordered[i][j] = b.bv[i][posGlobalize(sa_info, mylimits)]; //TODO use this?
+            }
             else
-                bit_vectors_ordered[i][j] = b.bv[i][sequenceLengths[seq_r + 1] - sa_r - 1];
+            {
+                bit_vectors_ordered[i][j] = b.bv[i][sequenceLengths[sa_r.i1 + 1] - sa_r.i2 - 1];
+            }
 
         }
     }
@@ -410,7 +414,7 @@ int main(int argc, char *argv[])
 
     if(debug)
     {
-        for(int i = 0; i < result.bv.size(); ++i){
+        for(uint32_t i = 0; i < result.bv.size(); ++i){
             std::ofstream outfile((toCString(outputPath) + result.names[i] + "_debug"), std::ios::out | std::ofstream::binary);
             std::copy(result.bv[i].begin(), result.bv[i].end(), std::ostream_iterator<bool>(outfile));
             outfile.close();
@@ -421,7 +425,7 @@ int main(int argc, char *argv[])
     //order in suffix array
     order_bit_vector(result, indexPath, mmap, alphabet, threads);
     cout << mytime() << "Finished sorting" << endl;
-    for(int i = 0; i < result.bv.size(); ++i){
+    for(uint32_t i = 0; i < result.bv.size(); ++i){
         sdsl::store_to_file(result.bv[i], toCString(outputPath) + result.names[i]);
         if(debug){
             std::ofstream outfile((toCString(outputPath) + result.names[i] + "_osa_debug"), std::ios::out | std::ofstream::binary);
