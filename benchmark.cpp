@@ -32,51 +32,51 @@ std::chrono::duration<double> callFunction(uint32_t nerrors,
 //     std::cout.clear();
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finish - start;
-    cout << "MyVersion elapsed: " << elapsed.count() << "s" << endl;  
+    cout << "MyVersion elapsed: " << elapsed.count() << "s" << endl;
 
-    
+
     for(uint32_t i = 0; i < dhits.size(); ++i){
         hits.push_back(dhits[i]);
     }
     calcfwdPos(index, hits);
-    
+
     return(elapsed);
 }
 
 int main(int argc, char const ** argv)
-{    
+{
     ArgumentParser parser("benchmark");
     addDescription(parser, "App for search.cpp and finding optimal parameters.");
-    
+
     addOption(parser, ArgParseOption("I", "index", "Path to the index", ArgParseArgument::INPUT_FILE, "IN"));
     setRequired(parser, "index");
-    
+
     addOption(parser, ArgParseOption("B", "ibitvector", "Path to the index", ArgParseArgument::INPUT_FILE, "IN"));
     setRequired(parser, "index");
-    
+
     addOption(parser, ArgParseOption("R", "ireads", "Path to the index", ArgParseArgument::INPUT_FILE, "IN"));
     setRequired(parser, "index");
-    
+
     addOption(parser, ArgParseOption("O", "output", "Path to output directory", ArgParseArgument::OUTPUT_FILE, "OUT"));
 //     setRequired(parser, "output");
-    
-    
+
+
     addOption(parser, ArgParseOption("K", "length", "Length of k-mers", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "length");
-    
+
     addOption(parser, ArgParseOption("E", "errors", "Max errors allowed during mapping", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "errors");
-    
+
     addOption(parser, ArgParseOption("r", "r", "number of reads to test ", ArgParseArgument::INTEGER, "INT"));
-    
+
     addOption(parser, ArgParseOption("t", "testrun", "select which benchmark should be run ", ArgParseArgument::INTEGER, "INT"));
-    
+
     addOption(parser, ArgParseOption("su", "startUni", "Start unidirectional"));
-    
+
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
     if (res != ArgumentParser::PARSE_OK)
         return res == ArgumentParser::PARSE_ERROR;
-    
+
     CharString indexPath, bitvectorpath, readspath;
     string outputpath;
     int K, nerrors,  testrun = -1, r = 0;
@@ -89,7 +89,7 @@ int main(int argc, char const ** argv)
     getOptionValue(r, parser, "r");
     getOptionValue(testrun, parser, "testrun");
     bool startUni = isSet(parser, "startUni");
-    
+
     //load reads
     cout << "Loading reads" << endl;
     SeqFileIn seqFileIn(toCString(readspath));
@@ -106,10 +106,10 @@ int main(int argc, char const ** argv)
         for(int i = 0; i < nreads - r; ++i)
             eraseBack(reads);
     }
-    
+
     //load index
     cout << "Loading Index" << endl;
-    MyIndex index;      
+    MyIndex index;
     open(index, toCString(indexPath), OPEN_RDONLY);
     Iter<Index<TText, TIndexConfig>, VSTree<TopDown<> > > it(index);
 
@@ -119,7 +119,7 @@ int main(int argc, char const ** argv)
     cout << "Bit vectors loaded. Number: " << bitvectors.size() << endl;
     cout << "Start my Search" << endl;
     //start of loop
-    
+
     //wrapp delegate into extension.h ?
     std::vector<hit> dhits;
     std::vector<hit> hits;
@@ -143,14 +143,14 @@ int main(int argc, char const ** argv)
         me.rev = false;
         dhits.push_back(me);
     };
-    
-    
+
+
     std::chrono::duration<double> bestTime = params.terminateDuration;
     myGlobalParameters bestParams;
-    
+
     params.clocking = true;
-    
-  
+
+
     if(testrun == 0){
     //16 runs
     for(uint32_t i = 0; i < 16; ++i){
@@ -164,7 +164,7 @@ int main(int argc, char const ** argv)
         }
     }
     }
-    
+
 
 
     //TODO maybe make filter_th harsh and turn off flipdensity and take only big intervals
@@ -181,7 +181,7 @@ int main(int argc, char const ** argv)
                 params.normal.testflipdensity = true;
                 params.startuni.testflipdensity = true;
             }
-            
+
             float filter_th = 0.9; // go lower too 0.1
             while(filter_th > 0){
                 params.wasStopped = false;
@@ -196,7 +196,7 @@ int main(int argc, char const ** argv)
                 }
                 filter_th -= 0.2;
             }
-            
+
             invflipdensity -= 0.2;
         }
         intervalsize += 1;
@@ -204,9 +204,9 @@ int main(int argc, char const ** argv)
     params.normal.testflipdensity = true;
     params.startuni.testflipdensity = true;
     }
-    
 
-    
+
+
     if(testrun == 2){
     // 108 runs
 //     bestTime = params.terminateDuration;
@@ -244,16 +244,57 @@ int main(int argc, char const ** argv)
         }
         directsearchblockoffset += 1;
     }
-    
-    }
-    
 
-    if(startUni || testrun == 3){
+    }
+
+
+
+
+    //TODO maybe make filter_th harsh and turn off flipdensity and take only big intervals
+    if(testrun == 3){
+    // 32 runs
+    int intervalsize = 9;
+    while(intervalsize < 140){
+        float invflipdensity = 0.9;//go lower too 0.1
+        while(invflipdensity > -0.2){
+            if(invflipdensity < 0){
+                params.normal.testflipdensity = false;
+                params.startuni.testflipdensity = false;
+            }else{
+                params.normal.testflipdensity = true;
+                params.startuni.testflipdensity = true;
+            }
+
+            float filter_th = 0.9; // go lower too 0.1
+            while(filter_th > 0){
+                params.wasStopped = false;
+                params.normal.intervalsize = intervalsize;
+                params.normal.invflipdensity = invflipdensity;
+                params.normal.filter_th = filter_th;
+                cout << intervalsize << "\t" << invflipdensity << "\t" << params.normal.testflipdensity << "\t" << filter_th << "\t" ;
+                auto time = callFunction(nerrors, hits, dhits, delegate, delegateDirect, index, reads, bitvectors);
+                if(bestTime > time){
+                    bestTime = time;
+                    bestParams = params;
+                }
+                filter_th -= 0.2;
+            }
+
+            invflipdensity -= 0.2;
+        }
+        intervalsize += 20;
+    }
+    params.normal.testflipdensity = true;
+    params.startuni.testflipdensity = true;
+    }
+
+
+    if(testrun == 4){
     params.startUnidirectional = true;
     cout << "test without further filtering" << endl;
     params.startuni.suspectunidirectional = false;
     auto time = callFunction(nerrors, hits, dhits, delegate, delegateDirect, index, reads, bitvectors);
-    
+
     params.startuni.suspectunidirectional = true;;
     cout << "test startUni" << endl;
     int intervalsize = 1;
@@ -265,7 +306,7 @@ int main(int argc, char const ** argv)
             }else{
                 params.startuni.testflipdensity = true;
             }
-            
+
             float filter_th = 0.9; // go lower too 0.1
             while(filter_th > 0){
                 params.wasStopped = false;
@@ -280,23 +321,23 @@ int main(int argc, char const ** argv)
                 }
                 filter_th -= 0.2;
             }
-            
+
             invflipdensity -= 0.2;
         }
         intervalsize += 1;
     }
     }
-    
-    if(testrun == 4){
+
+    if(testrun == 5){
     params.startUnidirectional = true;
     cout << "test without further filtering" << endl;
     params.startuni.suspectunidirectional = false;
     auto time = callFunction(nerrors, hits, dhits, delegate, delegateDirect, index, reads, bitvectors);
-    
+
     params.startuni.suspectunidirectional = true;;
     cout << "test startUni" << endl;
     int intervalsize = 9;
-    while(intervalsize < 90){
+    while(intervalsize < 140){
         float invflipdensity = 0.9;//go lower too 0.1
         while(invflipdensity > -0.2){
             if(invflipdensity < 0){
@@ -304,7 +345,7 @@ int main(int argc, char const ** argv)
             }else{
                 params.startuni.testflipdensity = true;
             }
-            
+
             float filter_th = 0.9; // go lower too 0.1
             while(filter_th > 0){
                 params.wasStopped = false;
@@ -319,10 +360,10 @@ int main(int argc, char const ** argv)
                 }
                 filter_th -= 0.2;
             }
-            
+
             invflipdensity -= 0.2;
         }
-        intervalsize += 10;
+        intervalsize += 20;
     }
     }
 
@@ -330,7 +371,7 @@ int main(int argc, char const ** argv)
     cout << "BestParams selected" << endl;
     bestParams.print();
     std::cout << "finished" << std::endl;
-    
-    
+
+
     return 0;
 }
