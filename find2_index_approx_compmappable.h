@@ -26,7 +26,7 @@ inline void directSearch(TDelegateD & delegateDirect,
         uint32_t chromlength = length(genome[sa_info.i1]);
         uint32_t needleL = length(needle);
         if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1)){
-            std::cout << "Edge Case 5: " << chromlength - 1 << " " << (int)sa_info.i2 - (int)needleLeftPos << "\n";
+//             std::cout << "Edge Case 5: " << chromlength - 1 << " " << (int)sa_info.i2 - (int)needleLeftPos << "\n";
             continue;
         }
 
