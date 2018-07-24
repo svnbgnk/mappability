@@ -151,8 +151,10 @@ inline void directSearch(TDelegateD & delegateDirect,
                 //Info make sure we dont DS search something going over the chromosom edge
                 //check left chromosom boundry && check right chromosom boundry
 
-//                 if(!(needleLeftPos <= sa_info.i2 && chromlength > sa_info.i2 - needleLeftPos + needleL - 1))
-//                     continue;
+                if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1)){
+                    std::cout << "Edge Case 1: " << chromlength << " " << (int)sa_info.i2 - (int)needleLeftPos << "\n";
+                    continue;
+                }
                 sa_info.i2 = sa_info.i2 - needleLeftPos;
             }
             else
@@ -160,8 +162,10 @@ inline void directSearch(TDelegateD & delegateDirect,
                 sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
                 chromlength = length(genome[sa_info.i1]);
                 //check left chromosom boundry && check right chromosom boundry
-//                 if(!(chromlength > sa_info.i2 + needleRightPos - 1 && sa_info.i2 + needleRightPos > needleL - 1))
-//                     continue;
+                if(!(chromlength - 1 >= sa_info.i2 + needleRightPos - 1 && sa_info.i2 + needleRightPos - 1 >= needleL + 1)){
+                    std::cout << "Edge Case 2: " << chromlength << " " << (int)chromlength - (int)sa_info.i2 - (int)needleRightPos + 1 << "\n";
+                    continue;
+                }
                 //calculate correct starting position of the needle  on the forward index
                 sa_info.i2 = chromlength - sa_info.i2 - needleRightPos + 1;
             }
