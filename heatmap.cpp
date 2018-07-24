@@ -223,7 +223,7 @@ int main(int argc, char *argv[])
 
         b.resize(mappability_int.size());
         for (unsigned i = 0; i < mappability_int.size(); ++i)
-            b[i] = !(mappability_int[i] > threshold);
+            b[i] = (mappability_int[i] > threshold);
         cout << "Bit vector constructed" << endl;
     }
 

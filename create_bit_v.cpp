@@ -73,7 +73,7 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, uint32_t
 
             #pragma omp parallel for schedule(static)
             for(uint32_t j = 0; j < righti.size(); ++j){
-                if(j - shift >= 0)
+                if(j >= shift)
                     newright[j] = righti[j - shift];
             }
             b.bv.push_back(newright);
