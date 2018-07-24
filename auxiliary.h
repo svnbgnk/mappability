@@ -46,7 +46,7 @@ std::vector<uint32_t> getSequencesLengths(Iter<Index<TText, BidirectionalIndex<T
 {
     uint32_t size = seqan::length(iter.fwdIter.index->sa);
     uint32_t number_of_indeces = size - bitvectors[0].first.size();
-    
+
     std::cout << "Number of Indeces: " << number_of_indeces << "\n";
     std::vector<uint32_t> sequenceLengths(number_of_indeces + 1, 0);
     for(uint32_t i = 0; i < number_of_indeces; ++i){
@@ -65,7 +65,7 @@ void calcfwdPos(TIndex & index,
                 bool verbose = false)
 {
     auto sl = getSeqLengths(index);
-    
+
     for(uint32_t i = 0; i < hitsOutput.size(); ++i){
         if(hitsOutput[i].rev){
             if(verbose)
@@ -109,7 +109,7 @@ void print_beginsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDow
         }
     }
     outfile.close();
-    
+
 }
 
 
@@ -146,7 +146,7 @@ void print_beginsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDow
         }
     }
     outfile.close();
-    
+
 }
 
 
@@ -225,7 +225,7 @@ std::vector<hit> print_readocc_sorted(std::vector<hit> hits, auto const & genome
         std::cout << "   " << hits[i].occ << " " << hits[i].read << "\n";
         if(occEnabled)
             std::cout << infix(genome[hits[i].occ.i1], hits[i].occ.i2, hits[i].occ.i2 + seqan::length(hits[i].read)) << "\n";
-        
+
     }
     return(hits);
 }
@@ -250,7 +250,7 @@ uint32_t testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
             hits.push_back(me);
         }
     };
-    
+
     StringSet<DnaString> testocc;
     DnaString part = infix(genome[testhit.occ.i1], testhit.occ.i2, testhit.occ.i2 + seqan::length(testhit.read));
     appendValue(testocc, part);
@@ -291,13 +291,13 @@ std::vector<uint32_t> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & in
                     std::vector<hit> x,
                     std::vector<hit> y)
 {
-    std::vector<uint32_t> wrongHitCount; 
+    std::vector<uint32_t> wrongHitCount;
     bool same2 = true;
     bool same = true;
     if(!(x.size() == y.size())){
         same2 = false;
         std::cout << "MyVersion has: " << x.size() << "hits while default version has: " << y.size() << " hits" << "\n";
-    }   
+    }
     int offset = 0;
     for(uint32_t i = 0; i + offset < y.size(); ++i){
         same = false;
@@ -308,7 +308,7 @@ std::vector<uint32_t> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & in
             if(i < x.size())
                 std::cout << "MyVersion has: " << x[i].occ.i2 << " while " ;
             std::cout << "default version has: " << y[i + offset].occ.i2 << "\n";
-            uint32_t nhits = testread(0, errors, index, y[i + offset]); 
+            uint32_t nhits = testread(0, errors, index, y[i + offset]);
             if(nhits < threshold){
                 std::cout << "To few hits should have found this part!!!!" << "\n";
                 wrongHitCount.push_back(nhits);
@@ -341,7 +341,7 @@ sdsl::bit_vector create_random_bit_v(int length){
     return(rv);
 }
 
-template <typename T> 
+template <typename T>
 void printv(T a){
     for(int i = 0; i < a.size(); ++i){
         std::cout << static_cast<int> (a.at(i)) << ", ";
@@ -359,8 +359,8 @@ void printbit(std::vector<std::pair<TVector, TVSupport>> & bitvectors, Pair<uint
 
 
 inline bool file_exists(const std::string& name) {
-  struct stat buffer;   
-  return (stat (name.c_str(), &buffer) == 0); 
+  struct stat buffer;
+  return (stat (name.c_str(), &buffer) == 0);
 }
 
 template <size_t nbrBlocks, size_t N>
@@ -407,7 +407,7 @@ struct isBidirectionalIter<Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTre
 
 // template <typename TText, typename TConfig, typename TIndexSpec>
 void print_genome(auto it,//Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > it,
-                  std::string const & output_path, 
+                  std::string const & output_path,
                   int chr)
 {
     if(isBidirectionalIter<decltype(it)>::VALUE){
@@ -433,7 +433,7 @@ void print_genome(auto it,//Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<T
 /*
 // template <typename TText, typename TIndex, typename TIndexSpec>
 void print_genome(auto it, //Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it,
-                  std::string const & output_path, 
+                  std::string const & output_path,
                   int chr)
 {
     if(isBidirectionalIter<decltype(it)>::VALUE){
@@ -473,7 +473,7 @@ std::vector<std::pair<TBitvector, TSupport>> loadBitvectors(CharString const bit
             bit_vectors.push_back(std::make_pair(b, rb));
          }
     }
-    
+
     for(int i = 0; i < K + 2; ++i){
          std::string file_name = std::string("") + toCString(bitvectorpath) + "l_bit_vector_" +  std::to_string(K) + "_" +  std::to_string(errors) + "_shift_" +  std::to_string(i);
          if(file_exists(file_name)){
@@ -507,7 +507,7 @@ std::vector<std::pair<TBitvector, TSupport>> loadBitvectors(CharString const bit
     }else{
         std::cerr << file_name << " not found" <<  "\n";
     }
-        
+
     file_name = std::string("") + toCString(bitvectorpath) + "left_bit_vector_" +  std::to_string(K) + "_" +  std::to_string(errors);
     if(file_exists(file_name)){
         TBitvector b;
@@ -518,13 +518,13 @@ std::vector<std::pair<TBitvector, TSupport>> loadBitvectors(CharString const bit
     }else{
         std::cerr << file_name << " not found" <<  "\n";
     }
-        
+
     if(bit_vectors.size() != 3){
         std::cout << std::string("") + toCString(bitvectorpath) + "l_bit_vector_" +  std::to_string(K) + "_" +  std::to_string(errors) + "_shift_" +  std::to_string(0) << "\n";
         std::cout << "was not found in the first place maybe wrong K or E parameter?" << "\n";
         exit(0);
     }
-        
+
     }
     return(bit_vectors);
 }

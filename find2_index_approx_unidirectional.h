@@ -106,7 +106,7 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
             if(std::is_same<TDir, Rev>::value){
                 //check left chromosom boundry && check right chromosom boundry
                 if(!(sa_info.i2 >= needleL - needleRightPos + 1 && chromlength - 1 >= sa_info.i2 + needleRightPos - 2)){
-                    std::cout << "Edge Case 3: " << chromlength << " " << (int)sa_info.i2 - (int)needleL + (int)needleRightPos - 1 << "\n";
+                    std::cout << "Edge Case 3: " << chromlength - 1 << " " << (int)sa_info.i2 - (int)needleL + (int)needleRightPos - 1 << "\n";
                     continue;
                 }
                 sa_info.i2 = sa_info.i2 - needleL + needleRightPos - 1;
@@ -115,7 +115,7 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
             {
                 //check left chromosom boundry && check right chromosom boundry
                 if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1)){
-                    std::cout << "Edge Case 4: " << chromlength << " " << (int)sa_info.i2 - (int)needleLeftPos << "\n";
+                    std::cout << "Edge Case 4: " << chromlength - 1 << " " << (int)sa_info.i2 - (int)needleLeftPos << "\n";
                     continue;
                 }
                 //calculate correct starting position of the needle  on the forward index

@@ -1,7 +1,7 @@
 #ifndef SEQAN_INDEX_FIND2_INDEX_APPROX_COMPMAPPLE_H_
 #define SEQAN_INDEX_FIND2_INDEX_APPROX_COMPMAPPLE_H_
 using namespace std;
- 
+
 namespace seqan{
 
 template <typename TDelegateD,
@@ -21,14 +21,20 @@ inline void directSearch(TDelegateD & delegateDirect,
 {
     auto const & genome = indexText(*iter.fwdIter.index);
     for(uint32_t i = iter.fwdIter.vDesc.range.i1; i < iter.fwdIter.vDesc.range.i2; ++i){
-        Pair<uint16_t, uint32_t> sa_info;
+        Pair<uint16_t, uint32_t> sa_info = iter.fwdIter.index->sa[i];
         //dont need look at the reverse index in this case since i dont use mappability
-        sa_info = iter.fwdIter.index->sa[i];
+        uint32_t chromlength = length(genome[sa_info.i1]);
+        uint32_t needleL = length(needle);
+        if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1)){
+            std::cout << "Edge Case 5: " << chromlength - 1 << " " << (int)sa_info.i2 - (int)needleLeftPos << "\n";
+            continue;
+        }
+
         sa_info.i2 = sa_info.i2 - needleLeftPos;
         genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info);
     }
 }
-    
+
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
@@ -180,7 +186,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     // Done.
     if (minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1)
     {
-        delegate(iter, needle, errors, false); 
+        delegate(iter, needle, errors, false);
     }
     // Exact search in current block.
     else if (maxErrorsLeftInBlock == 0 && needleRightPos - needleLeftPos - 1 != s.blocklength[blockIndex])
@@ -188,9 +194,9 @@ inline void _optimalSearchScheme(TDelegate & delegate,
         _optimalSearchSchemeExact(delegate, delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(),
                                   TDistanceTag());
     }
- 
+
     else
-    {    
+    {
         // if (doInTextVerification(s, blockIndex, iter))
         if(params.comp.directsearch && iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1 + + params.uni.directsearchblockoffset) * params.comp.directsearch_th)
         {
