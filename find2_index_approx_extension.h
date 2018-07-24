@@ -152,7 +152,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                 //check left chromosom boundry && check right chromosom boundry
 
                 if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1)){
-                    std::cout << "Edge Case 1: " << chromlength << " " << (int)sa_info.i2 - (int)needleLeftPos << "\n";
+                    std::cout << "Edge Case 1: " << chromlength - 1 << " " << (int)sa_info.i2 - (int)needleLeftPos << "\n";
                     continue;
                 }
                 sa_info.i2 = sa_info.i2 - needleLeftPos;
@@ -163,7 +163,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                 chromlength = length(genome[sa_info.i1]);
                 //check left chromosom boundry && check right chromosom boundry
                 if(!(chromlength - 1 >= sa_info.i2 + needleRightPos - 1 && sa_info.i2 + needleRightPos - 1 >= needleL + 1)){
-                    std::cout << "Edge Case 2: " << chromlength << " " << (int)chromlength - (int)sa_info.i2 - (int)needleRightPos + 1 << "\n";
+                    std::cout << "Edge Case 2: " << chromlength - 1 << " " << (int)chromlength - (int)sa_info.i2 - (int)needleRightPos + 1 << "\n";
                     continue;
                 }
                 //calculate correct starting position of the needle  on the forward index
@@ -694,21 +694,23 @@ inline void _optimalSearchScheme(TDelegate & delegate,
 }
 
 
-template <size_t minErrors, size_t maxErrors,
-          typename TDelegate, typename TDelegateD,
+template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndexSpec,
           typename TChar, typename TStringSpec,
-          typename TVector, typename TVSupport>
+          typename TVector, typename TVSupport,
+          size_t nbrBlocks, size_t N>
 inline void
 find(TDelegate & delegate,
      TDelegateD & delegateDirect,
      Index<TText, BidirectionalIndex<TIndexSpec> > & index,
      String<TChar, TStringSpec> const & needle,
-     vector<pair<TVector, TVSupport>> & bitvectors)
+     vector<pair<TVector, TVSupport>> & bitvectors,
+     std::array<OptimalSearch<nbrBlocks>, N> const & ss)
 {
-    auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
+    //TODO there has to be a better way
+    auto scheme = ss;/*OptimalSearchSchemes<minErrors, maxErrors>::VALUE;*/
     _optimalSearchSchemeComputeFixedBlocklength(scheme, length(needle));
-    _optimalSearchSchemeSetMapParams(scheme);
+    _optimalSearchSchemeComputeChronBlocklength(scheme);
     Iter<Index<TText, BidirectionalIndex<TIndexSpec> >, VSTree<TopDown<> > > it(index);
     _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, scheme);
 }
@@ -725,7 +727,7 @@ find(TDelegate & delegate,
 {
     auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
     _optimalSearchSchemeComputeFixedBlocklength(scheme, length(needle));
-    _optimalSearchSchemeSetMapParams(scheme);
+    _optimalSearchSchemeComputeChronBlocklength(scheme);
     Iter<Index<TText, BidirectionalIndex<TIndexSpec> >, VSTree<TopDown<> > > it(index);
     _optimalSearchScheme(delegate, delegateDirect, it, needle, scheme);
 }
@@ -745,6 +747,9 @@ find(TDelegate & delegate,
      vector<pair<TVector, TVSupport>> & bitvectors,
      TParallelTag const & )
 {
+    auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
+    calcConstParameters(scheme);
+
     typedef typename Iterator<StringSet<TNeedle, TStringSetSpec> const, Rooted>::Type TNeedleIt;
     typedef typename Reference<TNeedleIt>::Type                                       TNeedleRef;
     checkTime time;
@@ -752,7 +757,7 @@ find(TDelegate & delegate,
     {
         TNeedleRef needle = value(needleIt);
         if(!(params.clocking && time.stopnow(params.terminateDuration))){
-            find<minErrors, maxErrors>(delegate, delegateDirect, index, needle, bitvectors);
+            find(delegate, delegateDirect, index, needle, bitvectors, scheme);
         }else{
             params.wasStopped = true;
         }
