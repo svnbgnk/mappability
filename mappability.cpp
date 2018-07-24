@@ -146,7 +146,7 @@ inline void run(Options const & opt, SearchParams const & searchParams)
         auto const & text = indexText(index);
         run<TDistance>(index, text.concat, opt, searchParams, -1 /*no chromosomeId*/);
     }
-    else
+    /*else
     {
         // load chromosome ids
         StringSet<CharString> ids;
@@ -163,7 +163,7 @@ inline void run(Options const & opt, SearchParams const & searchParams)
             auto const & text = indexText(index);
             run<TDistance>(index, text, opt, searchParams, i);
         }
-    }
+    }*/
 }
 
 template <typename TChar, typename TAllocConfig>
