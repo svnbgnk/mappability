@@ -5,12 +5,8 @@
 #include <seqan/seq_io.h>
 #include <seqan/index.h>
 
-#include <sdsl/int_vector.hpp>
-
-// You can switch between different vector implementations. Consider that they have different thread safetyness!
-// typedef sdsl::int_vector<8> TVector;
 typedef std::vector<uint8_t> TVector; // thread-safe
-// constexpr uint64_t max_val = (1 << 8) - 1; // not thread-safe
+// constexpr uint64_t max_val = (1 << 8) - 1;
 
 #include "common.h"
 
@@ -21,7 +17,6 @@ struct Options
     bool indels;
     bool knut;
     bool knut2;
-    bool singleIndex;
     seqan::CharString indexPath;
     seqan::CharString outputPath;
     seqan::CharString alphabet;
@@ -56,12 +51,6 @@ inline void save(vector<T> const & c, string const & output_path)
 
     // ofstream outfile(output_path, std::ios::out | std::ofstream::binary);
     // copy(c.begin(), c.end(), (std::ostream_iterator<uint8_t>(outfile), std::ostream_iterator<int>(outfile, " ")));
-}
-
-template <uint8_t width_t>
-inline void save(sdsl::int_vector<width_t> const & c, string const & output_path)
-{
-    store_to_file(c, output_path);
 }
 
 template <typename TDistance, typename TIndex, typename TText>
@@ -127,7 +116,6 @@ inline void run(TIndex & index, TText const & text, Options const & opt, SearchP
     if (SearchParams::outputProgress)
         std::cout << '\r';
     std::cout << "Progress: 100.00%\n" << std::flush;
-    // cout << mytime() << "Done.\n";
     cout.flush();
 
     string output_path = get_output_path(opt, searchParams, chromosomeId);
@@ -138,41 +126,19 @@ template <typename TChar, typename TAllocConfig, typename TDistance>
 inline void run(Options const & opt, SearchParams const & searchParams)
 {
     typedef String<TChar, TAllocConfig> TString;
-    if (opt.singleIndex)
-    {
-        typedef StringSet<TString, Owner<ConcatDirect<> > > TStringSet;
-        TIndex<TStringSet> index;
-        open(index, toCString(opt.indexPath), OPEN_RDONLY);
-        auto const & text = indexText(index);
-        run<TDistance>(index, text.concat, opt, searchParams, -1 /*no chromosomeId*/);
-    }
-    /*else
-    {
-        // load chromosome ids
-        StringSet<CharString> ids;
-        CharString _indexPath = opt.indexPath;
-        _indexPath += ".ids";
-        open(ids, toCString(_indexPath), OPEN_RDONLY);
 
-        for (unsigned i = 0; i < seqan::length(ids); ++i)
-        {
-            std::string _indexPath = toCString(opt.indexPath);
-            _indexPath += "." + to_string(i);
-            TIndex<TString> index;
-            open(index, toCString(_indexPath), OPEN_RDONLY);
-            auto const & text = indexText(index);
-            run<TDistance>(index, text, opt, searchParams, i);
-        }
-    }*/
+    typedef StringSet<TString, Owner<ConcatDirect<> > > TStringSet;
+    TIndex<TStringSet> index;
+    open(index, toCString(opt.indexPath), OPEN_RDONLY);
+    auto const & text = indexText(index);
+    run<TDistance>(index, text.concat, opt, searchParams, -1);
 }
 
 template <typename TChar, typename TAllocConfig>
 inline void run(Options const & opt, SearchParams const & searchParams)
 {
     if (opt.indels) {
-        cerr << "TODO: Indels are not yet supported.\n";
-        exit(1);
-        // run<TChar, TAllocConfig, EditDistance>(opt, searchParams);
+        run<TChar, TAllocConfig, EditDistance>(opt, searchParams);
     }
     else
         run<TChar, TAllocConfig, HammingDistance>(opt, searchParams);
@@ -249,24 +215,25 @@ int main(int argc, char *argv[])
     // if (isSet(parser, "threshold"))
     //     getOptionValue(opt.threshold, parser, "threshold");
 
-    if (opt.knut && opt.knut2)
-    {
-        cerr << "ERROR: --knut and --knut2 are mutually exclusive.\n";
-        exit(1);
-    }
-
     if (searchParams.overlap > searchParams.length - opt.errors - 2)
     {
         cerr << "ERROR: overlap should be <= K - E - 2 (Common overlap has length K-O and will be split into E+2 parts).\n";
         exit(1);
     }
 
-    CharString _indexPath;
-    _indexPath = opt.indexPath;
-    _indexPath += ".singleIndex";
-    open(opt.singleIndex, toCString(_indexPath));
+    if (opt.knut && opt.knut2)
+    {
+        cerr << "ERROR: --knut and --knut2 are mutually exclusive.\n";
+        exit(1);
+    }
 
-    _indexPath = opt.indexPath;
+    if (opt.indels)
+    {
+        cerr << "ERROR: Indels are not supported yet.\n";
+        exit(1);
+    }
+
+    CharString _indexPath = opt.indexPath;
     _indexPath += ".alphabet";
     open(opt.alphabet, toCString(_indexPath));
 
@@ -277,7 +244,7 @@ int main(int argc, char *argv[])
     else
     {
         // run<Dna5>(opt, searchParams);
-        cerr << "TODO: Dna5 alphabet has not been tested yet. Please do and remove this error message afterwards.\n";
+        cerr << "TODO: Dna5 alphabet has not been tested yet. Please do so and remove this error message afterwards.\n";
         exit(1);
     }
 }
