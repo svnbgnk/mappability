@@ -6,7 +6,7 @@
 normal:
 all cases on
 filter_th: 0.1 // 0.3
-invflipdensity: 0.5 
+invflipdensity: 0.5
 intervalsize = 2;
 directsearchblockoffset: 2
 directsearch_th: 3
@@ -24,7 +24,7 @@ public:
     bool directsearch;
     bool compmappable;
     bool suspectunidirectional;
-    
+
     bool testflipdensity;
     uint32_t step;
     uint32_t distancetoblockend;
@@ -33,11 +33,11 @@ public:
     float filter_th;
     float invflipdensity;
     uint32_t intervalsize;
-    
+
     majorCaseParameters(){
         setdefault();
     }
-    
+
     void setbestnormal(){
         filter_th = 0.3;
         invflipdensity = 0.5;
@@ -47,27 +47,38 @@ public:
         step = 2;
         distancetoblockend = 1;
     }
-    
+
+
+    void setbestnormalhg(){
+        filter_th = 0.1; //around
+        invflipdensity = 0.3; // lower or turned off
+        intervalsize = 2; //1-3 or maybe 89 0.1 filter 109 invflipdensity turned off
+        directsearchblockoffset = 4;
+        directsearch_th = 4; // around
+        step = 2;  // or 8
+        distancetoblockend = 1; //????
+    }
+
     void setdefault(){
         nomappability = true;
         directsearch = true;
         compmappable = true;
         suspectunidirectional = true;
-    
+
         testflipdensity = true;
         //binaryNumber
         step = 0b11;
         distancetoblockend = 2;
-    
+
         directsearchblockoffset = 0;
         directsearch_th = 2;
         filter_th = 0.5;
-    
+
         invflipdensity = 0.5;
-    
+
         intervalsize = 3;
     }
-    
+
     void setCases(uint32_t a){
         if(a > 16){
             std::cerr << "Integer to large. Try again!!! (<16)" << "\n";
@@ -80,11 +91,11 @@ public:
             cases = a;
         }
     }
-    
+
     void printCases(){
         std::cout << std::bitset<4>(cases) << "\t";
     }
-    
+
     void print(){
         std::cout << "Cases Enabled: " << "\n";
         std::cout << nomappability << " " << directsearch << " " << compmappable << " " << suspectunidirectional << "\n";
@@ -97,7 +108,7 @@ public:
         std::cout << "filter_th: " << filter_th << "\n";
         std::cout << "invflipdensity: " << invflipdensity << "\n";
         std::cout << "intervalsize: " << intervalsize << "\n";
-    }    
+    }
 };
 
 
@@ -107,26 +118,26 @@ public:
     bool clocking;
     bool wasStopped;
 //     std::chrono::duration<double> terminateDuration;
-    std::chrono::seconds dtd = std::chrono::seconds{13};
+    std::chrono::seconds dtd = std::chrono::seconds{11};
     std::chrono::seconds terminateDuration;
-    
+
     majorCaseParameters normal;
     majorCaseParameters comp;
     majorCaseParameters uni;
     majorCaseParameters startuni;
-    
+
     myGlobalParameters(){
         startUnidirectional = false;
         clocking = false;
         wasStopped = false;
         setdefaultTime();
     }
-    
+
     void setdefaultTime(){
-//         std::chrono::microseconds(sec).count() 
+//         std::chrono::microseconds(sec).count()
         terminateDuration = dtd;
     }
-    
+
     void setdefault(){
         startUnidirectional = false;
         wasStopped = false;
@@ -135,18 +146,19 @@ public:
         uni.setdefault();
         startuni.setdefault();
     }
-    
+
+    //INFO need to copy more parameters for startUni
     void copyDirectsearchParamsfromNormal(){
         comp.directsearchblockoffset = normal.directsearchblockoffset;
         comp.directsearch_th = normal.directsearch_th;
-        
+
         uni.directsearchblockoffset = normal.directsearchblockoffset;
         uni.directsearch_th = normal.directsearch_th;
-        
+
         startuni.directsearchblockoffset = normal.directsearchblockoffset;
         startuni.directsearch_th = normal.directsearch_th;
     }
-    
+
     void print(){
         std::cout << "\n";
         std::cout << "Start Unidirectional: " << startUnidirectional << "\n";
@@ -169,13 +181,13 @@ public:
     int steps = 1024;
     int k;
     bool stopped;
-    
+
     checkTime(){
         k = 0;
         stopped = false;
         start = std::chrono::high_resolution_clock::now();
     }
-    
+
     bool stopnow(std::chrono::seconds & d){
         if(stopped)
             return true;

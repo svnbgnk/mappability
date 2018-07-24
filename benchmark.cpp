@@ -150,6 +150,8 @@ int main(int argc, char const ** argv)
 
     params.clocking = true;
 
+    params.normal.setbestnormalhg();
+    params.copyDirectsearchParamsfromNormal();
 
     if(testrun == 0){
     //16 runs
@@ -165,25 +167,22 @@ int main(int argc, char const ** argv)
     }
     }
 
-
-
     //TODO maybe make filter_th harsh and turn off flipdensity and take only big intervals
     if(testrun == 1){
     // 32 runs
     int intervalsize = 1;
-    while(intervalsize < 9){
-        float invflipdensity = 0.9;//go lower too 0.1
-        while(invflipdensity > -0.2){
+    while(intervalsize < 5){
+        float invflipdensity = 0.5;//go lower too 0.1
+        while(invflipdensity > -0.1){
+            if(!(invflipdensity < 0.001 && invflipdensity > -0.001)){
+
             if(invflipdensity < 0){
                 params.normal.testflipdensity = false;
-                params.startuni.testflipdensity = false;
             }else{
                 params.normal.testflipdensity = true;
-                params.startuni.testflipdensity = true;
             }
-
-            float filter_th = 0.9; // go lower too 0.1
-            while(filter_th > 0){
+            float filter_th = 0.25; // go lower too 0.1
+            while(filter_th > 0.01){
                 params.wasStopped = false;
                 params.normal.intervalsize = intervalsize;
                 params.normal.invflipdensity = invflipdensity;
@@ -194,15 +193,14 @@ int main(int argc, char const ** argv)
                     bestTime = time;
                     bestParams = params;
                 }
-                filter_th -= 0.2;
+                filter_th -= 0.03;
             }
-
-            invflipdensity -= 0.2;
+            }
+            invflipdensity -= 0.1;
         }
         intervalsize += 1;
     }
     params.normal.testflipdensity = true;
-    params.startuni.testflipdensity = true;
     }
 
 
@@ -210,11 +208,10 @@ int main(int argc, char const ** argv)
     if(testrun == 2){
     // 108 runs
 //     bestTime = params.terminateDuration;
-    params.normal.setdefault();
-    int directsearchblockoffset = 1;
-    while(directsearchblockoffset < 5){
+    int directsearchblockoffset = 2;
+    while(directsearchblockoffset < 9){
         int directsearch_th = 2; // go up 4
-        while(directsearch_th < 6){
+        while(directsearch_th < 7){
             int distancetoblockend = 1;//// go up to 4
             while(distancetoblockend < 4){
                 int step = 2; // //test 8 // 16
@@ -242,7 +239,7 @@ int main(int argc, char const ** argv)
             }
             directsearch_th += 1;
         }
-        directsearchblockoffset += 1;
+        directsearchblockoffset += 2;
     }
 
     }
@@ -253,19 +250,17 @@ int main(int argc, char const ** argv)
     //TODO maybe make filter_th harsh and turn off flipdensity and take only big intervals
     if(testrun == 3){
     // 32 runs
-    int intervalsize = 9;
-    while(intervalsize < 140){
-        float invflipdensity = 0.9;//go lower too 0.1
+    int intervalsize = 10;
+    while(intervalsize < 200){
+        float invflipdensity = 0.1;//go lower too 0.1
         while(invflipdensity > -0.2){
             if(invflipdensity < 0){
                 params.normal.testflipdensity = false;
-                params.startuni.testflipdensity = false;
             }else{
                 params.normal.testflipdensity = true;
-                params.startuni.testflipdensity = true;
             }
 
-            float filter_th = 0.9; // go lower too 0.1
+            float filter_th = 0.25; // go lower too 0.1
             while(filter_th > 0){
                 params.wasStopped = false;
                 params.normal.intervalsize = intervalsize;
@@ -277,15 +272,14 @@ int main(int argc, char const ** argv)
                     bestTime = time;
                     bestParams = params;
                 }
-                filter_th -= 0.2;
+                filter_th -= 0.03;
             }
 
             invflipdensity -= 0.2;
         }
-        intervalsize += 20;
+        intervalsize += 15;
     }
     params.normal.testflipdensity = true;
-    params.startuni.testflipdensity = true;
     }
 
 
@@ -368,6 +362,7 @@ int main(int argc, char const ** argv)
     }
 
 
+    cout << "Best Time: " << bestTime.count() << "s" << endl;
     cout << "BestParams selected" << endl;
     bestParams.print();
     std::cout << "finished" << std::endl;
