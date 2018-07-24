@@ -12,7 +12,7 @@ void buildIndex(StringSet<TString, TStringSetConfig> const & chromosomes, CharSt
     // TODO(cpockrandt): avoid copying
     StringSet<TString, Owner<ConcatDirect<> > > chromosomesConcat(chromosomes);
     Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index(chromosomesConcat);
-    indexCreate(index, FibreSALF());
+    indexCreateProgress(index, FibreSALF());
     save(index, toCString(indexPath));
 }
 
@@ -20,7 +20,7 @@ template <typename TString>
 void buildIndex(TString & chromosomes, CharString const & indexPath)
 {
     Index<TString, TIndexConfig> index(chromosomes);
-    indexCreate(index, FibreSALF());
+    //indexCreate(index, FibreSALF());
     save(index, toCString(indexPath));
 }
 

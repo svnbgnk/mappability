@@ -1,3 +1,7 @@
+#include "lambda/src/mkindex_saca.hpp"
+#include "lambda/src/mkindex_misc.hpp"
+#include "lambda/src/mkindex_algo.hpp"
+
 // reduce space consumption.
 // requires genome not to have more than ~ 4 gigabases
 // multi-sequence fasta file must contain less than ~64k sequences of at most ~ 4 gigabases in total
@@ -99,7 +103,7 @@ inline void initProgress<true>(uint64_t & progress_count, uint64_t & progress_st
 }
 
 using TMyFastConfig = seqan::FastFMIndexConfig<void, uint32_t, 2, 1>;
-using TIndexConfig = seqan::BidirectionalIndex<seqan::FMIndex<void, TMyFastConfig> >;
+using TIndexConfig = seqan::BidirectionalIndex<seqan::FMIndex<RadixSortSACreateTag, TMyFastConfig> >;
 
 template <typename TText>
 using TIndex = seqan::Index<TText, TIndexConfig>;
