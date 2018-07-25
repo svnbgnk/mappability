@@ -218,11 +218,8 @@ inline void directSearch(TDelegateD & delegateDirect,
     uint32_t needleL = length(needle);
     uint32_t blocks = s.pi.size();
 
-
     vector<uint32_t> blockStarts(blocks - blockIndex);
     vector<uint32_t> blockEnds(blocks - blockIndex);
-
-
     for(uint32_t j = blockIndex; j < s.pi.size(); ++j){
         uint32_t blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2]; //TODO fix this
         blockStarts[j - blockIndex] = blockStart;
@@ -230,6 +227,7 @@ inline void directSearch(TDelegateD & delegateDirect,
     }
 
     if(std::is_same<TDir, Rev>::value){
+        //modify blockstart in case we are still inside a block
         if(needleRightPos - 1 > blockStarts[0] && needleRightPos - 1 < blockEnds[0])
             blockStarts[0] = needleRightPos - 1;
 
@@ -252,6 +250,7 @@ inline void directSearch(TDelegateD & delegateDirect,
     }
     else
     {
+        //modify blockend in case we are still inside a block
         if(needleLeftPos > blockStarts[0] && needleLeftPos < blockEnds[0])
             blockEnds[0] = needleLeftPos;
 
