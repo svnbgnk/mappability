@@ -43,36 +43,32 @@ template <typename TDelegateD,
           typename TNeedle,
           size_t nbrBlocks>
 inline void genomeSearch(TDelegateD & delegateDirect,
-                  bool const unidirectionalOnReverseIndex,
                   TNeedle const & needle,
-                  uint32_t const needleLeftPos,
-                  uint32_t const needleRightPos,
                   uint8_t errors,
                   OptimalSearch<nbrBlocks> const & s,
                   uint8_t const blockIndex,
                   auto const & rgenome,
-                  Pair<uint16_t, uint32_t> & sa_info)
+                  Pair<uint16_t, uint32_t> & sa_info,
+                  vector<uint32_t> const & blockStarts,
+                  vector<uint32_t> const & blockEnds,
+                  bool const unidirectionalOnReverseIndex)
 {
-    bool valid = true;
-    for(uint8_t j = blockIndex; j < s.pi.size(); ++j){
-        uint32_t blockStart = (s.pi[j] == s.pi.size()) ? 0 : s.revChronBL[s.pi[j]];
-        uint32_t blockEnd = s.revChronBL[s.pi[j] - 1];
-        if(needleLeftPos < length(needle) - blockStart && needleLeftPos > length(needle) - blockEnd){
-            blockStart = length(needle) - needleLeftPos; //- 1 + 1
-        }
-        for(uint32_t k = blockStart; k < blockEnd; ++k){
-            if(needle[length(needle) - k - 1] != rgenome[sa_info.i1][sa_info.i2 + k])
+    uint32_t needleL = length(needle);
+    for(uint8_t j = 0; j < blockStarts.size(); ++j){
+        //what is this
+//         if(needleLeftPos < length(needle) - blockStart && needleLeftPos > length(needle) - blockEnd){
+//             blockStart = length(needle) - needleLeftPos; //- 1 + 1
+//         }
+        for(uint32_t k = blockStarts[j]; k < blockEnds[j]; ++k){
+            if(needle[needleL - k - 1] != rgenome[sa_info.i1][sa_info.i2 + k])
                 ++errors;
         }
-        if(errors < s.l[j] || errors > s.u[j]){
-            valid = false;
-            break;
+        if(errors < s.l[blockIndex + j] || errors > s.u[blockIndex + j]){
+            return;
         }
     }
-    if(valid){
-        sa_info.i2 = seqan::length(rgenome[sa_info.i1]) - sa_info.i2 - length(needle);
-        delegateDirect(sa_info, needle, errors);
-    }
+    sa_info.i2 = seqan::length(rgenome[sa_info.i1]) - sa_info.i2 - needleL;
+    delegateDirect(sa_info, needle, errors);
 }
 
 
@@ -94,39 +90,57 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
                   Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
                   TDir const & /**/)
 {
+
+    //this can also be the reverse genome
     auto const & genome = indexText(*iter.index);
     uint32_t needleL = length(needle);
-    for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
-        //this time i use the mappability from "inside" the needle since i can garantue i am at a blockend
-        if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
-            bool valid = true;
-            Pair<uint16_t, uint32_t> sa_info = iter.index->sa[iter.vDesc.range.i1 + i];
-            uint32_t chromlength = length(genome[sa_info.i1]);
-            // mappability information is this time in reverse index order even if we use reverse index (we get_bitvector_interval_inside)
-            if(std::is_same<TDir, Rev>::value){
+    uint32_t blocks = s.pi.size();
+
+    if(std::is_same<TDir, Rev>::value){
+        vector<uint32_t> blockStarts(blocks - blockIndex);
+        vector<uint32_t> blockEnds(blocks - blockIndex);
+        for(uint32_t j = blockIndex; j < s.pi.size(); ++j){
+            uint32_t blockStart = (s.pi[j] == s.pi.size()) ? 0 : s.revChronBL[s.pi[j]]; //TODO fix this
+            blockStarts[j - blockIndex] = blockStart;
+            blockEnds[j - blockIndex] = s.revChronBL[s.pi[j] - 1];
+        }
+
+        for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
+            //this time i use the mappability from "inside" the needle since i can garantue i am at a blockend
+            if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
+                Pair<uint16_t, uint32_t> sa_info = iter.index->sa[iter.vDesc.range.i1 + i];
+                uint32_t chromlength = length(genome[sa_info.i1]);
+                // mappability information is this time in reverse index order even if we use reverse index (we get_bitvector_interval_inside)
                 //check left chromosom boundry && check right chromosom boundry
-                if(!(sa_info.i2 >= needleL - needleRightPos + 1 && chromlength - 1 >= sa_info.i2 + needleRightPos - 2)){
-//                     std::cout << "Edge Case 3: " << chromlength - 1 << " " << (int)sa_info.i2 - (int)needleL + (int)needleRightPos - 1 << "\n";
+                if(!(sa_info.i2 >= needleL - needleRightPos + 1 && chromlength - 1 >= sa_info.i2 + needleRightPos - 2))
                     continue;
-                }
                 sa_info.i2 = sa_info.i2 - needleL + needleRightPos - 1;
+                //use modified genomeSearch in case of reverse index
+                genomeSearch(delegateDirect, needle, errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds, true);
             }
-            else
-            {
+        }
+    }
+    else
+    {
+        vector<uint32_t> blockStarts(blocks - blockIndex);
+        vector<uint32_t> blockEnds(blocks - blockIndex);
+        getForwardBlockLimits(s, blockIndex, blockStarts, blockEnds);
+
+        //this time i use the mappability from "inside" the needle since i can garantue i am at a blockend
+        for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
+            if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
+                Pair<uint16_t, uint32_t> sa_info = iter.index->sa[iter.vDesc.range.i1 + i];
+                uint32_t chromlength = length(genome[sa_info.i1]);
+                // mappability information is this time in reverse index order even if we use reverse index (we get_bitvector_interval_inside)
                 //check left chromosom boundry && check right chromosom boundry
-                if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1)){
-//                     std::cout << "Edge Case 4: " << chromlength - 1 << " " << (int)sa_info.i2 - (int)needleLeftPos << "\n";
+                if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1))
                     continue;
-                }
                 //calculate correct starting position of the needle  on the forward index
                 sa_info.i2 = sa_info.i2 - needleLeftPos;
-            }
+                //use modified genomeSearch in case of forward index
 
-            //use modified genomeSearch in case of reverse index
-            if(std::is_same<TDir, Rev>::value)
-                genomeSearch(delegateDirect, true, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, genome, sa_info);
-            else
-                genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info);
+                genomeSearch(delegateDirect, needle, errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds);
+            }
         }
     }
 }

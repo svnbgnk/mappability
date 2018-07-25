@@ -250,7 +250,7 @@ void print_SA(CharString const indexPath, vector<sdsl::bit_vector> &bit_vectors,
 
 // num_threads(3)
 template <typename TChar, typename TAllocConfig>
-void loadIndex(bitvectors & b, CharString const indexPath, uint32_t const threads)
+void order_bit_vector(bitvectors & b, CharString const indexPath, uint32_t const threads)
 {
     cout << mytime() << "Loading Index" << endl;
     typedef String<TChar, TAllocConfig> TString;
@@ -263,7 +263,7 @@ void loadIndex(bitvectors & b, CharString const indexPath, uint32_t const thread
 
     std::vector<uint32_t> sequenceLengths = getSeqLengths(index);
     for(uint32_t i = 2; i < sequenceLengths.size(); ++i)
-        sequenceLengths[i] += (sequenceLengths[i - 1]);
+        sequenceLengths[i] += sequenceLengths[i - 1];
 
     cout << "Number of Sequences in index: " << countSequences(index) << endl;
     cout << mytime() << "Start sorting bitvectors" << endl;
@@ -273,31 +273,28 @@ void loadIndex(bitvectors & b, CharString const indexPath, uint32_t const thread
         mythreads = omp_get_max_threads();
     else
         mythreads = threads;
-    #pragma omp parallel for schedule(static) num_threads(mythreads)
+    //dynamic since tasks can take different amount (SA Sampling) ordered to guarantee thread safety
+    #pragma omp parallel for ordered schedule(dynamic) num_threads(mythreads)
     for (unsigned j = 0; j < seqan::length(index.fwd.sa) - number_of_indeces; ++j)
     {
         // skip sentinels
-/*
-        uint32_t sa_f = index.fwd.sa[j + number_of_indeces].i2;
-        uint16_t seq_f = index.fwd.sa[j + number_of_indeces].i1;
-        uint32_t sa_r = index.rev.sa[j + number_of_indeces].i2;
-        uint16_t seq_r = index.rev.sa[j + number_of_indeces].i1;*/
-
         Pair<uint16_t, uint32_t> sa_f = index.fwd.sa[j + number_of_indeces];
         Pair<uint16_t, uint32_t> sa_r = index.rev.sa[j + number_of_indeces];
-
+        uint32_t fpos = sa_f.i2 + sequenceLengths[sa_f.i1];
+        uint32_t rpos = sequenceLengths[sa_r.i1 + 1] - sa_r.i2 - 1;
+        #pragma omp ordered
+        {
+//         cout << j << endl;
         for(uint32_t i = 0; i < b.bv.size(); ++i){
             if(b.fwdd[i]){
-                bit_vectors_ordered[i][j] = b.bv[i][sa_f.i2 + sequenceLengths[sa_f.i1]];
-//                 auto mylimits = stringSetLimits(indexText(index));
-//                 auto sa_info = index.fwd.sa[j + number_of_indeces];
-//                 bit_vectors_ordered[i][j] = b.bv[i][posGlobalize(sa_info, mylimits)]; //TODO use this?
+                bit_vectors_ordered[i][j] = b.bv[i][fpos];
             }
             else
             {
-                bit_vectors_ordered[i][j] = b.bv[i][sequenceLengths[sa_r.i1 + 1] - sa_r.i2 - 1];
+                bit_vectors_ordered[i][j] = b.bv[i][rpos];
             }
 
+        }
         }
     }
     b.bv = bit_vectors_ordered;
@@ -306,19 +303,19 @@ void loadIndex(bitvectors & b, CharString const indexPath, uint32_t const thread
 
 
 template <typename TChar>
-void loadIndex(bitvectors & bit_vectors, CharString const indexPath, bool const mmap, uint32_t const threads)
+void order_bit_vector(bitvectors & bit_vectors, CharString const indexPath, bool const mmap, uint32_t const threads)
 {
     if(mmap)
-        loadIndex<TChar, MMap<> >(bit_vectors, indexPath,threads);
+        order_bit_vector<TChar, MMap<> >(bit_vectors, indexPath,threads);
     else
-        loadIndex<TChar, Alloc<> >(bit_vectors, indexPath, threads);
+        order_bit_vector<TChar, Alloc<> >(bit_vectors, indexPath, threads);
 }
 
 void order_bit_vector(bitvectors & bit_vectors, CharString const indexPath, bool const mmap, CharString const alphabet, uint32_t const threads){
      if(alphabet == "dna4")
-         loadIndex<Dna>(bit_vectors, indexPath, mmap, threads);
+         order_bit_vector<Dna>(bit_vectors, indexPath, mmap, threads);
      else
-         loadIndex<Dna5>(bit_vectors, indexPath, mmap, threads);
+         order_bit_vector<Dna5>(bit_vectors, indexPath, mmap, threads);
 }
 
 
@@ -422,7 +419,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    //order in suffix array
+    //order bitvectors according to the forward or reverse suffix array
     order_bit_vector(result, indexPath, mmap, alphabet, threads);
     cout << mytime() << "Finished sorting" << endl;
     for(uint32_t i = 0; i < result.bv.size(); ++i){
