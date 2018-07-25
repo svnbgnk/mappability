@@ -180,6 +180,8 @@ inline void genomeSearch(TDelegateD & delegateDirect,
                   vector<uint32_t> const & blockStarts,
                   vector<uint32_t> const & blockEnds)
 {
+
+    /*
     std::cout << "Start:" << "\n";
     std::cout << sa_info << "\n";
     std::cout << (int)blockIndex << "\n";
@@ -223,6 +225,34 @@ inline void genomeSearch(TDelegateD & delegateDirect,
         }
     }
     delegateDirect(sa_info, needle, errors);
+    */
+
+    bool valid = true;
+    for(uint32_t j = blockIndex; j < s.pi.size(); ++j){
+        uint32_t blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
+        uint32_t blockEnd = s.chronBL[s.pi[j] - 1];
+        // compare bases to needle
+        if(std::is_same<TDir, Rev>::value){
+            if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd)
+                blockStart = needleRightPos - 1;
+        }
+        else
+        {
+            if(needleLeftPos > blockStart && needleLeftPos < blockEnd)
+                blockEnd = needleLeftPos;
+        }
+        for(uint32_t k = blockStart; k <  blockEnd; ++k){
+            if(needle[k] != genome[sa_info.i1][sa_info.i2 + k])
+                ++errors;
+        }
+        if(errors < s.l[j] || errors > s.u[j]){
+            valid = false;
+            break;
+        }
+    }
+    if(valid){
+        delegateDirect(sa_info, needle, errors);
+    }
 }
 
 
@@ -246,9 +276,8 @@ inline void directSearch(TDelegateD & delegateDirect,
 {
     auto const & genome = indexText(*iter.fwdIter.index);
     uint32_t needleL = length(needle);
-    bool inblockcase = false;
 
-
+/*
     vector<uint32_t> blockStarts;
     vector<uint32_t> blockEnds;
 
@@ -256,13 +285,13 @@ inline void directSearch(TDelegateD & delegateDirect,
         uint32_t blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2]; //TODO fix this
         blockStarts.push_back(blockStart);
         blockEnds.push_back(s.chronBL[s.pi[j] - 1]);
-    }
+    }*/
 
     if(std::is_same<TDir, Rev>::value){
-
+/*
     if(needleRightPos - 1 > blockStarts[0] && needleRightPos - 1 < blockEnds[0]){
         blockStarts[0] = needleRightPos - 1;
-    }
+    }*/
 
     for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
         if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
@@ -283,10 +312,11 @@ inline void directSearch(TDelegateD & delegateDirect,
     }
 
     }else{
-
+/*
     if(needleLeftPos > blockStarts[0] && needleLeftPos < blockEnds[0]){
         blockEnds[0] = needleLeftPos;
     }
+    */
     for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
         if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
             Pair<uint16_t, uint32_t> sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
