@@ -277,10 +277,10 @@ inline void directSearch(TDelegateD & delegateDirect,
     auto const & genome = indexText(*iter.fwdIter.index);
     uint32_t needleL = length(needle);
 
-/*
+
     vector<uint32_t> blockStarts;
     vector<uint32_t> blockEnds;
-
+/*
     for(uint32_t j = blockIndex; j < s.pi.size(); ++j){
         uint32_t blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2]; //TODO fix this
         blockStarts.push_back(blockStart);
