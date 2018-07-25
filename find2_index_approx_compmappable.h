@@ -62,10 +62,6 @@ inline void directSearch(TDelegateD & delegateDirect,
     }
 }
 
-
-
-
-
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
