@@ -213,42 +213,6 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, uint32_t con
     return(result);
 }
 
-/* //TODO fix sequenceLengths and number_of_indeces before using
-void print_SA(CharString const indexPath, vector<sdsl::bit_vector> &bit_vectors, CharString const & outputPath, bool const fwd){
-    string name = "_SA_debug";
-    string dir = (fwd) ? "fwd" : "rev";
-    std::ofstream outfile((toCString(outputPath) + dir + name), std::ios::out | std::ofstream::binary);
-    typedef String<Dna, Alloc<>> TString;
-    Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index;
-    open(index, toCString(indexPath), OPEN_RDONLY);
-
-    int number_of_indeces = seqan::length(index.fwd.sa) - bit_vectors[0].size();
-    vector<int> sequenceLengths(number_of_indeces + 1, 0);
-    cout << "Number of Indeces: " << number_of_indeces << endl;
-    //sequenceLengths first value is 0
-    for(int i = 0; i < number_of_indeces; ++i)
-        sequenceLengths[getValueI1(index.fwd.sa[i]) + 1] = getValueI2(index.fwd.sa[i]);
-    // cumulative sum seq
-    for(int i = 1; i < sequenceLengths.size(); ++i)
-        sequenceLengths[i] += (sequenceLengths[i - 1]);
-    // skip sentinels
-    uint32_t sa_j;
-    uint16_t seq;
-    for (unsigned j = 0; j < seqan::length(index.fwd.sa); ++j)
-    {
-        if(fwd){
-            sa_j = index.fwd.sa[j].i2;
-            seq = index.fwd.sa[j].i1;
-        }else{
-            sa_j = index.rev.sa[j].i2;
-            seq = index.rev.sa[j].i1;
-        }
-        outfile << j << " " << "(" << seq << ", " << sa_j << "):\t" << sa_j + sequenceLengths[seq] << "\n";
-    }
-    outfile.close();
-}*/
-
-// num_threads(3)
 template <typename TChar, typename TAllocConfig>
 void order_bit_vector(bitvectors & b, CharString const indexPath, uint32_t const threads)
 {
@@ -415,7 +379,6 @@ int main(int argc, char *argv[])
             std::ofstream outfile((toCString(outputPath) + result.names[i] + "_debug"), std::ios::out | std::ofstream::binary);
             std::copy(result.bv[i].begin(), result.bv[i].end(), std::ostream_iterator<bool>(outfile));
             outfile.close();
-
         }
     }
 

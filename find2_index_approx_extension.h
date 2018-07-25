@@ -77,49 +77,6 @@ inline void filter_interval(TDelegate & delegate,
 }
 
 
-template <typename TDelegateD,
-          typename TNeedle,
-          size_t nbrBlocks,
-          typename TDir>
-inline void genomeSearch(TDelegateD & delegateDirect,
-                  TNeedle const & needle,
-                  uint32_t const needleLeftPos,
-                  uint32_t const needleRightPos,
-                  uint8_t errors,
-                  OptimalSearch<nbrBlocks> const & s,
-                  uint8_t const blockIndex,
-                  TDir const & ,
-                  auto const & genome,
-                  Pair<uint16_t, uint32_t> const & sa_info)
-{
-    bool valid = true;
-    for(uint32_t j = blockIndex; j < s.pi.size(); ++j){
-        uint32_t blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
-        uint32_t blockEnd = s.chronBL[s.pi[j] - 1];
-        // compare bases to needle
-        if(std::is_same<TDir, Rev>::value){
-            if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd)
-                blockStart = needleRightPos - 1;
-        }
-        else
-        {
-            if(needleLeftPos > blockStart && needleLeftPos < blockEnd)
-                blockEnd = needleLeftPos;
-        }
-        for(uint32_t k = blockStart; k <  blockEnd; ++k){
-            if(needle[k] != genome[sa_info.i1][sa_info.i2 + k])
-                ++errors;
-        }
-        if(errors < s.l[j] || errors > s.u[j]){
-            valid = false;
-            break;
-        }
-    }
-    if(valid){
-        delegateDirect(sa_info, needle, errors);
-    }
-}
-
 //TODO remove blockindex ??
 template <typename TDelegateD,
           typename TNeedle,

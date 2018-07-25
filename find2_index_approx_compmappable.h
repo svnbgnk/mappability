@@ -34,73 +34,33 @@ inline void directSearch(TDelegateD & delegateDirect,
     if(std::is_same<TDir, Rev>::value){
         if(needleRightPos - 1 > blockStarts[0] && needleRightPos - 1 < blockEnds[0])
             blockStarts[0] = needleRightPos - 1;
-
-        for(uint32_t i = iter.fwdIter.vDesc.range.i1; i < iter.fwdIter.vDesc.range.i2; ++i){
-            Pair<uint16_t, uint32_t> sa_info = iter.fwdIter.index->sa[i];
-            //dont need look at the reverse index in this case since i dont use mappability
-            uint32_t chromlength = length(genome[sa_info.i1]);
-
-            if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1))
-                continue;
-
-            sa_info.i2 = sa_info.i2 - needleLeftPos;
-
-            uint8_t errors2 = errors;
-//             bool valid = true;
-            for(uint32_t j = 0; j < blockStarts.size(); ++j){
-                // compare bases to needle
-                for(uint32_t k = blockStarts[j]; k <  blockEnds[j]; ++k){
-                    if(needle[k] != genome[sa_info.i1][sa_info.i2 + k])
-                        ++errors2;
-                }
-                if(errors2 < s.l[blockIndex + j] || errors2 > s.u[blockIndex + j]){
-//                 valid = false;
-//                 break;
-                goto jumpOverDelegate;
-                }
-            }
-//             if(valid)
-            delegateDirect(sa_info, needle, errors2);
-            jumpOverDelegate:;
-        }
-    }
-    else
-    {
+    }else{
         if(needleLeftPos > blockStarts[0] && needleLeftPos < blockEnds[0])
             blockEnds[0] = needleLeftPos;
+    }
 
-        for(uint32_t i = iter.fwdIter.vDesc.range.i1; i < iter.fwdIter.vDesc.range.i2; ++i){
-            Pair<uint16_t, uint32_t> sa_info = iter.fwdIter.index->sa[i];
-            //dont need look at the reverse index in this case since i dont use mappability
-            uint32_t chromlength = length(genome[sa_info.i1]);
-            if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1))
-                continue;
+    for(uint32_t i = iter.fwdIter.vDesc.range.i1; i < iter.fwdIter.vDesc.range.i2; ++i){
+        Pair<uint16_t, uint32_t> sa_info = iter.fwdIter.index->sa[i];
+        //dont need look at the reverse index in this case since i dont use mappability
+        uint32_t chromlength = length(genome[sa_info.i1]);
+        if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1))
+            continue;
 
-            sa_info.i2 = sa_info.i2 - needleLeftPos;
-            uint8_t errors2 = errors;
-//             bool valid = true;
-            for(uint32_t j = 0; j < blockStarts.size(); ++j){
-                // compare bases to needle
-                for(uint32_t k = blockStarts[j]; k <  blockEnds[j]; ++k){
-                    if(needle[k] != genome[sa_info.i1][sa_info.i2 + k])
-                        ++errors2;
-                }
-                if(errors2 < s.l[blockIndex + j] || errors2 > s.u[blockIndex + j]){
-//                     valid = false;
-//                     break;
-                    goto jumpOverDelegate2;
-                }
+        sa_info.i2 = sa_info.i2 - needleLeftPos;
+        uint8_t errors2 = errors;
+        for(uint32_t j = 0; j < blockStarts.size(); ++j){
+            // compare bases to needle
+            for(uint32_t k = blockStarts[j]; k <  blockEnds[j]; ++k){
+                if(needle[k] != genome[sa_info.i1][sa_info.i2 + k])
+                    ++errors2;
             }
-//             if(valid)
-            delegateDirect(sa_info, needle, errors2);
-            jumpOverDelegate2:;
+            if(errors2 < s.l[blockIndex + j] || errors2 > s.u[blockIndex + j])
+                goto jumpOverDelegate;
         }
+        delegateDirect(sa_info, needle, errors2);
+        jumpOverDelegate:;
     }
 }
-
-
-
-
 
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
