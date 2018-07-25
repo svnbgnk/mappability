@@ -120,61 +120,15 @@ inline void genomeSearch(TDelegateD & delegateDirect,
     }
 }
 
-/*
+//TODO remove blockindex ??
 template <typename TDelegateD,
           typename TNeedle,
           size_t nbrBlocks>
 inline void genomeSearch(TDelegateD & delegateDirect,
                   TNeedle const & needle,
-                  uint32_t const needleLeftPos,
-                  uint32_t const needleRightPos,
                   uint8_t errors,
                   OptimalSearch<nbrBlocks> const & s,
                   uint8_t const blockIndex,
-                  auto const & genome,
-                  Pair<uint16_t, uint32_t> const & sa_info,
-                  uint32_t inblockStart,
-                  uint32_t inblockEnd)
-{
-    //compare the rest of the current block
-    for(uint32_t k = inblockStart; k <  inblockEnd; ++k){
-        if(needle[k] != genome[sa_info.i1][sa_info.i2 + k])
-            ++errors;
-    }
-    if(errors < s.l[blockIndex] || errors > s.u[blockIndex]){
-        return;
-    }
-
-    //compare the rest of the blocks
-    for(uint32_t j = blockIndex + 1; j < s.pi.size(); ++j){
-        uint32_t blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
-        uint32_t blockEnd = s.chronBL[s.pi[j] - 1];
-        // compare bases to needle
-        for(uint32_t k = blockStart; k <  blockEnd; ++k){
-            if(needle[k] != genome[sa_info.i1][sa_info.i2 + k])
-                ++errors;
-        }
-        if(errors < s.l[j] || errors > s.u[j]){
-            return;
-        }
-    }
-    delegateDirect(sa_info, needle, errors);
-}
-*/
-
-
-template <typename TDelegateD,
-          typename TNeedle,
-          size_t nbrBlocks,
-          typename TDir>
-inline void genomeSearch(TDelegateD & delegateDirect,
-                  TNeedle const & needle,
-                  uint32_t const needleLeftPos,
-                  uint32_t const needleRightPos,
-                  uint8_t errors,
-                  OptimalSearch<nbrBlocks> const & s,
-                  uint8_t const blockIndex,
-                  TDir const & ,
                   auto const & genome,
                   Pair<uint16_t, uint32_t> const & sa_info,
                   vector<uint32_t> const & blockStarts,
@@ -216,8 +170,9 @@ inline void directSearch(TDelegateD & delegateDirect,
 {
     auto const & genome = indexText(*iter.fwdIter.index);
     uint32_t needleL = length(needle);
-    uint32_t blocks = s.pi.size();
 
+    //TODO put this into function
+    uint32_t blocks = s.pi.size();
     vector<uint32_t> blockStarts(blocks - blockIndex);
     vector<uint32_t> blockEnds(blocks - blockIndex);
     for(uint32_t j = blockIndex; j < s.pi.size(); ++j){
@@ -244,7 +199,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                 sa_info.i2 = sa_info.i2 - needleLeftPos;
 
                 //search remaining blocks
-                genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info, blockStarts, blockEnds);
+                genomeSearch(delegateDirect, needle, errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds);
             }
         }
     }
@@ -265,7 +220,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                 sa_info.i2 = chromlength - sa_info.i2 - needleRightPos + 1;
 
                 //search remaining blocks
-                genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex,TDir(), genome, sa_info, blockStarts, blockEnds);
+                genomeSearch(delegateDirect, needle, errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds);
             }
         }
     }
