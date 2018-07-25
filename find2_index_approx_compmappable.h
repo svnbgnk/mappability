@@ -26,12 +26,31 @@ inline void directSearch(TDelegateD & delegateDirect,
         uint32_t chromlength = length(genome[sa_info.i1]);
         uint32_t needleL = length(needle);
         if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1)){
-//             std::cout << "Edge Case 5: " << chromlength - 1 << " " << (int)sa_info.i2 - (int)needleLeftPos << "\n";
             continue;
         }
-
         sa_info.i2 = sa_info.i2 - needleLeftPos;
-        genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info);
+
+        uint8_t errors2 = errors;
+//         bool valid = true;
+        for(uint32_t j = blockIndex; j < s.pi.size(); ++j){
+            uint32_t blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2]; //TODO improve this
+            uint32_t blockEnd = s.chronBL[s.pi[j] - 1];
+
+        // compare bases to needle
+            for(uint32_t k = blockStart; k <  blockEnd; ++k){
+                if(needle[k] != genome[sa_info.i1][sa_info.i2 + k])
+                    ++errors2;
+            }
+            if(errors2 < s.l[j] || errors2 > s.u[j]){
+//                 valid = false;
+//                 break;
+                goto mycontinue;
+            }
+        }
+//         if(valid)
+        delegateDirect(sa_info, needle, errors2);
+
+        mycontinue:;
     }
 }
 
