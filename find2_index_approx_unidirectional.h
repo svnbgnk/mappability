@@ -91,12 +91,12 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
                   TDir const & /**/)
 {
 
+    //this can also be the reverse genome
     auto const & genome = indexText(*iter.index);
     uint32_t needleL = length(needle);
     uint32_t blocks = s.pi.size();
 
     if(std::is_same<TDir, Rev>::value){
-
         vector<uint32_t> blockStarts(blocks - blockIndex);
         vector<uint32_t> blockEnds(blocks - blockIndex);
         for(uint32_t j = blockIndex; j < s.pi.size(); ++j){
@@ -111,7 +111,6 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
                 Pair<uint16_t, uint32_t> sa_info = iter.index->sa[iter.vDesc.range.i1 + i];
                 uint32_t chromlength = length(genome[sa_info.i1]);
                 // mappability information is this time in reverse index order even if we use reverse index (we get_bitvector_interval_inside)
-
                 //check left chromosom boundry && check right chromosom boundry
                 if(!(sa_info.i2 >= needleL - needleRightPos + 1 && chromlength - 1 >= sa_info.i2 + needleRightPos - 2))
                     continue;
@@ -125,11 +124,8 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
     {
         vector<uint32_t> blockStarts(blocks - blockIndex);
         vector<uint32_t> blockEnds(blocks - blockIndex);
-        for(uint32_t j = blockIndex; j < s.pi.size(); ++j){
-            uint32_t blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2]; //TODO fix this
-            blockStarts[j - blockIndex] = blockStart;
-            blockEnds[j - blockIndex] = s.chronBL[s.pi[j] - 1];
-        }
+        getForwardBlockLimits(s, blockIndex, blockStarts, blockEnds);
+
         //this time i use the mappability from "inside" the needle since i can garantue i am at a blockend
         for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
             if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){

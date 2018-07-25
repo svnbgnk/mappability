@@ -149,6 +149,18 @@ inline void genomeSearch(TDelegateD & delegateDirect,
 
 }
 
+template<size_t nbrBlocks>
+inline void getForwardBlockLimits(OptimalSearch<nbrBlocks> const & s,
+               uint8_t const blockIndex,
+               vector<uint32_t> & blockStarts,
+                vector<uint32_t> & blockEnds)
+{
+    for(uint32_t j = blockIndex; j < s.pi.size(); ++j){
+        uint32_t blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2]; //TODO fix this
+        blockStarts[j - blockIndex] = blockStart;
+        blockEnds[j - blockIndex] = s.chronBL[s.pi[j] - 1];
+    }
+}
 
 template <typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
@@ -175,11 +187,7 @@ inline void directSearch(TDelegateD & delegateDirect,
     uint32_t blocks = s.pi.size();
     vector<uint32_t> blockStarts(blocks - blockIndex);
     vector<uint32_t> blockEnds(blocks - blockIndex);
-    for(uint32_t j = blockIndex; j < s.pi.size(); ++j){
-        uint32_t blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2]; //TODO fix this
-        blockStarts[j - blockIndex] = blockStart;
-        blockEnds[j - blockIndex] = s.chronBL[s.pi[j] - 1];
-    }
+    getForwardBlockLimits(s, blockIndex, blockStarts, blockEnds);
 
     if(std::is_same<TDir, Rev>::value){
         //modify blockstart in case we are still inside a block
