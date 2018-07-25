@@ -180,39 +180,7 @@ inline void genomeSearch(TDelegateD & delegateDirect,
                   vector<uint32_t> const & blockStarts,
                   vector<uint32_t> const & blockEnds)
 {
-
-    /*
-    std::cout << "Start:" << "\n";
-    std::cout << sa_info << "\n";
-    std::cout << (int)blockIndex << "\n";
-    std::cout << (int)errors << "\n";
-    std::cout << (int)needleLeftPos << "\t" << (int)needleRightPos << "\n";
-    printv(s.pi);
-    std::cout << "blockStarts" << "\n";
-
-
     for(uint32_t j = 0; j < blockStarts.size(); ++j){
-        std::cout << blockStarts[j] << "\t" << blockEnds[j] << endl;
-
-        uint32_t blockStart = (s.pi[blockIndex + j] - 1 == 0) ? 0 : s.chronBL[s.pi[blockIndex + j] - 2];
-        uint32_t blockEnd = s.chronBL[s.pi[blockIndex + j] - 1];
-        if(std::is_same<TDir, Rev>::value){
-            if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd)
-                blockStart = needleRightPos - 1;
-        }
-        else
-        {
-            if(needleLeftPos > blockStart && needleLeftPos < blockEnd)
-                blockEnd = needleLeftPos;
-        }
-
-        if(blockStart != blockStarts[j] || blockEnd != blockEnds[j]){
-            std::cout << blockStarts[j] << "\t" << blockEnds[j] << "\t" << blockStart << "\t" << blockEnd << "\n";
-
-            exit(0);
-        }
-
-
         // compare bases to needle
         for(uint32_t k = blockStarts[j]; k <  blockEnds[j]; ++k){
             if(needle[k] != genome[sa_info.i1][sa_info.i2 + k]){
@@ -220,39 +188,11 @@ inline void genomeSearch(TDelegateD & delegateDirect,
             }
         }
         if(errors < s.l[blockIndex + j] || errors > s.u[blockIndex + j]){
-            std::cout << "Triggered   " << (int) errors << "\n";
             return;
         }
     }
     delegateDirect(sa_info, needle, errors);
-    */
 
-    bool valid = true;
-    for(uint32_t j = blockIndex; j < s.pi.size(); ++j){
-        uint32_t blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
-        uint32_t blockEnd = s.chronBL[s.pi[j] - 1];
-        // compare bases to needle
-        if(std::is_same<TDir, Rev>::value){
-            if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd)
-                blockStart = needleRightPos - 1;
-        }
-        else
-        {
-            if(needleLeftPos > blockStart && needleLeftPos < blockEnd)
-                blockEnd = needleLeftPos;
-        }
-        for(uint32_t k = blockStart; k <  blockEnd; ++k){
-            if(needle[k] != genome[sa_info.i1][sa_info.i2 + k])
-                ++errors;
-        }
-        if(errors < s.l[j] || errors > s.u[j]){
-            valid = false;
-            break;
-        }
-    }
-    if(valid){
-        delegateDirect(sa_info, needle, errors);
-    }
 }
 
 
@@ -276,27 +216,26 @@ inline void directSearch(TDelegateD & delegateDirect,
 {
     auto const & genome = indexText(*iter.fwdIter.index);
     uint32_t needleL = length(needle);
+    uint32_t blocks = s.pi.size();
 
 
-    vector<uint32_t> blockStarts;
-    vector<uint32_t> blockEnds;
-/*
+    vector<uint32_t> blockStarts(blocks - blockIndex);
+    vector<uint32_t> blockEnds(blocks - blockIndex);
+
+
     for(uint32_t j = blockIndex; j < s.pi.size(); ++j){
         uint32_t blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2]; //TODO fix this
-        blockStarts.push_back(blockStart);
-        blockEnds.push_back(s.chronBL[s.pi[j] - 1]);
-    }*/
+        blockStarts[j - blockIndex] = blockStart;
+        blockEnds[j - blockIndex] = s.chronBL[s.pi[j] - 1];
+    }
 
     if(std::is_same<TDir, Rev>::value){
-/*
-    if(needleRightPos - 1 > blockStarts[0] && needleRightPos - 1 < blockEnds[0]){
-        blockStarts[0] = needleRightPos - 1;
-    }*/
+        if(needleRightPos - 1 > blockStarts[0] && needleRightPos - 1 < blockEnds[0])
+            blockStarts[0] = needleRightPos - 1;
 
-    for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
-        if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
-
-            // mappability information is in reverse index order if we use the forward index
+        for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
+            if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
+                // mappability information is in reverse index order if we use the forward index
                 Pair<uint16_t, uint32_t> sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
                 uint32_t chromlength = length(genome[sa_info.i1]);
                 //Info make sure we dont DS search something going over the chromosom edge
@@ -304,34 +243,32 @@ inline void directSearch(TDelegateD & delegateDirect,
                 if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1))
                     continue;
 
-            sa_info.i2 = sa_info.i2 - needleLeftPos;
+                sa_info.i2 = sa_info.i2 - needleLeftPos;
 
-            //search remaining blocks
-            genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info, blockStarts, blockEnds);
+                //search remaining blocks
+                genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), genome, sa_info, blockStarts, blockEnds);
+            }
         }
     }
+    else
+    {
+        if(needleLeftPos > blockStarts[0] && needleLeftPos < blockEnds[0])
+            blockEnds[0] = needleLeftPos;
 
-    }else{
-/*
-    if(needleLeftPos > blockStarts[0] && needleLeftPos < blockEnds[0]){
-        blockEnds[0] = needleLeftPos;
-    }
-    */
-    for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
-        if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
-            Pair<uint16_t, uint32_t> sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
-            uint32_t chromlength = length(genome[sa_info.i1]);
-            //check left chromosom boundry && check right chromosom boundry
-            if(!(chromlength - 1 >= sa_info.i2 + needleRightPos - 1 && sa_info.i2 + needleRightPos - 1 >= needleL + 1))
-                continue;
-            //calculate correct starting position of the needle  on the forward index
-            sa_info.i2 = chromlength - sa_info.i2 - needleRightPos + 1;
+        for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
+            if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
+                Pair<uint16_t, uint32_t> sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
+                uint32_t chromlength = length(genome[sa_info.i1]);
+                //check left chromosom boundry && check right chromosom boundry
+                if(!(chromlength - 1 >= sa_info.i2 + needleRightPos - 1 && sa_info.i2 + needleRightPos - 1 >= needleL + 1))
+                    continue;
+                //calculate correct starting position of the needle  on the forward index
+                sa_info.i2 = chromlength - sa_info.i2 - needleRightPos + 1;
 
-            //search remaining blocks
-            genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex,TDir(), genome, sa_info, blockStarts, blockEnds);
-
+                //search remaining blocks
+                genomeSearch(delegateDirect, needle, needleLeftPos, needleRightPos, errors, s, blockIndex,TDir(), genome, sa_info, blockStarts, blockEnds);
+            }
         }
-    }
     }
 
 }

@@ -36,6 +36,15 @@ inline void directSearch(TDelegateD & delegateDirect,
             uint32_t blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2]; //TODO improve this
             uint32_t blockEnd = s.chronBL[s.pi[j] - 1];
 
+        if(std::is_same<TDir, Rev>::value){
+            if(needleRightPos - 1 > blockStart && needleRightPos - 1 < blockEnd)
+                blockStart = needleRightPos - 1;
+        }
+        else
+        {
+            if(needleLeftPos > blockStart && needleLeftPos < blockEnd)
+                blockEnd = needleLeftPos;
+        }
         // compare bases to needle
             for(uint32_t k = blockStart; k <  blockEnd; ++k){
                 if(needle[k] != genome[sa_info.i1][sa_info.i2 + k])

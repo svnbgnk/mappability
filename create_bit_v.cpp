@@ -263,7 +263,7 @@ void order_bit_vector(bitvectors & b, CharString const indexPath, uint32_t const
 
     std::vector<uint32_t> sequenceLengths = getSeqLengths(index);
     for(uint32_t i = 2; i < sequenceLengths.size(); ++i)
-        sequenceLengths[i] += (sequenceLengths[i - 1]);
+        sequenceLengths[i] += sequenceLengths[i - 1];
 
     cout << "Number of Sequences in index: " << countSequences(index) << endl;
     cout << mytime() << "Start sorting bitvectors" << endl;
