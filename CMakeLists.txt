@@ -48,5 +48,8 @@ target_link_libraries (tests ${SEQAN_LIBRARIES})
 add_executable (create_index create_index.cpp)
 target_link_libraries (create_index ${SEQAN_LIBRARIES})
 
+add_executable (mappability_dump mappability_dump.cpp)
+target_link_libraries (mappability_dump ${SEQAN_LIBRARIES})
+
 add_executable (heatmap heatmap.cpp)
 target_link_libraries (heatmap ${SEQAN_LIBRARIES})
