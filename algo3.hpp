@@ -1,12 +1,12 @@
 using namespace seqan;
 
-template <unsigned max_errors, typename TIter>
-inline void extendExact3(TIter it, unsigned * hits, TIter * it_zero_errors, auto & text, unsigned const length,
+template <unsigned max_errors, typename TIter, typename value_type>
+inline void extendExact3(TIter it, value_type * hits, TIter * it_zero_errors, auto & text, unsigned const length,
     uint64_t a, uint64_t b, // searched interval
     uint64_t ab, uint64_t bb // entire interval
 )
 {
-    constexpr uint64_t max_val = (1 << 8) - 1;
+    constexpr uint64_t max_val = std::numeric_limits<value_type>::max();
 
     if (b - a + 1 == length)
     {
@@ -48,15 +48,15 @@ inline void extendExact3(TIter it, unsigned * hits, TIter * it_zero_errors, auto
 }
 
 // forward
-template <unsigned max_errors, typename TIter>
-inline void extend3(TIter it, unsigned * hits, TIter * it_zero_errors, unsigned errors_left, auto & text, unsigned const length,
+template <unsigned max_errors, typename TIter, typename value_type>
+inline void extend3(TIter it, value_type * hits, TIter * it_zero_errors, unsigned errors_left, auto & text, unsigned const length,
             uint64_t a, uint64_t b, // searched interval
             uint64_t ab, uint64_t bb // entire interval
 );
 
 // TODO: remove text everywhere: auto & text = indexText(index(it));
-template <unsigned max_errors, typename TIter>
-inline void approxSearch3(TIter it, unsigned * hits, TIter * it_zero_errors, unsigned errors_left, auto & text, unsigned const length,
+template <unsigned max_errors, typename TIter, typename value_type>
+inline void approxSearch3(TIter it, value_type * hits, TIter * it_zero_errors, unsigned errors_left, auto & text, unsigned const length,
             uint64_t a, uint64_t b, // searched interval
             uint64_t ab, uint64_t bb, // entire interval
             uint64_t b_new,
@@ -88,8 +88,8 @@ inline void approxSearch3(TIter it, unsigned * hits, TIter * it_zero_errors, uns
         extendExact3<max_errors>(it, hits, it_zero_errors, text, length, a, b_new, ab, bb);
     }
 }
-template <unsigned max_errors, typename TIter>
-inline void approxSearch3(TIter it, unsigned * hits, TIter * it_zero_errors, unsigned errors_left, auto & text, unsigned const length,
+template <unsigned max_errors, typename TIter, typename value_type>
+inline void approxSearch3(TIter it, value_type * hits, TIter * it_zero_errors, unsigned errors_left, auto & text, unsigned const length,
                   uint64_t a, uint64_t b, // searched interval
                   uint64_t ab, uint64_t bb, // entire interval
                   int64_t a_new,
@@ -122,13 +122,13 @@ inline void approxSearch3(TIter it, unsigned * hits, TIter * it_zero_errors, uns
     }
 }
 
-template <unsigned max_errors, typename TIter>
-inline void extend3(TIter it, unsigned * hits, TIter * it_zero_errors, unsigned errors_left, auto & text, unsigned const length,
+template <unsigned max_errors, typename TIter, typename value_type>
+inline void extend3(TIter it, value_type * hits, TIter * it_zero_errors, unsigned errors_left, auto & text, unsigned const length,
     uint64_t a, uint64_t b, // searched interval
     uint64_t ab, uint64_t bb // entire interval
 )
 {
-    constexpr uint64_t max_val = (1 << 8) - 1;
+    constexpr uint64_t max_val = std::numeric_limits<value_type>::max();
 
     if (errors_left == 0)
     {
@@ -173,6 +173,7 @@ inline void extend3(TIter it, unsigned * hits, TIter * it_zero_errors, unsigned 
 template <unsigned errors, typename TIndex, typename TContainer>
 inline void runAlgo3(TIndex & index, auto const & text, TContainer & c, SearchParams const & params)
 {
+    typedef typename TContainer::value_type value_type;
     typedef Iter<TIndex, VSTree<TopDown<> > > TIter;
 
     auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
@@ -198,7 +199,7 @@ inline void runAlgo3(TIndex & index, auto const & text, TContainer & c, SearchPa
         if (std::any_of(c.begin() + i, c.begin() + max_pos, [](auto value){ return value == 0; }))
         {
             TIter it_zero_errors[params.length - params.overlap + 1];
-            unsigned hits[params.length - params.overlap + 1] = {};
+            value_type hits[params.length - params.overlap + 1] = {};
 
             auto delegate = [&hits, &it_zero_errors, i, textLength, params, &text](auto it, auto const & /*read*/, unsigned const errors_spent) {
                 uint64_t const bb = std::min(textLength - 1, i + params.length - 1 + params.length - params.overlap);

@@ -1,12 +1,12 @@
 using namespace seqan;
 
-template <typename TIter>
-inline void extendExact(TIter it, unsigned * hits, auto & text, unsigned const length,
+template <typename TIter, typename value_type>
+inline void extendExact(TIter it, value_type * hits, auto & text, unsigned const length,
     uint64_t a, uint64_t b, // searched interval
     uint64_t ab, uint64_t bb // entire interval
 )
 {
-    constexpr uint64_t max_val = (1 << 8) - 1;
+    constexpr uint64_t max_val = std::numeric_limits<value_type>::max();
 
     if (b - a + 1 == length)
     {
@@ -44,15 +44,15 @@ inline void extendExact(TIter it, unsigned * hits, auto & text, unsigned const l
 }
 
 // forward
-template <typename TIter>
-inline void extend(TIter it, unsigned * hits, unsigned errors_left, auto & text, unsigned const length,
+template <typename TIter, typename value_type>
+inline void extend(TIter it, value_type * hits, unsigned errors_left, auto & text, unsigned const length,
             uint64_t a, uint64_t b, // searched interval
             uint64_t ab, uint64_t bb // entire interval
 );
 
 // TODO: remove text everywhere: auto & text = indexText(index(it));
-template <typename TIter>
-inline void approxSearch(TIter it, unsigned * hits, unsigned errors_left, auto & text, unsigned const length,
+template <typename TIter, typename value_type>
+inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, auto & text, unsigned const length,
             uint64_t a, uint64_t b, // searched interval
             uint64_t ab, uint64_t bb, // entire interval
             uint64_t b_new,
@@ -84,8 +84,8 @@ inline void approxSearch(TIter it, unsigned * hits, unsigned errors_left, auto &
         extendExact(it, hits, text, length, a, b_new, ab, bb);
     }
 }
-template <typename TIter>
-inline void approxSearch(TIter it, unsigned * hits, unsigned errors_left, auto & text, unsigned const length,
+template <typename TIter, typename value_type>
+inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, auto & text, unsigned const length,
                   uint64_t a, uint64_t b, // searched interval
                   uint64_t ab, uint64_t bb, // entire interval
                   int64_t a_new,
@@ -118,13 +118,13 @@ inline void approxSearch(TIter it, unsigned * hits, unsigned errors_left, auto &
     }
 }
 
-template <typename TIter>
-inline void extend(TIter it, unsigned * hits, unsigned errors_left, auto & text, unsigned const length,
+template <typename TIter, typename value_type>
+inline void extend(TIter it, value_type * hits, unsigned errors_left, auto & text, unsigned const length,
     uint64_t a, uint64_t b, // searched interval
     uint64_t ab, uint64_t bb // entire interval
 )
 {
-    constexpr uint64_t max_val = (1 << 8) - 1;
+    constexpr uint64_t max_val = std::numeric_limits<value_type>::max();
 
     if (errors_left == 0)
     {
@@ -167,6 +167,8 @@ inline void extend(TIter it, unsigned * hits, unsigned errors_left, auto & text,
 template <unsigned errors, typename TIndex, typename TContainer>
 inline void runAlgo2(TIndex & index, auto const & text, TContainer & c, SearchParams const & params)
 {
+    typedef typename TContainer::value_type value_type;
+
     auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
     _optimalSearchSchemeComputeFixedBlocklength(scheme, params.overlap);
 
@@ -177,8 +179,8 @@ inline void runAlgo2(TIndex & index, auto const & text, TContainer & c, SearchPa
     #pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*params.threads*50))) num_threads(params.threads)
     for (uint64_t i = 0; i < max_i; i += step_size)
     {
-        unsigned hits[params.length - params.overlap + 1] = {};
-        auto delegate = [&hits, i, textLength, params, &text](auto it, auto const & /*read*/, unsigned const errors_spent) {
+        value_type hits[params.length - params.overlap + 1] = {};
+        auto delegate = [&hits, i, textLength, &params, &text](auto it, auto const & /*read*/, unsigned const errors_spent) {
             uint64_t const bb = std::min(textLength - 1, i + params.length - 1 + params.length - params.overlap);
             extend(it, hits, errors - errors_spent, text, params.length,
                 i + params.length - params.overlap, i + params.length - 1, // searched interval

@@ -1,12 +1,10 @@
 #include <vector>
 #include <cstdint>
+#include <limits>
 
 #include <seqan/arg_parse.h>
 #include <seqan/seq_io.h>
 #include <seqan/index.h>
-
-typedef std::vector<uint8_t> TVector; // thread-safe
-// constexpr uint64_t max_val = (1 << 8) - 1;
 
 #include "common.h"
 
@@ -20,6 +18,7 @@ struct Options
     seqan::CharString indexPath;
     seqan::CharString outputPath;
     seqan::CharString alphabet;
+    bool high;
 };
 
 #include "algo2.hpp"
@@ -39,6 +38,7 @@ string get_output_path(Options const & opt, SearchParams const & searchParams, s
         output_path += "_knut2";
     if (chromosomeId >= 0)
         output_path += "-" + to_string(chromosomeId);
+    output_path += ".gmapp" + string(opt.high ? "16" : "8");
     return output_path;
 }
 
@@ -46,17 +46,14 @@ template <typename T>
 inline void save(vector<T> const & c, string const & output_path)
 {
     ofstream outfile(output_path, ios::out | ios::binary);
-    outfile.write((const char*) &c[0], c.size() * sizeof(TVector::value_type));
+    outfile.write((const char*) &c[0], c.size() * sizeof(T));
     outfile.close();
-
-    // ofstream outfile(output_path, std::ios::out | std::ofstream::binary);
-    // copy(c.begin(), c.end(), (std::ostream_iterator<uint8_t>(outfile), std::ostream_iterator<int>(outfile, " ")));
 }
 
-template <typename TDistance, typename TIndex, typename TText>
+template <typename TDistance, typename value_type, typename TIndex, typename TText>
 inline void run(TIndex & index, TText const & text, Options const & opt, SearchParams const & searchParams, signed const chromosomeId)
 {
-    TVector c(length(text) - searchParams.length + 1, 0);
+    vector<value_type> c(length(text) - searchParams.length + 1, 0);
 
     if (opt.knut)
     {
@@ -122,7 +119,7 @@ inline void run(TIndex & index, TText const & text, Options const & opt, SearchP
     save(c, output_path);
 }
 
-template <typename TChar, typename TAllocConfig, typename TDistance>
+template <typename TChar, typename TAllocConfig, typename TDistance, typename value_type>
 inline void run(Options const & opt, SearchParams const & searchParams)
 {
     typedef String<TChar, TAllocConfig> TString;
@@ -131,7 +128,17 @@ inline void run(Options const & opt, SearchParams const & searchParams)
     TIndex<TStringSet> index;
     open(index, toCString(opt.indexPath), OPEN_RDONLY);
     auto const & text = indexText(index);
-    run<TDistance>(index, text.concat, opt, searchParams, -1);
+    run<TDistance, value_type>(index, text.concat, opt, searchParams, -1);
+}
+
+template <typename TChar, typename TAllocConfig, typename TDistance>
+inline void run(Options const & opt, SearchParams const & searchParams)
+{
+    if (opt.high) {
+        run<TChar, TAllocConfig, TDistance, uint16_t>(opt, searchParams);
+    }
+    else
+        run<TChar, TAllocConfig, TDistance, uint8_t>(opt, searchParams);
 }
 
 template <typename TChar, typename TAllocConfig>
@@ -163,6 +170,7 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("I", "index", "Path to the index", ArgParseArgument::INPUT_FILE, "IN"));
 	setRequired(parser, "index");
 
+    // mention that file name will be prefix?
     addOption(parser, ArgParseOption("O", "output", "Path to output directory (error number, length and overlap will be appended to the output file)", ArgParseArgument::OUTPUT_FILE, "OUT"));
     setRequired(parser, "output");
 
@@ -176,6 +184,8 @@ int main(int argc, char *argv[])
 
     addOption(parser, ArgParseOption("z", "knut", "Turns on knuts trick."));
     addOption(parser, ArgParseOption("z2", "knut2", "Turns on knuts trick with considering leading/trailing non-zero values."));
+
+    addOption(parser, ArgParseOption("hi", "high", "Stores the mappability vector in 16 bit unsigned integers instead of 8 bit (max. value 65535 instead of 255)"));
 
     addOption(parser, ArgParseOption("o", "overlap", "Number of overlapping reads (o + 1 Strings will be searched at once beginning with their overlap region)", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "overlap");
@@ -205,6 +215,7 @@ int main(int argc, char *argv[])
     opt.indels = isSet(parser, "indels");
     opt.knut = isSet(parser, "knut");
     opt.knut2 = isSet(parser, "knut2");
+    opt.high = isSet(parser, "high");
 
     getOptionValue(searchParams.length, parser, "length");
     getOptionValue(searchParams.threads, parser, "threads");
@@ -215,6 +226,7 @@ int main(int argc, char *argv[])
     // if (isSet(parser, "threshold"))
     //     getOptionValue(opt.threshold, parser, "threshold");
 
+    // TODO: error for -E 0 -K 10 -o 1 ????
     if (searchParams.overlap > searchParams.length - opt.errors - 2)
     {
         cerr << "ERROR: overlap should be <= K - E - 2 (Common overlap has length K-O and will be split into E+2 parts).\n";
