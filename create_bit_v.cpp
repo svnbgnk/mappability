@@ -261,7 +261,6 @@ void order_bit_vector(bitvectors & b, CharString const indexPath, uint32_t const
             {
                 values[i] = b.bv[i][rpos];
             }
-
         }
         #pragma omp critical
         {
