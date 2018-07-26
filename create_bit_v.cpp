@@ -220,7 +220,8 @@ void order_bit_vector(bitvectors & b, CharString const indexPath, uint32_t const
     typedef String<TChar, TAllocConfig> TString;
     Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index;
     open(index, toCString(indexPath), OPEN_RDONLY);
-    cout << mytime() << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
+    uint32_t indexSize = seqan::length(index.fwd.sa);
+    cout << mytime() << "Loaded Index. Size:" << indexSize << endl;
     vector<sdsl::bit_vector> bit_vectors_ordered (b.bv);
 
     uint32_t number_of_indeces = countSequences(index);
@@ -238,17 +239,18 @@ void order_bit_vector(bitvectors & b, CharString const indexPath, uint32_t const
     else
         mythreads = threads;
     //dynamic since tasks can take different amount (SA Sampling) ordered to guarantee thread safety
-    #pragma omp parallel for ordered schedule(dynamic) num_threads(mythreads)
-    for (unsigned j = 0; j < seqan::length(index.fwd.sa) - number_of_indeces; ++j)
+
+//     #pragma omp parallel for schedule(dynamic) num_threads(mythreads)
+    #pragma omp parallel for schedule(static, (indexSize/(mythreads*100))) num_threads(mythreads)
+    for (unsigned j = 0; j < indexSize - number_of_indeces; ++j)
     {
         // skip sentinels
         Pair<uint16_t, uint32_t> sa_f = index.fwd.sa[j + number_of_indeces];
         Pair<uint16_t, uint32_t> sa_r = index.rev.sa[j + number_of_indeces];
         uint32_t fpos = sa_f.i2 + sequenceLengths[sa_f.i1];
         uint32_t rpos = sequenceLengths[sa_r.i1 + 1] - sa_r.i2 - 1;
-        #pragma omp ordered
+        #pragma omp critical
         {
-//         cout << j << endl;
         for(uint32_t i = 0; i < b.bv.size(); ++i){
             if(b.fwdd[i]){
                 bit_vectors_ordered[i][j] = b.bv[i][fpos];

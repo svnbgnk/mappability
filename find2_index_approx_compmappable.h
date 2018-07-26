@@ -40,6 +40,7 @@ inline void directSearch(TDelegateD & delegateDirect,
     }
 
     for(uint32_t i = iter.fwdIter.vDesc.range.i1; i < iter.fwdIter.vDesc.range.i2; ++i){
+        bool valid = true;
         Pair<uint16_t, uint32_t> sa_info = iter.fwdIter.index->sa[i];
         //dont need look at the reverse index in this case since i dont use mappability
         uint32_t chromlength = length(genome[sa_info.i1]);
@@ -54,11 +55,13 @@ inline void directSearch(TDelegateD & delegateDirect,
                 if(needle[k] != genome[sa_info.i1][sa_info.i2 + k])
                     ++errors2;
             }
-            if(errors2 < s.l[blockIndex + j] || errors2 > s.u[blockIndex + j])
-                goto jumpOverDelegate;
+            if(errors2 < s.l[blockIndex + j] || errors2 > s.u[blockIndex + j]){
+                valid = false;
+                break;
+            }
         }
-        delegateDirect(sa_info, needle, errors2);
-        jumpOverDelegate:;
+        if(valid)
+            delegateDirect(sa_info, needle, errors2);
     }
 }
 
