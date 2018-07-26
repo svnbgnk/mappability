@@ -249,8 +249,8 @@ void order_bit_vector(bitvectors & b, CharString const indexPath, uint32_t const
         Pair<uint16_t, uint32_t> sa_r = index.rev.sa[j + number_of_indeces];
         uint32_t fpos = sa_f.i2 + sequenceLengths[sa_f.i1];
         uint32_t rpos = sequenceLengths[sa_r.i1 + 1] - sa_r.i2 - 1;
-        #pragma omp critical
-        {
+//         #pragma omp critical
+//         {
         for(uint32_t i = 0; i < b.bv.size(); ++i){
             if(b.fwdd[i]){
                 bit_vectors_ordered[i][j] = b.bv[i][fpos];
@@ -261,7 +261,7 @@ void order_bit_vector(bitvectors & b, CharString const indexPath, uint32_t const
             }
 
         }
-        }
+//         }
     }
     b.bv = bit_vectors_ordered;
 }
