@@ -240,6 +240,8 @@ void order_bit_vector(bitvectors & b, CharString const indexPath, uint32_t const
         mythreads = threads;
     //dynamic since tasks can take different amount (SA Sampling) ordered to guarantee thread safety
 
+    uint8_t bsize = b.bv.size();
+
 //     #pragma omp parallel for schedule(dynamic) num_threads(mythreads)
     #pragma omp parallel for schedule(static, (indexSize/(mythreads*100))) num_threads(mythreads)
     for (unsigned j = 0; j < indexSize - number_of_indeces; ++j)
@@ -249,18 +251,21 @@ void order_bit_vector(bitvectors & b, CharString const indexPath, uint32_t const
         Pair<uint16_t, uint32_t> sa_r = index.rev.sa[j + number_of_indeces];
         uint32_t fpos = sa_f.i2 + sequenceLengths[sa_f.i1];
         uint32_t rpos = sequenceLengths[sa_r.i1 + 1] - sa_r.i2 - 1;
-        #pragma omp critical
-        {
-        for(uint32_t i = 0; i < b.bv.size(); ++i){
+        vector<bool> values(bsize);
+
+        for(uint32_t i = 0; i < bsize; ++i){
             if(b.fwdd[i]){
-                bit_vectors_ordered[i][j] = b.bv[i][fpos];
+                values[i] = b.bv[i][fpos];
             }
             else
             {
-                bit_vectors_ordered[i][j] = b.bv[i][rpos];
+                values[i] = b.bv[i][rpos];
             }
-
         }
+        #pragma omp critical
+        {
+        for(uint32_t i = 0; i < bsize; ++i)
+            bit_vectors_ordered[i][j] = values[i];
         }
     }
     b.bv = bit_vectors_ordered;
