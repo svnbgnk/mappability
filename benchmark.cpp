@@ -145,6 +145,7 @@ int main(int argc, char const ** argv)
     };
 
 
+    params.terminateDuration = std::chrono::seconds{20};
     std::chrono::duration<double> bestTime = params.terminateDuration;
     myGlobalParameters bestParams;
 
@@ -283,8 +284,8 @@ int main(int argc, char const ** argv)
     cout << "test startUni" << endl;
     int intervalsize = 1;
     while(intervalsize < 5){
-        float invflipdensity = 0.25;//go lower too 0.1
-        while(invflipdensity > 0){
+        float invflipdensity = 0.95;//go lower too 0.1
+        while(invflipdensity > 0.64){
             float filter_th = 0.25; // go lower too 0.1
             while(filter_th > 0){
                 params.wasStopped = false;
@@ -300,7 +301,7 @@ int main(int argc, char const ** argv)
                 filter_th -= 0.03;
             }
 
-            invflipdensity -= 0.04;
+            invflipdensity -= 0.05;
         }
         intervalsize += 1;
     }
