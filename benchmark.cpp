@@ -172,17 +172,10 @@ int main(int argc, char const ** argv)
     // 32 runs
     int intervalsize = 1;
     while(intervalsize < 5){
-        float invflipdensity = 0.5;//go lower too 0.1
-        while(invflipdensity > -0.1){
-            if(!(invflipdensity < 0.001 && invflipdensity > -0.001)){
-
-            if(invflipdensity < 0){
-                params.normal.testflipdensity = false;
-            }else{
-                params.normal.testflipdensity = true;
-            }
+        float invflipdensity = 0.25;//go lower too 0.1
+        while(invflipdensity > 0){
             float filter_th = 0.25; // go lower too 0.1
-            while(filter_th > 0.01){
+            while(filter_th > 0){
                 params.wasStopped = false;
                 params.normal.intervalsize = intervalsize;
                 params.normal.invflipdensity = invflipdensity;
@@ -195,12 +188,10 @@ int main(int argc, char const ** argv)
                 }
                 filter_th -= 0.03;
             }
-            }
-            invflipdensity -= 0.1;
+            invflipdensity -= 0.03;
         }
         intervalsize += 1;
     }
-    params.normal.testflipdensity = true;
     }
 
 
@@ -208,8 +199,8 @@ int main(int argc, char const ** argv)
     if(testrun == 2){
     // 108 runs
 //     bestTime = params.terminateDuration;
-    int directsearchblockoffset = 2;
-    while(directsearchblockoffset < 9){
+    int directsearchblockoffset = 3;
+    while(directsearchblockoffset < 8){
         int directsearch_th = 2; // go up 4
         while(directsearch_th < 7){
             int distancetoblockend = 1;//// go up to 4
@@ -232,14 +223,13 @@ int main(int argc, char const ** argv)
                         step += 2;
                     else if(step == 4)
                         step += 4;
-                    else
-                        step += 8;
+
                 }
                 distancetoblockend += 1;
             }
             directsearch_th += 1;
         }
-        directsearchblockoffset += 2;
+        directsearchblockoffset += 1;
     }
 
     }
@@ -292,16 +282,10 @@ int main(int argc, char const ** argv)
     params.startuni.suspectunidirectional = true;;
     cout << "test startUni" << endl;
     int intervalsize = 1;
-    while(intervalsize < 9){
-        float invflipdensity = 0.9;//go lower too 0.1
-        while(invflipdensity > -0.2){
-            if(invflipdensity < 0){
-                params.startuni.testflipdensity = false;
-            }else{
-                params.startuni.testflipdensity = true;
-            }
-
-            float filter_th = 0.9; // go lower too 0.1
+    while(intervalsize < 5){
+        float invflipdensity = 0.25;//go lower too 0.1
+        while(invflipdensity > 0){
+            float filter_th = 0.25; // go lower too 0.1
             while(filter_th > 0){
                 params.wasStopped = false;
                 params.startuni.intervalsize = intervalsize;
@@ -313,10 +297,10 @@ int main(int argc, char const ** argv)
                     bestTime = time;
                     bestParams = params;
                 }
-                filter_th -= 0.2;
+                filter_th -= 0.03;
             }
 
-            invflipdensity -= 0.2;
+            invflipdensity -= 0.04;
         }
         intervalsize += 1;
     }

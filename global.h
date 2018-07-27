@@ -59,6 +59,16 @@ public:
         distancetoblockend = 1; //????
     }
 
+        void setbestnormalhgv2(){
+        filter_th = 0.1;
+        invflipdensity = 0.1;
+        intervalsize = 3;
+        directsearchblockoffset = 6;
+        directsearch_th = 2;
+        step = 2;
+        distancetoblockend = 1;
+    }
+
     void setdefault(){
         nomappability = true;
         directsearch = true;
