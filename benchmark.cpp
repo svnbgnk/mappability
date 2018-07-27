@@ -150,7 +150,7 @@ int main(int argc, char const ** argv)
 
     params.clocking = true;
 
-    params.normal.setbestnormalhg();
+    params.normal.setbestnormalhgv2();
     params.copyDirectsearchParamsfromNormal();
 
     if(testrun == 0){
