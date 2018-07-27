@@ -224,6 +224,8 @@ int main(int argc, char const ** argv)
                         step += 2;
                     else if(step == 4)
                         step += 4;
+                    else
+                        step += 8
 
                 }
                 distancetoblockend += 1;
