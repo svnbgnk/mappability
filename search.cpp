@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("T", "threshold", "Number of times a k-mer can occure (needed for compare)", ArgParseArgument::INTEGER, "INT"));
 
     addOption(parser, ArgParseOption("p", "benchparams",
-        "Compare my Version and default version"));
+        "Compare my Version and default version", ArgParseArgument::INTEGER, "INT"));
 
     addOption(parser, ArgParseOption("n", "notmy",
         "Compare my Version and default version"));
@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 
     CharString indexPath, bitvectorpath, readspath;
     string outputpath;
-    int K, nerrors, threshold = 10, r = 0;
+    int K, nerrors, benchparams, threshold = 10, r = 0;
     getOptionValue(indexPath, parser, "index");
     getOptionValue(bitvectorpath, parser, "ibitvector");
     getOptionValue(readspath, parser, "ireads");
@@ -75,10 +75,10 @@ int main(int argc, char *argv[])
     getOptionValue(nerrors, parser, "errors");
     getOptionValue(r, parser, "r");
     getOptionValue(threshold, parser, "threshold");
+    getOptionValue(benchparams, parser, "benchparams");
     bool mdefault = isSet(parser, "default");
     bool defaultT = isSet(parser, "defaultT");
     bool ecompare = isSet(parser, "ecompare");
-    bool benchparams = isSet(parser, "benchparams");
     bool notmy = isSet(parser, "notmy");
     bool startuni = isSet(parser, "startuni");
 
@@ -113,18 +113,6 @@ int main(int argc, char *argv[])
     vector<pair<TBitvector, TSupport>> bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
     cout << "Bit vectors loaded. Number: " << bitvectors.size() << " Length: " << bitvectors[0].first.size() << endl;
 
-/*
-    auto sll = getSeqLengths(index);
-    for(uint32_t i = 0; i < countSequences(*it.fwdIter.index); ++i){
-        if(sll[i + 1] != length(genome[i])){
-            cout << "Wrong Lengths" << endl;
-            cout << "sll:" << sll[i + 1] << "gen:" << length(genome[i]) << endl;
-            exit(0);
-        }
-        if(ecompare)
-            cout << i << ":" << sll[i+1] << " ";
-    }
-    cout << endl;*/
 
     std::vector<hit> dhits;
     std::vector<hit> hits;
@@ -152,9 +140,27 @@ int main(int argc, char *argv[])
     if(startuni){
         params.startUnidirectional = true;
     }
-    if(benchparams){
-        params.normal.setbestnormal();
+    switch(benchparams){
+        case 1:
+            params.normal.setbestnormal();
+            params.copyDirectsearchParamsfromNormal();
+        case 2:
+            params.normal.setbestnormalhg();
+            params.copyDirectsearchParamsfromNormal();
+        case 3:
+            params.normal.setbestnormalhgE2();
+            params.copyDirectsearchParamsfromNormal();
+        case 4:
+            params.normal.setbestnormalhgE3();
+            params.copyDirectsearchParamsfromNormal();
+        case 5:
+            params.normal.setbestnormalhgE3();
+            params.copyDirectsearchParamsfromNormal();
+            params.normal.setbestStartUnihgE3();
+        default:
+            ;
     }
+
 
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -271,6 +277,7 @@ int main(int argc, char *argv[])
             cout << whitcount[i] << endl;
         cout << endl;
     }
+    params.print();
 
     return 0;
 

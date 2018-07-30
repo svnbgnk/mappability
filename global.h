@@ -59,7 +59,7 @@ public:
         distancetoblockend = 1; //????
     }
 
-        void setbestnormalhgv2(){
+    void setbestnormalhgv2(){
         filter_th = 0.1;
         invflipdensity = 0.1;
         intervalsize = 3;
@@ -68,6 +68,38 @@ public:
         step = 2;
         distancetoblockend = 1;
     }
+
+    void setbestnormalhgE2(){
+        filter_th = 0.1;
+        invflipdensity = 0.3;
+        intervalsize = 2;
+        directsearchblockoffset = 4;
+        directsearch_th = 3;
+        step = 2;
+        distancetoblockend = 1;
+    }
+
+    void setbestnormalhgE3(){
+        filter_th = 0.1;
+        invflipdensity = 0.1;
+        intervalsize = 6;
+        directsearchblockoffset = 3;
+        directsearch_th = 2;
+        step = 2;
+        distancetoblockend = 1;
+    }
+
+    void setbestStartUnihgE3(){
+        filter_th = 0.1;
+        invflipdensity = 0.1;
+        testflipdensity = false;
+        intervalsize = 49;
+        directsearchblockoffset = 0;
+        directsearch_th = 2;
+        step = 2; //does not matter
+        distancetoblockend = 1; //does not matter
+    }
+
 
     void setdefault(){
         nomappability = true;

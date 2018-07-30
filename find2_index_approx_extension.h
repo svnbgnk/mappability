@@ -623,7 +623,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     //int dfbe = 2; //distanceFromBlockEnd
     uint32_t pblocklength = (blockIndex > 0) ? s.blocklength[blockIndex - 1] : 0;
     uint32_t step = (needleRightPos - needleLeftPos - 1);
-    if(((step & params.normal.step) == 0) &&
+    if(((step & (params.normal.step - 1)) == 0) &&
         needleRightPos - needleLeftPos - 1 + params.normal.distancetoblockend < s.blocklength[blockIndex] && static_cast<int>(needleRightPos - needleLeftPos - 1) - params.normal.distancetoblockend > pblocklength)
     {
         ReturnCode rcode = checkCurrentMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir());
