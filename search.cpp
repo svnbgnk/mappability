@@ -5,6 +5,7 @@
 #include "common_auxiliary.h"
 #include "find2_index_approx_extension.h"
 #include "global.h"
+#include <thread>         // std::this_thread::sleep_for
 
 using namespace std;
 using namespace seqan;
@@ -49,8 +50,7 @@ int main(int argc, char *argv[])
 
     addOption(parser, ArgParseOption("T", "threshold", "Number of times a k-mer can occure (needed for compare)", ArgParseArgument::INTEGER, "INT"));
 
-    addOption(parser, ArgParseOption("p", "benchparams",
-        "Compare my Version and default version", ArgParseArgument::INTEGER, "INT"));
+    addOption(parser, ArgParseOption("p", "benchparams", "Which parameters set to select", ArgParseArgument::INTEGER, "INT"));
 
     addOption(parser, ArgParseOption("n", "notmy",
         "Compare my Version and default version"));
@@ -113,7 +113,6 @@ int main(int argc, char *argv[])
     vector<pair<TBitvector, TSupport>> bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
     cout << "Bit vectors loaded. Number: " << bitvectors.size() << " Length: " << bitvectors[0].first.size() << endl;
 
-
     std::vector<hit> dhits;
     std::vector<hit> hits;
     auto delegate = [&hits](auto const & iter, DnaString const & needle, uint8_t errors, bool const rev)
@@ -137,28 +136,47 @@ int main(int argc, char *argv[])
         dhits.push_back(me);
     };
 
+    std::this_thread::sleep_for (std::chrono::seconds(20));
+
     if(startuni){
         params.startUnidirectional = true;
     }
     switch(benchparams){
         case 1:
+        {
             params.normal.setbestnormal();
             params.copyDirectsearchParamsfromNormal();
+            break;
+        }
         case 2:
+        {
             params.normal.setbestnormalhg();
             params.copyDirectsearchParamsfromNormal();
+            break;
+        }
         case 3:
+        {
             params.normal.setbestnormalhgE2();
             params.copyDirectsearchParamsfromNormal();
+            break;
+        }
         case 4:
+        {
             params.normal.setbestnormalhgE3();
             params.copyDirectsearchParamsfromNormal();
+            break;
+        }
         case 5:
+        {
             params.normal.setbestnormalhgE3();
             params.copyDirectsearchParamsfromNormal();
-            params.normal.setbestStartUnihgE3();
+            params.startuni.setbestStartUnihgE3();
+            break;
+        }
         default:
-            ;
+        {
+            break;
+        }
     }
 
 
