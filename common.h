@@ -2,7 +2,7 @@
 #include "lambda/src/mkindex_misc.hpp"
 #include "lambda/src/mkindex_algo.hpp"
 
-// reduce space consumption.
+// reduce space consumption
 // requires genome not to have more than ~ 4 gigabases
 // multi-sequence fasta file must contain less than ~64k sequences of at most ~ 4 gigabases in total
 
@@ -91,9 +91,8 @@ struct SearchParams
     unsigned length;
     unsigned overlap;
     unsigned threads;
-    static constexpr bool outputProgress = false;
     // bool indels;
-    // unsigned threshold = 0;
+    static constexpr bool outputProgress = false;
 };
 
 std::string mytime()
@@ -107,12 +106,12 @@ std::string mytime()
     return buf;
 }
 
-template <typename TChar, typename TConfig>
-void resetLimits(seqan::String<TChar, TConfig> const &, auto const &, unsigned const)
+template <typename TChar, typename TConfig, typename TMappVector>
+void resetLimits(seqan::String<TChar, TConfig> const &, TMappVector const &, unsigned const)
 { }
 
-template <typename TString, typename TConfig>
-void resetLimits(seqan::StringSet<TString, TConfig> const & text, auto & c, unsigned const length)
+template <typename TString, typename TConfig, typename TMappVector>
+void resetLimits(seqan::StringSet<TString, TConfig> const & text, TMappVector & c, unsigned const length)
 {
     auto const & limits = seqan::stringSetLimits(text);
     for (unsigned i = 1; i < seqan::length(limits) - 1; ++i)
@@ -160,10 +159,6 @@ inline void initProgress<true>(uint64_t & progress_count, uint64_t & progress_st
     while (progress_step < progress_step_tmp)
         progress_step <<= 1;
     --progress_step;
-    // std::cout << "progress_max: " << progress_max << '\n';
-    // std::cout << "progress_step: " << progress_step << '\n';
-    // std::cout << "progress_step_tmp: " << progress_step_tmp << '\n';
-    // exit(2);
 }
 
 using TMyFastConfig = seqan::FastFMIndexConfig<void, uint32_t, 2, 1>;

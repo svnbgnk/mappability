@@ -149,9 +149,6 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("t", "threads", "Number of threads", ArgParseArgument::INTEGER, "INT"));
     setDefaultValue(parser, "threads", omp_get_max_threads());
 
-    // addOption(parser, ArgParseOption("x", "threshold", "Threshold for approximate calculation", ArgParseArgument::INTEGER, "INT"));
-    // setDefaultValue(parser, "threshold", "7");
-
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
     if (res != ArgumentParser::PARSE_OK)
         return res == ArgumentParser::PARSE_ERROR;
@@ -171,9 +168,6 @@ int main(int argc, char *argv[])
     getOptionValue(searchParams.overlap, parser, "overlap");
 
     searchParams.overlap = searchParams.length - searchParams.overlap;
-
-    // if (isSet(parser, "threshold"))
-    //     getOptionValue(opt.threshold, parser, "threshold");
 
     // TODO: error for -E 0 -K 10 -o 1 ????
     if (searchParams.overlap > searchParams.length - opt.errors - 2)
