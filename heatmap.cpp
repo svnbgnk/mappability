@@ -73,7 +73,7 @@ void heatmap(sdsl::bit_vector & b, string output)
     img << "255" << endl;
     for(int i = 0; i < height * width; ++i)
     {
-        float den = static_cast<float> (window - rb(pos + window) - rb(pos)) / window;
+        float den = static_cast<float> (window + rb(pos + window) - rb(pos)) / window;
         int grey = static_cast<int>(round(den * 254));
         img << grey  << " " << grey << " " << grey << endl;
         pos += window;
