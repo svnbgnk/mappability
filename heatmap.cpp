@@ -61,8 +61,9 @@ void heatmap(sdsl::bit_vector & b, string output)
         width = round(static_cast<float> (height) * (9 / 16));
         cout << "height: " << height << " width: " << width << endl;
     }
+    cout << "Bitvector Size: " << b.size() << endl;
     cout << "Bases per pixel: "  << b.size()/(height * width) << endl;
-    cout << "Number of non-mappability bits overall: " << rb.size() - rb(b.size()) << endl;
+    cout << "Number of non-mappability bits overall: " << b.size() - rb(b.size()) << endl;
     int window = floor(static_cast<float>(b.size()) / (height * width));
     int pos = 0;
 
