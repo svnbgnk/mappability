@@ -62,6 +62,7 @@ void heatmap(sdsl::bit_vector & b, string output)
         cout << "height: " << height << " width: " << width << endl;
     }
     cout << "Bases per pixel: "  << b.size()/(height * width) << endl;
+    cout << "Number of non-mappability bits overall: " << rb.size() - rb(b.size()) << endl;
     int window = floor(static_cast<float>(b.size()) / (height * width));
     int pos = 0;
 
@@ -71,7 +72,7 @@ void heatmap(sdsl::bit_vector & b, string output)
     img << "255" << endl;
     for(int i = 0; i < height * width; ++i)
     {
-        float den = static_cast<float> (rb(pos + window) - rb(pos)) / window;
+        float den = static_cast<float> (window - rb(pos + window) - rb(pos)) / window;
         int grey = static_cast<int>(round(den * 254));
         img << grey  << " " << grey << " " << grey << endl;
         pos += window;
@@ -223,7 +224,7 @@ int main(int argc, char *argv[])
 
         b.resize(mappability_int.size());
         for (unsigned i = 0; i < mappability_int.size(); ++i)
-            b[i] = (mappability_int[i] > threshold);
+            b[i] = !(mappability_int[i] <= threshold);
         cout << "Bit vector constructed" << endl;
     }
 
@@ -236,6 +237,7 @@ int main(int argc, char *argv[])
     print_vector(hist);
     cout << "log" << endl;
     print_vector(hist_lg);
+
 
     return 0;
 }

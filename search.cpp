@@ -246,6 +246,7 @@ int main(int argc, char *argv[])
     // default with in text search
     if(defaultT){
         params.comp.directsearch_th = 5;
+        params.comp.directsearchblockoffset = 0;
         std::vector<hit> hitsDe;
         std::vector<hit> dhitsDe;
         auto delegate2 = [&hitsDe](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
