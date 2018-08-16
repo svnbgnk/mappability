@@ -49,6 +49,7 @@ int main(int argc, char *argv[])
     SeqFileIn seqFileIn(toCString(genomePath));
     readRecords(ids, chromosomes, seqFileIn);
     std::cout << "Number of sequences: " << length(chromosomes) << '\n' << std::flush;
+    std::cout << "Sampling rate: " << TMyFastConfig::SAMPLING << '\n';
 
     // check whether it can be converted to Dna4
     unsigned i = 0;

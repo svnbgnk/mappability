@@ -25,12 +25,10 @@ struct Options
 #include "algo3.hpp"
 #include "algo4.hpp"
 
-string get_output_path(Options const & opt, SearchParams const & searchParams, signed const chromosomeId)
+string get_output_path(Options const & opt, SearchParams const & searchParams)
 {
     string output_path = toCString(opt.outputPath);
     output_path += "_" + to_string(opt.errors) + "_" + to_string(searchParams.length) + "_" + to_string(searchParams.overlap);
-    if (chromosomeId >= 0)
-        output_path += "-" + to_string(chromosomeId);
     output_path += ".gmapp" + string(opt.high ? "16" : "8");
     return output_path;
 }
@@ -44,7 +42,7 @@ inline void save(vector<T> const & c, string const & output_path)
 }
 
 template <typename TDistance, typename value_type, typename TIndex, typename TText>
-inline void run(TIndex & index, TText const & text, Options const & opt, SearchParams const & searchParams, signed const chromosomeId)
+inline void run(TIndex & index, TText const & text, Options const & opt, SearchParams const & searchParams)
 {
     vector<value_type> c(length(text) - searchParams.length + 1, 0);
 
@@ -69,7 +67,7 @@ inline void run(TIndex & index, TText const & text, Options const & opt, SearchP
     std::cout << "Progress: 100.00%\n" << std::flush;
     cout.flush();
 
-    string output_path = get_output_path(opt, searchParams, chromosomeId);
+    string output_path = get_output_path(opt, searchParams);
     save(c, output_path);
 }
 
@@ -82,7 +80,7 @@ inline void run(Options const & opt, SearchParams const & searchParams)
     TIndex<TStringSet> index;
     open(index, toCString(opt.indexPath), OPEN_RDONLY);
     auto const & text = indexText(index);
-    run<TDistance, value_type>(index, text.concat, opt, searchParams, -1);
+    run<TDistance, value_type>(index, text.concat, opt, searchParams);
 }
 
 template <typename TChar, typename TAllocConfig, typename TDistance>
@@ -167,14 +165,20 @@ int main(int argc, char *argv[])
     getOptionValue(searchParams.threads, parser, "threads");
     getOptionValue(searchParams.overlap, parser, "overlap");
 
-    searchParams.overlap = searchParams.length - searchParams.overlap;
-
-    // TODO: error for -E 0 -K 10 -o 1 ????
-    if (searchParams.overlap > searchParams.length - opt.errors - 2)
+    if (searchParams.overlap > searchParams.length - 1)
     {
-        cerr << "ERROR: overlap should be <= K - E - 2 (Common overlap has length K-O and will be split into E+2 parts).\n";
+        cerr << "ERROR: overlap cannot be larger than K - 1.\n";
         exit(1);
     }
+
+    if (!(searchParams.length - searchParams.overlap >= opt.errors + 2))
+    {
+        cerr << "ERROR: overlap should be at least K - E - 2. (K - O >= E + 2 must hold since common overlap has length K - O and will be split into E + 2 parts).\n";
+        exit(1);
+    }
+
+    // searchParams.overlap - length of common overlap
+    searchParams.overlap = searchParams.length - searchParams.overlap;
 
     if (opt.indels)
     {
