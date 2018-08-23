@@ -39,6 +39,7 @@ inline void directSearch(TDelegateD & delegateDirect,
             blockEnds[0] = needleLeftPos;
     }
 
+    //iterate over each block according to search scheme
     for(uint32_t i = iter.fwdIter.vDesc.range.i1; i < iter.fwdIter.vDesc.range.i2; ++i){
         bool valid = true;
         Pair<uint16_t, uint32_t> sa_info = iter.fwdIter.index->sa[i];
@@ -228,7 +229,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     else
     {
         // if (doInTextVerification(s, blockIndex, iter))
-        if(params.comp.directsearch && iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1 + + params.uni.directsearchblockoffset) * params.comp.directsearch_th)
+        if(params.comp.directsearch && iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1 + params.uni.directsearchblockoffset) * params.comp.directsearch_th)
         {
             directSearch(delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir());
             return;

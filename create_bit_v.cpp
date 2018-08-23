@@ -383,6 +383,7 @@ int main(int argc, char *argv[])
     if(debug)
     {
         for(uint32_t i = 0; i < result.bv.size(); ++i){
+            sdsl::store_to_file(result.bv[i], toCString(outputPath) + result.names[i] + "_chron");
             std::ofstream outfile((toCString(outputPath) + result.names[i] + "_debug"), std::ios::out | std::ofstream::binary);
             std::copy(result.bv[i].begin(), result.bv[i].end(), std::ostream_iterator<bool>(outfile));
             outfile.close();

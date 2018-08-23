@@ -61,9 +61,8 @@ void heatmap(sdsl::bit_vector & b, string output)
         width = round(static_cast<float> (height) * (9 / 16));
         cout << "height: " << height << " width: " << width << endl;
     }
-    cout << "Bitvector Size: " << b.size() << endl;
+
     cout << "Bases per pixel: "  << b.size()/(height * width) << endl;
-    cout << "Number of non-mappability bits overall: " << b.size() - rb(b.size()) << endl;
     int window = floor(static_cast<float>(b.size()) / (height * width));
     int pos = 0;
 
@@ -73,7 +72,7 @@ void heatmap(sdsl::bit_vector & b, string output)
     img << "255" << endl;
     for(int i = 0; i < height * width; ++i)
     {
-        float den = static_cast<float> (window + rb(pos + window) - rb(pos)) / window;
+        float den = static_cast<float> (rb(pos + window) - rb(pos)) / window;
         int grey = static_cast<int>(round(den * 254));
         img << grey  << " " << grey << " " << grey << endl;
         pos += window;
@@ -224,8 +223,14 @@ int main(int argc, char *argv[])
         //     cout << mappability_int[i] << ' ';
 
         b.resize(mappability_int.size());
-        for (unsigned i = 0; i < mappability_int.size(); ++i)
-            b[i] = !(mappability_int[i] <= threshold);
+        int counter = 0;
+        for (unsigned i = 0; i < mappability_int.size(); ++i){
+            b[i] = /*!(*/mappability_int[i]/* <= threshold)*/;
+            if(mappability_int[i] == 0)
+                ++counter;
+        }
+        sdsl::rank_support_v<> rb(&b);
+        cout << "Number of non-mappability bits: " << counter << " inverse rank: " << b.size() - rb(mappability_int.size()) << endl;
         cout << "Bit vector constructed" << endl;
     }
 
