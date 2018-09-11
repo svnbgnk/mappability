@@ -39,6 +39,7 @@ set (CMAKE_CXX_FLAGS "-std=c++14 -pthread -DSEQAN_DISABLE_VERSION_CHECK=YES -I $
 # set (CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS} -I/home/sven/devel/sdsl-lite/include") # -ldivsufsort -ldivsufsort64
 
 # Add executable and link against SeqAn dependencies.
+
 add_executable (mappability mappability.cpp)
 target_link_libraries (mappability ${SEQAN_LIBRARIES})
 
@@ -60,4 +61,6 @@ target_link_libraries (heatmap ${SEQAN_LIBRARIES})
 add_executable (benchmark benchmark.cpp)
 target_link_libraries (benchmark ${SEQAN_LIBRARIES})
 
+add_executable (testIts testIts.cpp)
+target_link_libraries (testIts ${SEQAN_LIBRARIES})
 

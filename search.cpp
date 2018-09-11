@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
         dhits.push_back(me);
     };
 
-    std::this_thread::sleep_for (std::chrono::seconds(20));
+//     std::this_thread::sleep_for (std::chrono::seconds(20));
 
     if(startuni){
         params.startUnidirectional = true;
