@@ -84,7 +84,7 @@ inline bool save(Index<TText, BidirectionalIndex<FMIndex<TSpec, TConfig> > > con
     return true;
 }
 
-};
+}
 
 struct SearchParams
 {

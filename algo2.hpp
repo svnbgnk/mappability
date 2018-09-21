@@ -1,7 +1,7 @@
 using namespace seqan;
 
-template <typename TIter, typename value_type>
-inline void extendExact(TIter it, value_type * hits, auto & text, unsigned const length,
+template <typename TIter, typename value_type, typename TText>
+inline void extendExact(TIter it, value_type * hits, TText const & text, unsigned const length,
     uint64_t a, uint64_t b, // searched interval
     uint64_t ab, uint64_t bb // entire interval
 )
@@ -44,15 +44,16 @@ inline void extendExact(TIter it, value_type * hits, auto & text, unsigned const
 }
 
 // forward
-template <typename TIter, typename value_type>
-inline void extend(TIter it, value_type * hits, unsigned errors_left, auto & text, unsigned const length,
+template <typename TIter, typename value_type, typename TText>
+inline void extend(TIter it, value_type * hits, unsigned errors_left, TText const & text,
+            unsigned const length,
             uint64_t a, uint64_t b, // searched interval
             uint64_t ab, uint64_t bb // entire interval
 );
 
 // TODO: remove text everywhere: auto & text = indexText(index(it));
-template <typename TIter, typename value_type>
-inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, auto & text, unsigned const length,
+template <typename TIter, typename value_type, typename TText>
+inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, TText const & text, unsigned const length,
             uint64_t a, uint64_t b, // searched interval
             uint64_t ab, uint64_t bb, // entire interval
             uint64_t b_new,
@@ -84,8 +85,8 @@ inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, auto
         extendExact(it, hits, text, length, a, b_new, ab, bb);
     }
 }
-template <typename TIter, typename value_type>
-inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, auto & text, unsigned const length,
+template <typename TIter, typename value_type, typename TText>
+inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, TText const & text, unsigned const length,
                   uint64_t a, uint64_t b, // searched interval
                   uint64_t ab, uint64_t bb, // entire interval
                   int64_t a_new,
@@ -118,8 +119,8 @@ inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, auto
     }
 }
 
-template <typename TIter, typename value_type>
-inline void extend(TIter it, value_type * hits, unsigned errors_left, auto & text, unsigned const length,
+template <typename TIter, typename value_type, typename TText>
+inline void extend(TIter it, value_type * hits, unsigned errors_left, TText const & text, unsigned const length,
     uint64_t a, uint64_t b, // searched interval
     uint64_t ab, uint64_t bb // entire interval
 )
@@ -164,8 +165,8 @@ inline void extend(TIter it, value_type * hits, unsigned errors_left, auto & tex
     }
 }
 
-template <unsigned errors, typename TIndex, typename TContainer>
-inline void runAlgo2(TIndex & index, auto const & text, TContainer & c, SearchParams const & params)
+template <unsigned errors, typename TIndex, typename TText, typename TContainer>
+inline void runAlgo2(TIndex & index, TText const & text, TContainer & c, SearchParams const & params)
 {
     typedef typename TContainer::value_type value_type;
 

@@ -2,6 +2,6 @@
 	path = seqan
 	url = https://github.com/cpockrandt/seqan.git
 	branch = develop
-[submodule "sdsl"]
-	path = sdsl
-	url = https://github.com/xxsds/sdsl-lite.git
+[submodule "sdsl-lite"]
+	path = sdsl-lite
+	url = http://github.com/xxsds/sdsl-lite.git

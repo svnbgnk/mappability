@@ -1,33 +1,21 @@
-# Minimum cmake version
 cmake_minimum_required (VERSION 3.0.0)
 
-# Name of project and that it is C++ only.
 project (mappability CXX)
-
-# TODO: if not set, set it to Release type
-#set (CMAKE_BUILD_TYPE "Release")
-set (CUR_DIR "${CMAKE_CURRENT_LIST_DIR}/..")
-
-# ----------------------------------------------------------------------------
-# Dependencies
-# ----------------------------------------------------------------------------
-
 set (CXX11_FOUND "1")
 
-# Search for zlib as a dependency for SeqAn.
-find_package (ZLIB)
+if (NOT DEFINED ${CMAKE_BUILD_TYPE})
+    set (CMAKE_BUILD_TYPE Release)
+    message("*** CMAKE_BUILD_TYPE was not passed to CMake, therefore it was set to Release. ***")
+endif()
 
 # Add CXX flags found by find_package (SeqAn).
-set (CMAKE_PREFIX_PATH "${CUR_DIR}/seqan/util/cmake")
-set (SEQAN_INCLUDE_PATH "${CUR_DIR}/seqan/include")
+set (CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/seqan/util/cmake")
+set (SEQAN_INCLUDE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/seqan/include")
 
 # Load the SeqAn module and fail if not found.
-find_package (OpenMP REQUIRED)
+# Search for zlib as a dependency for SeqAn.
 find_package (SeqAn REQUIRED)
-
-# ----------------------------------------------------------------------------
-# Build Setup
-# ----------------------------------------------------------------------------
+find_package (OpenMP)
 
 # Add include directories.
 include_directories (${SEQAN_INCLUDE_DIRS})
@@ -36,7 +24,7 @@ include_directories (${SEQAN_INCLUDE_DIRS})
 add_definitions (${SEQAN_DEFINITIONS})
 
 # Add CXX flags found by find_package (SeqAn).
-set (CMAKE_CXX_FLAGS "-std=c++14 -fopenmp -DSEQAN_DISABLE_VERSION_CHECK=YES -I ${CUR_DIR}/sdsl-lite/include ${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
+set (CMAKE_CXX_FLAGS "-std=c++14 -DSEQAN_DISABLE_VERSION_CHECK=YES -I ${CMAKE_CURRENT_SOURCE_DIR}/sdsl-lite/include ${OpenMP_CXX_FLAGS} ${CMAKE_CXX_FLAGS} ${SEQAN_CXX_FLAGS}")
 
 # Add executable and link against SeqAn dependencies.
 add_executable (mappability mappability.cpp)
