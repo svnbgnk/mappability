@@ -3,6 +3,7 @@ cmake_minimum_required (VERSION 3.0.0)
 project (mappability CXX)
 set (CXX11_FOUND "1")
 
+
 if (NOT DEFINED ${CMAKE_BUILD_TYPE})
     set (CMAKE_BUILD_TYPE Release)
     message("*** CMAKE_BUILD_TYPE was not passed to CMake, therefore it was set to Release. ***")

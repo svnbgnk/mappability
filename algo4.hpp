@@ -12,7 +12,7 @@ inline void runAlgo4(TIndex & index, TText const & text, TContainer & c, SearchP
 
     const uint64_t max_i = textLength - params.length + 1;
     const uint64_t step_size = params.length - params.overlap + 1;
-    #pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*params.threads*50))) num_threads(params.threads)
+  //  #pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*params.threads*50))) num_threads(params.threads)
     for (uint64_t i = 0; i < max_i; i += step_size)
     {
         uint64_t max_pos = std::min(i + params.length - params.overlap, textLength - params.length) + 1;

@@ -33,7 +33,7 @@ inline void extendExact(TIter it, value_type * hits, TText const & text, unsigne
     if (a - 1 >= ab)
     {
         int64_t alm = b + 1 - length;
-        int64_t a_new = alm + std::max((int64_t) ((a - alm) - 1) >> 1, 0l);
+        int64_t a_new = alm + std::max((int64_t) ((a - alm) - 1) >> 1, (int64_t)0);
         for (int64_t i = a - 1; i >= a_new; --i)
         {
             if(!goDown(it, text[i], Fwd()))
@@ -155,7 +155,7 @@ inline void extend(TIter it, value_type * hits, unsigned errors_left, TText cons
     if (a - 1 >= ab)
     {
         int64_t alm = b + 1 - length;
-        int64_t a_new = alm + std::max((int64_t) ((a - alm) - 1) >> 1, 0l);
+        int64_t a_new = alm + std::max((int64_t) ((a - alm) - 1) >> 1, (int64_t)0);
         approxSearch(it, hits, errors_left, text, length,
                      a, b, // searched interval
                      ab, bb, // entire interval
@@ -177,7 +177,7 @@ inline void runAlgo2(TIndex & index, TText const & text, TContainer & c, SearchP
 
     const uint64_t max_i = textLength - params.length + 1;
     const uint64_t step_size = params.length - params.overlap + 1;
-    #pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*params.threads*50))) num_threads(params.threads)
+   // #pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*params.threads*50))) num_threads(params.threads)
     for (uint64_t i = 0; i < max_i; i += step_size)
     {
         value_type hits[params.length - params.overlap + 1] = {};

@@ -37,7 +37,7 @@ inline void extendExact3(TIter it, value_type * hits, TIter * it_zero_errors, TT
     if (a - 1 >= ab)
     {
         int64_t alm = b + 1 - length;
-        int64_t a_new = alm + std::max((int64_t) ((a - alm) - 1) >> 1, 0l);
+        int64_t a_new = alm + std::max((int64_t) ((a - alm) - 1) >> 1, (int64_t)0);
         for (int64_t i = a - 1; i >= a_new; --i)
         {
             if(!goDown(it, text[i], Fwd()))
@@ -160,7 +160,7 @@ inline void extend3(TIter it, value_type * hits, TIter * it_zero_errors, unsigne
     if (a - 1 >= ab)
     {
         int64_t alm = b + 1 - length;
-        int64_t a_new = alm + std::max((int64_t) ((a - alm) - 1) >> 1, 0l);
+        int64_t a_new = alm + std::max((int64_t) ((a - alm) - 1) >> 1, (int64_t)0);
         approxSearch3<max_errors>(it, hits, it_zero_errors, errors_left, text, length,
                      a, b, // searched interval
                      ab, bb, // entire interval
@@ -191,7 +191,7 @@ inline void runAlgo3(TIndex & index, TText const & text, TContainer & c, SearchP
     uint64_t progress_step;
     initProgress<SearchParams::outputProgress>(progress_count, progress_step, progress_max, step_size, max_i);
 
-    #pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*params.threads*50))) num_threads(params.threads)
+    //#pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*params.threads*50))) num_threads(params.threads)
     for (uint64_t i = 0; i < max_i; i += step_size)
     {
         uint64_t max_pos = std::min(i + params.length - params.overlap, textLength - params.length) + 1;
