@@ -4,7 +4,7 @@
 #include <seqan/index.h>
 #include "auxiliary.h"
 #include "common_auxiliary.h"
-#include <seqan/index/find2_index_approx_its.h>
+//#include <seqan/index/find2_index_approx_its.h>
 // #include "find2_index_approx_extension.h"
 
 #include "global.h"
