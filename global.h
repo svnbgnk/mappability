@@ -16,6 +16,7 @@ distancetoblockend: 1  // 2
 
 */
 
+
 struct majorCaseParameters{
 private:
     uint32_t cases;
@@ -256,7 +257,12 @@ public:
 };
 
 extern myGlobalParameters params;
-
+extern std::vector<hit> dhits;
+extern std::vector<hit> hits;
+extern std::vector<uint32_t> readOccCount;
+extern std::vector<uint32_t> readOccCountDeT;
+extern std::vector<hit> hitsDe;
+extern std::vector<hit> dhitsDe;
 
 /*
 struct trackCases{

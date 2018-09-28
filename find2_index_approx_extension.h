@@ -767,9 +767,35 @@ find(TDelegate & delegate,
     auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
     calcConstParameters(scheme);
 
-    typedef typename Iterator<StringSet<TNeedle, TStringSetSpec> const, Rooted>::Type TNeedleIt;
-    typedef typename Reference<TNeedleIt>::Type                                       TNeedleRef;
+//     typedef typename Iterator<StringSet<TNeedle, TStringSetSpec> const, Rooted>::Type TNeedleIt;
+//     typedef typename Reference<TNeedleIt>::Type                                       TNeedleRef;
     checkTime time;
+
+            //use while use global
+    std::cout << "start testing" << "\n";
+    int k = 0;
+    uint32_t lastcount = 0;
+    while(k < length(needles))
+    {
+        if(!(params.clocking && time.stopnow(params.terminateDuration))){
+            find(delegate, delegateDirect, index, needles[k], bitvectors, scheme);
+        }else{
+            params.wasStopped = true;
+        }
+        ++k;
+
+//         std::cout << "hits " << hits.size() << "\n";
+//         std::cout << "dhits " << dhits.size() << "\n";
+//         std::cout << "lastcount " << lastcount << "\n";
+        uint32_t currentcount = hits.size() + dhits.size() - lastcount;
+        readOccCount.push_back(currentcount);
+        lastcount += currentcount;
+//         std::cout << "Size: " << readOccCount.size() << "\n";
+    }
+
+
+
+    /*
     iterate(needles, [&](TNeedleIt const & needleIt)
     {
         TNeedleRef needle = value(needleIt);
@@ -781,6 +807,8 @@ find(TDelegate & delegate,
 
     },
     Rooted(), TParallelTag());
+    */
+
 }
 
 template <size_t minErrors, size_t maxErrors,
@@ -795,14 +823,27 @@ find(TDelegate & delegate,
      StringSet<TNeedle, TStringSetSpec> const & needles,
      TParallelTag const & )
 {
-    typedef typename Iterator<StringSet<TNeedle, TStringSetSpec> const, Rooted>::Type TNeedleIt;
-    typedef typename Reference<TNeedleIt>::Type                                       TNeedleRef;
+//     typedef typename Iterator<StringSet<TNeedle, TStringSetSpec> const, Rooted>::Type TNeedleIt;
+//     typedef typename Reference<TNeedleIt>::Type                                       TNeedleRef;
+    int k = 0;
+    uint32_t lastcount = 0;
+    while(k < length(needles))
+    {
+        find<minErrors, maxErrors>(delegate, delegateDirect, index, needles[k]);
+        ++k;
+        uint32_t currentcount = hitsDe.size() + dhitsDe.size() - lastcount;
+        readOccCountDeT.push_back(currentcount);
+        lastcount += currentcount;
+
+    }
+    /*
     iterate(needles, [&](TNeedleIt const & needleIt)
     {
         TNeedleRef needle = value(needleIt);
         find<minErrors, maxErrors>(delegate, delegateDirect, index, needle);
     },
     Rooted(), TParallelTag());
+    */
 }
 
 

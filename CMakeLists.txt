@@ -57,7 +57,7 @@ target_link_libraries (search ${SEQAN_LIBRARIES})
 add_executable (heatmap heatmap.cpp)
 target_link_libraries (heatmap ${SEQAN_LIBRARIES})
 
-add_executable (benchmark benchmark.cpp)
-target_link_libraries (benchmark ${SEQAN_LIBRARIES})
+#add_executable (benchmark benchmark.cpp)
+#target_link_libraries (benchmark ${SEQAN_LIBRARIES})
 
 

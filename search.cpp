@@ -11,7 +11,31 @@ using namespace std;
 using namespace seqan;
 
 myGlobalParameters params;
-int global;
+std::vector<hit> hits;
+std::vector<hit> dhits;
+std::vector<hit> hitsDe;
+std::vector<hit> dhitsDe;
+std::vector<uint32_t> readOccCount;
+std::vector<uint32_t> readOccCountDeT;
+
+vector<uint32_t> histogram(vector<uint32_t> & b , int const his_size, int const bucket_width)
+{
+    vector<uint32_t> hist(his_size, 0);
+    auto it = b.begin();
+    while(it != b.end()){
+        if(*it < ((his_size) * bucket_width))
+        {
+            hist[floor(*it / bucket_width)] += 1;
+        }
+        else
+        {
+            ++hist[his_size];
+        }
+        ++it;
+    }
+    return(hist);
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -113,8 +137,8 @@ int main(int argc, char *argv[])
     vector<pair<TBitvector, TSupport>> bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
     cout << "Bit vectors loaded. Number: " << bitvectors.size() << " Length: " << bitvectors[0].first.size() << endl;
 
-    std::vector<hit> dhits;
-    std::vector<hit> hits;
+//     std::vector<hit> dhits;
+//     std::vector<hit> hits;
     auto delegate = [&hits](auto const & iter, DnaString const & needle, uint8_t errors, bool const rev)
     {
         for (auto occ : getOccurrences(iter)){
@@ -136,7 +160,7 @@ int main(int argc, char *argv[])
         dhits.push_back(me);
     };
 
-    std::this_thread::sleep_for (std::chrono::seconds(20));
+//     std::this_thread::sleep_for (std::chrono::seconds(20));
 
     if(startuni){
         params.startUnidirectional = true;
@@ -220,6 +244,8 @@ int main(int argc, char *argv[])
     cout << "direct Hits: " << dhits.size() << endl;
 
     // Test default
+    //TODO change vector name of lambda function
+    /*
     std::vector<hit> hitsDe;
     if(mdefault){
         auto delegateDe = [&hitsDe](auto & iter, DnaString const & needle, uint8_t const errors)
@@ -242,13 +268,14 @@ int main(int argc, char *argv[])
         cout << "Default Version elapsed: " << elapsed.count() << "s" << endl;
         cout << "default Hits: " << hitsDe.size() << endl;
     }
+    */
 
     // default with in text search
     if(defaultT){
         params.comp.directsearch_th = 5;
         params.comp.directsearchblockoffset = 0;
-        std::vector<hit> hitsDe;
-        std::vector<hit> dhitsDe;
+//         std::vector<hit> hitsDe;
+//         std::vector<hit> dhitsDe;
         auto delegate2 = [&hitsDe](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
         {
             for (auto occ : getOccurrences(iter)){
@@ -278,6 +305,48 @@ int main(int argc, char *argv[])
     }
 
 
+    int found = 0, foundD = 0;
+
+    for(int i = 0; i < readOccCount.size(); ++i)
+    {
+        found += readOccCount[i] > 0;
+        foundD += readOccCountDeT[i] > 0;
+//         cout << readOccCount[i] << " - " <<  readOccCountDeT[i] << endl;
+    }
+
+    cout << "reads found: " << found << endl;
+    cout << "reads found with mappability: " << foundD << endl;
+
+
+    // investigating the vectors
+    int bucketSize = 5;
+    vector<uint32_t> h = histogram(readOccCount, 10, bucketSize);
+    vector<uint32_t> hDeT = histogram(readOccCountDeT, 10, bucketSize);
+
+
+    cout << "Histogram buckets size " << bucketSize << ": " << endl;
+    for(int i = 0; i < h.size(); ++i){
+        cout << bucketSize*(i + 1) - 1 << "\t";
+    }
+    cout << endl;
+    for(int i = 0; i < h.size(); ++i){
+        cout << h[i] << "\t";
+    }
+    cout << endl;
+
+
+    cout << "Histogram buckets size" << bucketSize << ": " << endl;
+    for(int i = 0; i < hDeT.size(); ++i){
+        cout << bucketSize*(i + 1) - 1 << "\t";
+    }
+    cout << endl;
+    for(int i = 0; i < hDeT.size(); ++i){
+        cout << hDeT[i] << "\t";
+    }
+    cout << endl;
+
+
+
     if(ecompare){
         hitsDe = print_readocc_sorted(hitsDe, genome, true);
         cout << "Test if default and my version are the same: " << endl;
@@ -296,7 +365,7 @@ int main(int argc, char *argv[])
             cout << whitcount[i] << endl;
         cout << endl;
     }
-    params.print();
+//     params.print();
 
     return 0;
 
