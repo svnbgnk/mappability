@@ -29,7 +29,7 @@ vector<uint32_t> histogram(vector<uint32_t> & b , int const his_size, int const 
         }
         else
         {
-            ++hist[his_size];
+            ++hist[his_size - 1];
         }
         ++it;
     }
