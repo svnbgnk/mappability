@@ -320,8 +320,9 @@ int main(int argc, char *argv[])
 
     // investigating the vectors
     int bucketSize = 5;
-    vector<uint32_t> h = histogram(readOccCount, 10, bucketSize);
-    vector<uint32_t> hDeT = histogram(readOccCountDeT, 10, bucketSize);
+    int histSize = 12;
+    vector<uint32_t> h = histogram(readOccCount, histSize, bucketSize);
+    vector<uint32_t> hDeT = histogram(readOccCountDeT, histSize, bucketSize);
 
 
     cout << "Histogram buckets size " << bucketSize << ": " << endl;
@@ -335,7 +336,7 @@ int main(int argc, char *argv[])
     cout << endl;
 
 
-    cout << "Histogram buckets size" << bucketSize << ": " << endl;
+    cout << "Histogram buckets size " << bucketSize << ": " << endl;
     for(int i = 0; i < hDeT.size(); ++i){
         cout << bucketSize*(i + 1) - 1 << "\t";
     }
@@ -346,6 +347,7 @@ int main(int argc, char *argv[])
     cout << endl;
 
 
+    /*
 
     if(ecompare){
         hitsDe = print_readocc_sorted(hitsDe, genome, true);
@@ -367,6 +369,7 @@ int main(int argc, char *argv[])
     }
 //     params.print();
 
+*/
     return 0;
 
 }
