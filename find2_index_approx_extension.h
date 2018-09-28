@@ -770,9 +770,6 @@ find(TDelegate & delegate,
 //     typedef typename Iterator<StringSet<TNeedle, TStringSetSpec> const, Rooted>::Type TNeedleIt;
 //     typedef typename Reference<TNeedleIt>::Type                                       TNeedleRef;
     checkTime time;
-
-            //use while use global
-    std::cout << "start testing" << "\n";
     int k = 0;
     uint32_t lastcount = 0;
     while(k < length(needles))

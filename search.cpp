@@ -319,8 +319,8 @@ int main(int argc, char *argv[])
 
 
     // investigating the vectors
-    int bucketSize = 5;
-    int histSize = 12;
+    int bucketSize = 10;
+    int histSize = 10;
     vector<uint32_t> h = histogram(readOccCount, histSize, bucketSize);
     vector<uint32_t> hDeT = histogram(readOccCountDeT, histSize, bucketSize);
 
