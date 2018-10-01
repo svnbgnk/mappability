@@ -351,12 +351,27 @@ int main(int argc, char *argv[])
 
     int found = 0, foundD = 0;
 
+    if(rc){
+        int nr = readOccCount.size()/2;
+        cout << "Jump:" << nr << endl;
+        for(int i = 0; i < readOccCount.size()/2; ++i)
+        {
+            readOccCount[i] += readOccCount[i + nr];
+            readOccCountDeT[i] += readOccCountDeT[i + nr];
+        }
+        readOccCount.erase(readOccCount.begin() + nr, readOccCount.end());
+        readOccCountDeT.erase(readOccCountDeT.begin() + nr, readOccCountDeT.end());
+    }
+
+
     for(int i = 0; i < readOccCount.size(); ++i)
     {
         found += readOccCount[i] > 0;
         foundD += readOccCountDeT[i] > 0;
-//         cout << readOccCount[i] << " - " <<  readOccCountDeT[i] << endl;
+//       cout << readOccCount[i] << " - " <<  readOccCountDeT[i] << endl;
     }
+
+
 
     cout << "reads found with mappability: " << found << endl;
     cout << "reads found: " << foundD << endl;
