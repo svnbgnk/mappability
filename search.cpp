@@ -7,6 +7,10 @@
 #include "global.h"
 #include <thread>         // std::this_thread::sleep_for
 
+#include <iostream>
+#include <seqan/stream.h>
+#include <seqan/modifier.h>
+
 using namespace std;
 using namespace seqan;
 
@@ -36,6 +40,29 @@ vector<uint32_t> histogram(vector<uint32_t> & b , int const his_size, int const 
     return(hist);
 }
 
+/*
+
+// StringSet<DnaString> reads;
+    cout << "Testign" << endl;
+    cout << reads[1][1] << endl;
+    cout << length(reads[1]) << endl;
+    cout << reads[1][1] == 'G' << endl;
+    cout << reads[1][1] == 'A' << endl;
+    DnaString str1 = "CGCG";
+    appendValue(stringSet, str0);
+*/
+
+
+StringSet<DnaString> createRCReads(StringSet<DnaString> & reads)
+{
+    StringSet<DnaString> rcReads;
+    for(int i = 0; i < length(reads); ++i){
+        //ModifiedString<ModifiedString<DnaString, ModComplementDna>, ModReverse> myModifier(reads[1]);
+        DnaStringReverseComplement myModifier(reads[i]);
+        appendValue(rcReads, myModifier);
+    }
+    return(rcReads);
+}
 
 int main(int argc, char *argv[])
 {
@@ -68,6 +95,8 @@ int main(int argc, char *argv[])
 
     addOption(parser, ArgParseOption("dd", "defaultT",
         "Test default with in Text Search"));
+    addOption(parser, ArgParseOption("rc", "rc",
+        "Search on both strands"));
 
     addOption(parser, ArgParseOption("c", "ecompare",
         "Compare my Version and default version"));
@@ -102,6 +131,7 @@ int main(int argc, char *argv[])
     getOptionValue(benchparams, parser, "benchparams");
     bool mdefault = isSet(parser, "default");
     bool defaultT = isSet(parser, "defaultT");
+    bool rc = isSet(parser, "rc");
     bool ecompare = isSet(parser, "ecompare");
     bool notmy = isSet(parser, "notmy");
     bool startuni = isSet(parser, "startuni");
@@ -121,6 +151,20 @@ int main(int argc, char *argv[])
         for(int i = 0; i < nreads - r; ++i)
             eraseBack(reads);
     }
+
+
+    if(rc){
+        //add reverse Complement of reads to search on both strands
+        auto startT = std::chrono::high_resolution_clock::now();
+        StringSet<DnaString> rcreads = createRCReads(reads);
+        for(int i = 0; i < length(rcreads); i++){
+            appendValue(reads, rcreads[i]);
+        }
+        auto finishT = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsedT = finishT - startT;
+        cout << "added reversed Reads in " << elapsedT.count() << "s" << endl;
+    }
+
 
 
     //load index
@@ -314,8 +358,8 @@ int main(int argc, char *argv[])
 //         cout << readOccCount[i] << " - " <<  readOccCountDeT[i] << endl;
     }
 
-    cout << "reads found: " << found << endl;
-    cout << "reads found with mappability: " << foundD << endl;
+    cout << "reads found with mappability: " << found << endl;
+    cout << "reads found: " << foundD << endl;
 
 
     // investigating the vectors
