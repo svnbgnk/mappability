@@ -351,7 +351,7 @@ int main(int argc, char *argv[])
 
 
     int found = 0, foundD = 0;
-    int notfound = 0, missed = 0, same = 0, nice = 0;
+    int notfound = 0, mymiss = 0, same = 0, nice = 0, verynice = 0;
     vector<uint8_t> mycase(length(reads), 255);
 
 
@@ -376,7 +376,7 @@ int main(int argc, char *argv[])
     {
         found += readOccCount[i] > 0;
         foundD += readOccCountDeT[i] > 0;
-        cout << readOccCount[i] << " - " <<  readOccCountDeT[i] << endl;
+//         cout << readOccCount[i] << " - " <<  readOccCountDeT[i] << endl;
         if(readOccCount[i] == readOccCountDeT[i]){
             if(readOccCount[i] == 0){
                 ++notfound;
@@ -391,15 +391,20 @@ int main(int argc, char *argv[])
         else
         {
             if(readOccCount[i] == 0){
-                ++missed;
+                ++mymiss;
                 mycase[i] = 1;
             }
             else
             {
                 ++nice;
+                if(static_cast<double>(readOccCountDeT[i]) / readOccCount[i] > 2)
+                    ++verynice;
+
                 mycase[i] = 3;
-                if(readOccCount[i] > readOccCountDeT[i])
+                if(readOccCount[i] > readOccCountDeT[i]){
+                    cerr << "More occurrences with mappability" << endl;
                     exit(0);
+                }
             }
         }
 
@@ -408,7 +413,7 @@ int main(int argc, char *argv[])
 
     //write filtered fastas
     SeqFileOut seqFileout0(toCString(outputpath + "/notfound.fa"));
-    SeqFileOut seqFileout1(toCString(outputpath + "/missed.fa"));
+    SeqFileOut seqFileout1(toCString(outputpath + "/mymiss.fa"));
     SeqFileOut seqFileout2(toCString(outputpath + "/same.fa"));
     SeqFileOut seqFileout3(toCString(outputpath + "/nice.fa"));
 
@@ -434,9 +439,10 @@ int main(int argc, char *argv[])
     cout << "reads found with mappability: " << found << endl;
     cout << "reads found: " << foundD << endl;
     cout << "not found: " << notfound << endl;
-    cout << "missed: " << missed << endl;
+    cout << "mymiss: " << mymiss << endl;
     cout << "same: " << same << endl;
     cout << "nice: " << nice << endl;
+    cout << "thereof verynice: " << verynice << endl;
 
 
 
