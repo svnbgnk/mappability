@@ -41,15 +41,16 @@ vector<uint32_t> histogram(vector<uint32_t> & b , int const his_size, int const 
 }
 
 /*
+template <typename T>
+inline void save(vector<T> const & c, string const & output_path)
+{
+    ofstream outfile(output_path, ios::out | ios::binary);
+    outfile.write((const char*) &c[0], c.size() * sizeof(TVector::value_type));
+    outfile.close();
 
-// StringSet<DnaString> reads;
-    cout << "Testign" << endl;
-    cout << reads[1][1] << endl;
-    cout << length(reads[1]) << endl;
-    cout << reads[1][1] == 'G' << endl;
-    cout << reads[1][1] == 'A' << endl;
-    DnaString str1 = "CGCG";
-    appendValue(stringSet, str0);
+    // ofstream outfile(output_path, std::ios::out | std::ofstream::binary);
+    // copy(c.begin(), c.end(), (std::ostream_iterator<uint8_t>(outfile), std::ostream_iterator<int>(outfile, " ")));
+}
 */
 
 
@@ -109,7 +110,7 @@ int main(int argc, char *argv[])
         "Compare my Version and default version"));
 
     addOption(parser, ArgParseOption("su", "startuni",
-        "Start Unidirectional"));
+        "Start Unidirectional"));;
 
 
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
@@ -183,7 +184,7 @@ int main(int argc, char *argv[])
 
 //     std::vector<hit> dhits;
 //     std::vector<hit> hits;
-    auto delegate = [&hits](auto const & iter, DnaString const & needle, uint8_t errors, bool const rev)
+    auto delegate = [/*&hits*/](auto const & iter, DnaString const & needle, uint8_t errors, bool const rev)
     {
         for (auto occ : getOccurrences(iter)){
             hit me;
@@ -194,7 +195,7 @@ int main(int argc, char *argv[])
             hits.push_back(me);
         }
     };
-    auto delegateDirect = [&dhits](Pair<uint16_t, uint32_t> const & pos, DnaString const & needle, uint8_t const errors)
+    auto delegateDirect = [/*&dhits*/](Pair<uint16_t, uint32_t> const & pos, DnaString const & needle, uint8_t const errors)
     {
         hit me;
         me.occ = pos;
@@ -320,7 +321,7 @@ int main(int argc, char *argv[])
         params.comp.directsearchblockoffset = 0;
 //         std::vector<hit> hitsDe;
 //         std::vector<hit> dhitsDe;
-        auto delegate2 = [&hitsDe](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
+        auto delegate2 = [](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
         {
             for (auto occ : getOccurrences(iter)){
                 hit me;
@@ -331,7 +332,7 @@ int main(int argc, char *argv[])
                 hitsDe.push_back(me);
             }
         };
-        auto delegateDirect2 = [&dhitsDe](Pair<uint16_t, uint32_t> const & pos, DnaString const & needle, uint8_t const errors)
+        auto delegateDirect2 = [](Pair<uint16_t, uint32_t> const & pos, DnaString const & needle, uint8_t const errors)
         {
             hit me;
             me.occ = pos;
@@ -350,6 +351,11 @@ int main(int argc, char *argv[])
 
 
     int found = 0, foundD = 0;
+    int notfound = 0, missed = 0, same = 0, nice = 0;
+    vector<uint8_t> mycase(length(reads), 255);
+
+
+
 
     if(rc){
         int nr = readOccCount.size()/2;
@@ -358,23 +364,80 @@ int main(int argc, char *argv[])
         {
             readOccCount[i] += readOccCount[i + nr];
             readOccCountDeT[i] += readOccCountDeT[i + nr];
+
         }
         readOccCount.erase(readOccCount.begin() + nr, readOccCount.end());
         readOccCountDeT.erase(readOccCountDeT.begin() + nr, readOccCountDeT.end());
     }
 
 
+    cout << "Test " << readOccCount.size() << endl;
     for(int i = 0; i < readOccCount.size(); ++i)
     {
         found += readOccCount[i] > 0;
         foundD += readOccCountDeT[i] > 0;
-//       cout << readOccCount[i] << " - " <<  readOccCountDeT[i] << endl;
+        cout << readOccCount[i] << " - " <<  readOccCountDeT[i] << endl;
+        if(readOccCount[i] == readOccCountDeT[i]){
+            if(readOccCount[i] == 0){
+                ++notfound;
+                mycase[i] = 0;
+            }
+            else
+            {
+                ++same;
+                mycase[i] = 2;
+            }
+        }
+        else
+        {
+            if(readOccCount[i] == 0){
+                ++missed;
+                mycase[i] = 1;
+            }
+            else
+            {
+                ++nice;
+                mycase[i] = 3;
+                if(readOccCount[i] > readOccCountDeT[i])
+                    exit(0);
+            }
+        }
+
     }
 
 
+    //write filtered fastas
+    SeqFileOut seqFileout0(toCString(outputpath + "/notfound.fa"));
+    SeqFileOut seqFileout1(toCString(outputpath + "/missed.fa"));
+    SeqFileOut seqFileout2(toCString(outputpath + "/same.fa"));
+    SeqFileOut seqFileout3(toCString(outputpath + "/nice.fa"));
+
+
+    for(int i = 0; i < length(reads); ++i)
+    {
+        switch(mycase[i])
+        {
+            case 0: writeRecord(seqFileout0, ids[i], reads[i]); break;
+            case 1: writeRecord(seqFileout1, ids[i], reads[i]); break;
+            case 2: writeRecord(seqFileout2, ids[i], reads[i]); break;
+            case 3: writeRecord(seqFileout3, ids[i], reads[i]); break;
+            default: break;
+        }
+
+    }
+
+    close(seqFileout0);
+    close(seqFileout1);
+    close(seqFileout2);
+    close(seqFileout3);
 
     cout << "reads found with mappability: " << found << endl;
     cout << "reads found: " << foundD << endl;
+    cout << "not found: " << notfound << endl;
+    cout << "missed: " << missed << endl;
+    cout << "same: " << same << endl;
+    cout << "nice: " << nice << endl;
+
 
 
     // investigating the vectors
