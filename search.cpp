@@ -101,6 +101,9 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("fr", "fr",
         "Create fastas with filtered reads in output directory"));
 
+        addOption(parser, ArgParseOption("sp", "split",
+        "split reads"));
+
     addOption(parser, ArgParseOption("c", "ecompare",
         "Compare my Version and default version"));
 
@@ -136,6 +139,7 @@ int main(int argc, char *argv[])
     bool defaultT = isSet(parser, "defaultT");
     bool rc = isSet(parser, "rc");
     bool fr = isSet(parser, "fr");
+    bool split = isSet(parser, "sp");
     bool ecompare = isSet(parser, "ecompare");
     bool notmy = isSet(parser, "notmy");
     bool startuni = isSet(parser, "startuni");
@@ -155,6 +159,17 @@ int main(int argc, char *argv[])
         for(int i = 0; i < nreads - r; ++i)
             eraseBack(reads);
     }
+
+    if(split){
+        int readlength = length(reads[0]);
+        for(int i = 0; i < length(reads); ++i){
+//             appendValue(rcReads, infix(reads[i], readlength/2 + readlength));
+            reads[i] = infix(reads[i], 0, 0 + readlength/2);
+        }
+        cout << "read length: ";
+        cout << length(reads[0]) << endl;
+    }
+
 
 
     if(rc){
