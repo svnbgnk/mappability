@@ -181,10 +181,12 @@ int main(int argc, char *argv[])
     cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
 
     // load bitvectors
-    cout << "Loading bitvectors" << endl;
-    vector<pair<TBitvector, TSupport>> bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
-    cout << "Bit vectors loaded. Number: " << bitvectors.size() << " Length: " << bitvectors[0].first.size() << endl;
-
+    vector<pair<TBitvector, TSupport>> bitvectors;
+    if(!notmy){
+        cout << "Loading bitvectors" << endl;
+        bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
+        cout << "Bit vectors loaded. Number: " << bitvectors.size() << " Length: " << bitvectors[0].first.size() << endl;
+    }
 //     std::vector<hit> dhits;
 //     std::vector<hit> hits;
     auto delegate = [/*&hits*/](auto const & iter, DnaString const & needle, uint8_t errors, bool const rev)
@@ -359,10 +361,9 @@ int main(int argc, char *argv[])
 
 
 
-
+    if(!notmy){
     if(rc){
-        int nr = readOccCount.size()/2;
-        cout << "Jump:" << nr << endl;
+        int nr = readOccCountDeT.size()/2;
         for(int i = 0; i < readOccCountDeT.size()/2; ++i)
         {
             readOccCount[i] += readOccCount[i + nr];
@@ -374,8 +375,9 @@ int main(int argc, char *argv[])
     }
 
 
-    cout << "Test " << readOccCount.size() << endl;
-    for(int i = 0; i < readOccCount.size(); ++i)
+    cout << "Test " << readOccCountDeT.size() << endl;
+
+    for(int i = 0; i < readOccCountDeT.size(); ++i)
     {
         found += readOccCount[i] > 0;
         foundD += readOccCountDeT[i] > 0;
@@ -412,6 +414,15 @@ int main(int argc, char *argv[])
         }
 
     }
+    }
+    else
+    {
+        for(int i = 0; i < readOccCountDeT.size(); ++i)
+        {
+            foundD += readOccCountDeT[i] > 0;
+        }
+
+    }
 
 
     if(fr){
@@ -441,7 +452,7 @@ int main(int argc, char *argv[])
         close(seqFileout3);
     }
     cout << "reads found with mappability: " << found << endl;
-    cout << "reads found: " << foundD << endl;
+    cout << "reads found without considering mappability: " << foundD << endl;
     cout << "not found: " << notfound << endl;
     cout << "mymiss: " << mymiss << endl;
     cout << "same: " << same << endl;
@@ -453,10 +464,9 @@ int main(int argc, char *argv[])
     // investigating the vectors
     int bucketSize = 10;
     int histSize = 10;
+
+    if(!notmy){
     vector<uint32_t> h = histogram(readOccCount, histSize, bucketSize);
-    vector<uint32_t> hDeT = histogram(readOccCountDeT, histSize, bucketSize);
-
-
     cout << "Histogram buckets size " << bucketSize << ": " << endl;
     for(int i = 0; i < h.size(); ++i){
         cout << bucketSize*(i + 1) - 1 << "\t";
@@ -466,8 +476,9 @@ int main(int argc, char *argv[])
         cout << h[i] << "\t";
     }
     cout << endl;
+    }
 
-
+    vector<uint32_t> hDeT = histogram(readOccCountDeT, histSize, bucketSize);
     cout << "Histogram buckets size " << bucketSize << ": " << endl;
     for(int i = 0; i < hDeT.size(); ++i){
         cout << bucketSize*(i + 1) - 1 << "\t";

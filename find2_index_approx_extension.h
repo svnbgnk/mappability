@@ -919,6 +919,8 @@ inline void find(const int minErrors,
                 break;
         case 3: find<0, 3>(delegate, index, needles, TDistanceTag());
                 break;
+        case 4: find<0, 4>(delegate, index, needles, TDistanceTag());
+                break;
         default: cerr << "E = " << maxErrors << " not yet supported.\n";
                 exit(1);
     }
@@ -941,6 +943,8 @@ inline void find(const int minErrors,
         case 2: find<0, 2>(delegate, delegateDirect, index, needles);
                 break;
         case 3: find<0, 3>(delegate, delegateDirect, index, needles);
+                break;
+        case 4: find<0, 4>(delegate, delegateDirect, index, needles);
                 break;
         default: cerr << "E = " << maxErrors << " not yet supported.\n";
                 exit(1);
