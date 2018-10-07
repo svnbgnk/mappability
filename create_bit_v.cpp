@@ -238,7 +238,7 @@ void order_bit_vector(bitvectors & b, CharString const indexPath, uint32_t const
         mythreads = omp_get_max_threads();
     else
         mythreads = threads;
-    //dynamic since tasks can take different amount (SA Sampling) ordered to guarantee thread safety
+    //dynamic since tasks can take different amount of time (SA Sampling) critical to guarantee thread safety
 
     uint8_t bsize = b.bv.size();
 

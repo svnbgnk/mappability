@@ -98,6 +98,8 @@ int main(int argc, char *argv[])
         "Test default with in Text Search"));
     addOption(parser, ArgParseOption("rc", "rc",
         "Search on both strands"));
+    addOption(parser, ArgParseOption("fr", "fr",
+        "Create fastas with filtered reads in output directory"));
 
     addOption(parser, ArgParseOption("c", "ecompare",
         "Compare my Version and default version"));
@@ -133,6 +135,7 @@ int main(int argc, char *argv[])
     bool mdefault = isSet(parser, "default");
     bool defaultT = isSet(parser, "defaultT");
     bool rc = isSet(parser, "rc");
+    bool fr = isSet(parser, "fr");
     bool ecompare = isSet(parser, "ecompare");
     bool notmy = isSet(parser, "notmy");
     bool startuni = isSet(parser, "startuni");
@@ -360,7 +363,7 @@ int main(int argc, char *argv[])
     if(rc){
         int nr = readOccCount.size()/2;
         cout << "Jump:" << nr << endl;
-        for(int i = 0; i < readOccCount.size()/2; ++i)
+        for(int i = 0; i < readOccCountDeT.size()/2; ++i)
         {
             readOccCount[i] += readOccCount[i + nr];
             readOccCountDeT[i] += readOccCountDeT[i + nr];
@@ -411,31 +414,32 @@ int main(int argc, char *argv[])
     }
 
 
-    //write filtered fastas
-    SeqFileOut seqFileout0(toCString(outputpath + "/notfound.fa"));
-    SeqFileOut seqFileout1(toCString(outputpath + "/mymiss.fa"));
-    SeqFileOut seqFileout2(toCString(outputpath + "/same.fa"));
-    SeqFileOut seqFileout3(toCString(outputpath + "/nice.fa"));
+    if(fr){
+        //write filtered fastas
+        SeqFileOut seqFileout0(toCString(outputpath + "/notfound.fa"));
+        SeqFileOut seqFileout1(toCString(outputpath + "/mymiss.fa"));
+        SeqFileOut seqFileout2(toCString(outputpath + "/same.fa"));
+        SeqFileOut seqFileout3(toCString(outputpath + "/nice.fa"));
 
 
-    for(int i = 0; i < length(reads); ++i)
-    {
-        switch(mycase[i])
+        for(int i = 0; i < length(reads); ++i)
         {
-            case 0: writeRecord(seqFileout0, ids[i], reads[i]); break;
-            case 1: writeRecord(seqFileout1, ids[i], reads[i]); break;
-            case 2: writeRecord(seqFileout2, ids[i], reads[i]); break;
-            case 3: writeRecord(seqFileout3, ids[i], reads[i]); break;
-            default: break;
+            switch(mycase[i])
+            {
+                case 0: writeRecord(seqFileout0, ids[i], reads[i]); break;
+                case 1: writeRecord(seqFileout1, ids[i], reads[i]); break;
+                case 2: writeRecord(seqFileout2, ids[i], reads[i]); break;
+                case 3: writeRecord(seqFileout3, ids[i], reads[i]); break;
+                default: break;
+            }
+
         }
 
+        close(seqFileout0);
+        close(seqFileout1);
+        close(seqFileout2);
+        close(seqFileout3);
     }
-
-    close(seqFileout0);
-    close(seqFileout1);
-    close(seqFileout2);
-    close(seqFileout3);
-
     cout << "reads found with mappability: " << found << endl;
     cout << "reads found: " << foundD << endl;
     cout << "not found: " << notfound << endl;
