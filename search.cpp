@@ -161,6 +161,7 @@ int main(int argc, char *argv[])
     }
 
     if(split){
+        auto startT = std::chrono::high_resolution_clock::now();
         int readlength = length(reads[0]);
         for(int i = 0; i < length(reads); ++i){
 //             appendValue(rcReads, infix(reads[i], readlength/2 + readlength));
@@ -168,6 +169,9 @@ int main(int argc, char *argv[])
         }
         cout << "read length: ";
         cout << length(reads[0]) << endl;
+        auto finishT = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsedT = finishT - startT;
+        cout << "splitted reads in " << elapsedT.count() << "s" << endl;
     }
 
 
@@ -225,7 +229,7 @@ int main(int argc, char *argv[])
         dhits.push_back(me);
     };
 
-//     std::this_thread::sleep_for (std::chrono::seconds(20));
+    std::this_thread::sleep_for (std::chrono::seconds(60));
 
     if(startuni){
         params.startUnidirectional = true;
@@ -310,10 +314,10 @@ int main(int argc, char *argv[])
 
     // Test default
     //TODO change vector name of lambda function
-    /*
-    std::vector<hit> hitsDe;
+
+    std::vector<hit> hitsDefault;
     if(mdefault){
-        auto delegateDe = [&hitsDe](auto & iter, DnaString const & needle, uint8_t const errors)
+        auto delegateDefault = [&hitsDefault](auto & iter, DnaString const & needle, uint8_t const errors)
         {
             for (auto occ : getOccurrences(iter)){
                 hit me;
@@ -321,19 +325,19 @@ int main(int argc, char *argv[])
                 me.read = needle;
                 me.errors = errors;
                 me.rev = false;
-                hitsDe.push_back(me);
+                hitsDefault.push_back(me);
             }
         };
         cout << "Test default" << endl;
         start = std::chrono::high_resolution_clock::now();
-        find(0, nerrors, delegateDe, index, reads, HammingDistance());
+        find(0, nerrors, delegateDefault, index, reads, HammingDistance());
         finish = std::chrono::high_resolution_clock::now();
 
         elapsed = finish - start;
         cout << "Default Version elapsed: " << elapsed.count() << "s" << endl;
-        cout << "default Hits: " << hitsDe.size() << endl;
+        cout << "default Hits: " << hitsDefault.size() << endl;
     }
-    */
+
 
     // default with in text search
     if(defaultT){
