@@ -177,7 +177,8 @@ int main(int argc, char *argv[])
     auto finish2 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finish2 - start2;
     cout << "Default Version with DS: " << elapsed.count() << "s" << endl;
-    cout << "default DS Hits: " << hitsDe.size() + dhitsDe.size() << endl;
+    cout << "default DS Hits: " << dhitsDe.size() << endl;
+    cout << "default overall Hits: " << hitsDe.size() + dhitsDe.size() << endl;
 
 
     if(ecompare){
