@@ -40,26 +40,26 @@ set (CMAKE_CXX_FLAGS "-std=c++14 -pthread -DSEQAN_DISABLE_VERSION_CHECK=YES -I $
 
 # Add executable and link against SeqAn dependencies.
 
-add_executable (mappability mappability.cpp)
-target_link_libraries (mappability ${SEQAN_LIBRARIES})
+#add_executable (mappability mappability.cpp)
+#target_link_libraries (mappability ${SEQAN_LIBRARIES})
 
-add_executable (tests tests.cpp)
-target_link_libraries (tests ${SEQAN_LIBRARIES})
+#add_executable (tests tests.cpp)
+#target_link_libraries (tests ${SEQAN_LIBRARIES})
 
 add_executable (create_index create_index.cpp)
 target_link_libraries (create_index ${SEQAN_LIBRARIES})
 
-add_executable (create_bit_v create_bit_v.cpp)
-target_link_libraries (create_bit_v ${SEQAN_LIBRARIES})
+#add_executable (create_bit_v create_bit_v.cpp)
+#target_link_libraries (create_bit_v ${SEQAN_LIBRARIES})
 
-add_executable (search search.cpp)
-target_link_libraries (search ${SEQAN_LIBRARIES})
+#add_executable (search search.cpp)
+#target_link_libraries (search ${SEQAN_LIBRARIES})
 
-add_executable (heatmap heatmap.cpp)
-target_link_libraries (heatmap ${SEQAN_LIBRARIES})
+#add_executable (heatmap heatmap.cpp)
+#target_link_libraries (heatmap ${SEQAN_LIBRARIES})
 
-add_executable (benchmark benchmark.cpp)
-target_link_libraries (benchmark ${SEQAN_LIBRARIES})
+#add_executable (benchmark benchmark.cpp)
+#target_link_libraries (benchmark ${SEQAN_LIBRARIES})
 
 add_executable (testIts testIts.cpp)
 target_link_libraries (testIts ${SEQAN_LIBRARIES})

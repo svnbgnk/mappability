@@ -4,7 +4,7 @@
 #include <seqan/index.h>
 #include "auxiliary.h"
 #include "common_auxiliary.h"
-//#include <seqan/index/find2_index_approx_its.h>
+// #include <seqan/index/find2_index_approx_itv.h>
 // #include "find2_index_approx_extension.h"
 
 #include "global.h"
@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
     // default with in text search
     std::vector<hit> hitsDe;
     std::vector<hit> dhitsDe;
-    auto delegate2 = [&hitsDe](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
+    auto delegate2 = [&hitsDe](auto & iter, DnaString const & needle, uint8_t errors/*, bool const rev*/)
     {
         for (auto occ : getOccurrences(iter)){
             hit me;
@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
     };
     cout << "loaded lamda functions" << endl;
     auto start2 = std::chrono::high_resolution_clock::now();
-    find<0, 2>(delegate2, delegateDirect2, inTextSearchCondition, index, reads);
+    find<0, 2>(delegate2, delegateDirect2, inTextSearchCondition, index, reads, HammingDistance());
     auto finish2 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = finish2 - start2;
     cout << "Default Version with DS: " << elapsed.count() << "s" << endl;
