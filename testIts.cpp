@@ -16,6 +16,66 @@ using namespace seqan;
 myGlobalParameters params;
 int global;
 
+template <size_t minErrors, size_t maxErrors,
+          typename TDelegate, typename TDelegateD, typename TCondition,
+          typename TText, typename TIndexSpec,
+          typename TChar, typename TStringSpec,
+          typename TDistanceTag>
+inline void
+find(TDelegate & delegate,
+     TDelegateD & delegateDirect,
+     TCondition & itvCondition,
+     Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+     String<TChar, TStringSpec> const & needle,
+     TDistanceTag const & /**/)
+{
+    auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
+    _optimalSearchSchemeComputeFixedBlocklength(scheme, length(needle));
+    Iter<Index<TText, BidirectionalIndex<TIndexSpec> >, VSTree<TopDown<> > > it(index);
+    _optimalSearchScheme(delegate,  delegateDirect, itvCondition, it, needle, scheme, TDistanceTag());
+}
+
+template <size_t minErrors, size_t maxErrors,
+          typename TDelegate, typename TDelegateD, typename TCondition,
+          typename TText, typename TIndexSpec,
+          typename TNeedle, typename TStringSetSpec,
+          typename TDistanceTag,
+          typename TParallelTag>
+inline void
+find(TDelegate & delegate,
+     TDelegateD & delegateDirect,
+     TCondition & itvCondition,
+     Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+     StringSet<TNeedle, TStringSetSpec> const & needles,
+     TDistanceTag const & /**/,
+     TParallelTag const & /**/)
+{
+    typedef typename Iterator<StringSet<TNeedle, TStringSetSpec> const, Rooted>::Type TNeedleIt;
+    typedef typename Reference<TNeedleIt>::Type                                       TNeedleRef;
+    iterate(needles, [&](TNeedleIt const & needleIt)
+    {
+        TNeedleRef needle = value(needleIt);
+        find<minErrors, maxErrors>(delegate, delegateDirect, itvCondition, index, needle, TDistanceTag());
+    },
+    Rooted(), TParallelTag());
+}
+
+template <size_t minErrors, size_t maxErrors,
+          typename TDelegate, typename TDelegateD, typename TCondition,
+          typename TText, typename TIndexSpec,
+          typename TNeedle, typename TStringSetSpec,
+          typename TDistanceTag>
+inline void
+find(TDelegate & delegate,
+     TDelegateD & delegateDirect,
+     TCondition & itvCondition,
+     Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+     StringSet<TNeedle, TStringSetSpec> const & needles,
+     TDistanceTag const & /**/)
+{
+    find<minErrors, maxErrors>(delegate, delegateDirect, itvCondition, index, needles, TDistanceTag(), Serial());
+}
+
 int main(int argc, char *argv[])
 {
     ArgumentParser parser("Search");
