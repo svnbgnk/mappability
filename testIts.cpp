@@ -7,14 +7,10 @@
 // #include <seqan/index/find2_index_approx_itv.h>
 // #include "find2_index_approx_extension.h"
 
-#include "global.h"
 #include <thread>         // std::this_thread::sleep_for
 
 using namespace std;
 using namespace seqan;
-
-myGlobalParameters params;
-int global;
 
 template <size_t minErrors, size_t maxErrors,
           typename TDelegate, typename TDelegateD, typename TCondition,
@@ -171,12 +167,6 @@ int main(int argc, char *argv[])
     auto const & genome = indexText(index);
     cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
 
-/*
-    // load bitvectors
-    cout << "Loading bitvectors" << endl;
-    vector<pair<TBitvector, TSupport>> bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
-    cout << "Bit vectors loaded. Number: " << bitvectors.size() << " Length: " << bitvectors[0].first.size() << endl;
-*/
 
     // test OSS
     std::vector<hit> hitsDefault;
