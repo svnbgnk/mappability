@@ -90,10 +90,8 @@ inline void genomeSearch(TDelegateD & delegateDirect,
                   Pair<uint16_t, uint32_t> const & sa_info,
                   std::array<uint32_t, nbrBlocks> & blockStarts,
                   std::array<uint32_t, nbrBlocks> & blockEnds)
-//                   vector<uint32_t> const & blockStarts,
-//                   vector<uint32_t> const & blockEnds)
 {
-    for(uint32_t j = 0; j < nbrBlocks -blockIndex ; ++j){
+    for(uint32_t j = 0; j < nbrBlocks - blockIndex; ++j){
         // compare bases to needle
         for(uint32_t k = blockStarts[j]; k <  blockEnds[j]; ++k){
             if(needle[k] != genome[sa_info.i1][sa_info.i2 + k]){
@@ -107,19 +105,6 @@ inline void genomeSearch(TDelegateD & delegateDirect,
     delegateDirect(sa_info, needle, errors);
 
 }
-/*
-template<size_t nbrBlocks>
-inline void getForwardBlockLimits(OptimalSearch<nbrBlocks> const & s,
-               uint8_t const blockIndex,
-               vector<uint32_t> & blockStarts,
-                vector<uint32_t> & blockEnds)
-{
-    for(uint32_t j = blockIndex; j < s.pi.size(); ++j){
-        uint32_t blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2]; //TODO fix this
-        blockStarts[j - blockIndex] = blockStart;
-        blockEnds[j - blockIndex] = s.chronBL[s.pi[j] - 1];
-    }
-}*/
 
 template <typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
@@ -140,19 +125,6 @@ inline void directSearch(TDelegateD & delegateDirect,
                   TDir const & )
 {
     auto const & genome = indexText(*iter.fwdIter.index);
-    uint32_t needleL = length(needle);
-
-    //TODO put this into function
-//     uint32_t blocks = s.pi.size();
-//     vector<uint32_t> blockStarts(blocks - blockIndex);
-//     vector<uint32_t> blockEnds(blocks - blockIndex);
-//     getForwardBlockLimits(s, blockIndex, blockStarts, blockEnds);
-
-//     std::vector<uint32_t> blockStarts(std::begin(s.blockStarts) + blockIndex, std::end(s.blockStarts));
-//     std::vector<uint32_t> blockEnds(std::begin(s.blockEnds) + blockIndex, std::end(s.blockEnds));
-//     std::copy(std::begin(s.blockStarts) + blockIndex, std::end(s.blockStarts), std::begin(blockStarts));
-//     std::copy(std::begin(s.blockEnds) + blockIndex, std::end(s.blockEnds), std::begin(blockEnds));
-
     std::array<uint32_t, nbrBlocks> blockStarts;
     std::array<uint32_t, nbrBlocks> blockEnds;
     std::copy(std::begin(s.blockStarts) + blockIndex, std::end(s.blockStarts), std::begin(blockStarts));
@@ -170,7 +142,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                 uint32_t chromlength = length(genome[sa_info.i1]);
                 //Info make sure we dont DS search something going over the chromosom edge
                 //check left chromosom boundry && check right chromosom boundry
-                if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1))
+                if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + length(needle) - 1))
                     continue;
 
                 sa_info.i2 = sa_info.i2 - needleLeftPos;
@@ -189,9 +161,9 @@ inline void directSearch(TDelegateD & delegateDirect,
         for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
             if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
                 Pair<uint16_t, uint32_t> sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
-                uint32_t chromlength = length(genome[sa_info.i1]);
+                uint32_t const chromlength = length(genome[sa_info.i1]);
                 //check left chromosom boundry && check right chromosom boundry
-                if(!(chromlength - 1 >= sa_info.i2 + needleRightPos - 1 && sa_info.i2 + needleRightPos - 1 >= needleL + 1))
+                if(!(chromlength - 1 >= sa_info.i2 + needleRightPos - 1 && sa_info.i2 + needleRightPos - 1 >= length(needle) + 1))
                     continue;
                 //calculate correct starting position of the needle  on the forward index
                 sa_info.i2 = chromlength - sa_info.i2 - needleRightPos + 1;

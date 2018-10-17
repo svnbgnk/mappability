@@ -49,12 +49,14 @@ inline void genomeSearch(TDelegateD & delegateDirect,
                   uint8_t const blockIndex,
                   auto const & rgenome,
                   Pair<uint16_t, uint32_t> & sa_info,
-                  vector<uint32_t> const & blockStarts,
-                  vector<uint32_t> const & blockEnds,
+//                   vector<uint32_t> const & blockStarts,
+//                   vector<uint32_t> const & blockEnds,
+                  std::array<uint32_t, nbrBlocks> & blockStarts,
+                  std::array<uint32_t, nbrBlocks> & blockEnds,
                   bool const unidirectionalOnReverseIndex)
 {
     uint32_t needleL = length(needle);
-    for(uint8_t j = 0; j < blockStarts.size(); ++j){
+    for(uint8_t j = 0; j < nbrBlocks - blockIndex; ++j){
         //what is this
 //         if(needleLeftPos < length(needle) - blockStart && needleLeftPos > length(needle) - blockEnd){
 //             blockStart = length(needle) - needleLeftPos; //- 1 + 1
@@ -97,13 +99,11 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
     uint32_t blocks = s.pi.size();
 
     if(std::is_same<TDir, Rev>::value){
-        vector<uint32_t> blockStarts(blocks - blockIndex);
-        vector<uint32_t> blockEnds(blocks - blockIndex);
-        for(uint32_t j = blockIndex; j < s.pi.size(); ++j){
-            uint32_t blockStart = (s.pi[j] == s.pi.size()) ? 0 : s.revChronBL[s.pi[j]]; //TODO fix this
-            blockStarts[j - blockIndex] = blockStart;
-            blockEnds[j - blockIndex] = s.revChronBL[s.pi[j] - 1];
-        }
+
+        std::array<uint32_t, nbrBlocks> blockStarts;
+        std::array<uint32_t, nbrBlocks> blockEnds;
+        std::copy(std::begin(s.revblockStarts) + blockIndex, std::end(s.revblockStarts), std::begin(blockStarts));
+        std::copy(std::begin(s.revblockEnds) + blockIndex, std::end(s.revblockEnds), std::begin(blockEnds));
 
         for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
             //this time i use the mappability from "inside" the needle since i can garantue i am at a blockend
@@ -121,14 +121,7 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
         }
     }
     else
-    {/*
-        vector<uint32_t> blockStarts(blocks - blockIndex);
-        vector<uint32_t> blockEnds(blocks - blockIndex);
-        getForwardBlockLimits(s, blockIndex, blockStarts, blockEnds);*/
-
-//         std::vector<uint32_t> blockStarts(std::begin(s.blockStarts) + blockIndex, std::end(s.blockStarts));
-//         std::vector<uint32_t> blockEnds(std::begin(s.blockEnds) + blockIndex, std::end(s.blockEnds));
-
+    {
         std::array<uint32_t, nbrBlocks> blockStarts;
         std::array<uint32_t, nbrBlocks> blockEnds;
         std::copy(std::begin(s.blockStarts) + blockIndex, std::end(s.blockStarts), std::begin(blockStarts));
@@ -152,7 +145,6 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
         }
     }
 }
-
 
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TConfig, typename TIndexSpec,
