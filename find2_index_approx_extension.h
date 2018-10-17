@@ -88,10 +88,12 @@ inline void genomeSearch(TDelegateD & delegateDirect,
                   uint8_t const blockIndex,
                   auto const & genome,
                   Pair<uint16_t, uint32_t> const & sa_info,
-                  vector<uint32_t> const & blockStarts,
-                  vector<uint32_t> const & blockEnds)
+                  std::array<uint32_t, nbrBlocks> & blockStarts,
+                  std::array<uint32_t, nbrBlocks> & blockEnds)
+//                   vector<uint32_t> const & blockStarts,
+//                   vector<uint32_t> const & blockEnds)
 {
-    for(uint32_t j = 0; j < blockStarts.size(); ++j){
+    for(uint32_t j = 0; j < nbrBlocks -blockIndex ; ++j){
         // compare bases to needle
         for(uint32_t k = blockStarts[j]; k <  blockEnds[j]; ++k){
             if(needle[k] != genome[sa_info.i1][sa_info.i2 + k]){
@@ -105,7 +107,7 @@ inline void genomeSearch(TDelegateD & delegateDirect,
     delegateDirect(sa_info, needle, errors);
 
 }
-
+/*
 template<size_t nbrBlocks>
 inline void getForwardBlockLimits(OptimalSearch<nbrBlocks> const & s,
                uint8_t const blockIndex,
@@ -117,7 +119,7 @@ inline void getForwardBlockLimits(OptimalSearch<nbrBlocks> const & s,
         blockStarts[j - blockIndex] = blockStart;
         blockEnds[j - blockIndex] = s.chronBL[s.pi[j] - 1];
     }
-}
+}*/
 
 template <typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
@@ -141,10 +143,20 @@ inline void directSearch(TDelegateD & delegateDirect,
     uint32_t needleL = length(needle);
 
     //TODO put this into function
-    uint32_t blocks = s.pi.size();
-    vector<uint32_t> blockStarts(blocks - blockIndex);
-    vector<uint32_t> blockEnds(blocks - blockIndex);
-    getForwardBlockLimits(s, blockIndex, blockStarts, blockEnds);
+//     uint32_t blocks = s.pi.size();
+//     vector<uint32_t> blockStarts(blocks - blockIndex);
+//     vector<uint32_t> blockEnds(blocks - blockIndex);
+//     getForwardBlockLimits(s, blockIndex, blockStarts, blockEnds);
+
+//     std::vector<uint32_t> blockStarts(std::begin(s.blockStarts) + blockIndex, std::end(s.blockStarts));
+//     std::vector<uint32_t> blockEnds(std::begin(s.blockEnds) + blockIndex, std::end(s.blockEnds));
+//     std::copy(std::begin(s.blockStarts) + blockIndex, std::end(s.blockStarts), std::begin(blockStarts));
+//     std::copy(std::begin(s.blockEnds) + blockIndex, std::end(s.blockEnds), std::begin(blockEnds));
+
+    std::array<uint32_t, nbrBlocks> blockStarts;
+    std::array<uint32_t, nbrBlocks> blockEnds;
+    std::copy(std::begin(s.blockStarts) + blockIndex, std::end(s.blockStarts), std::begin(blockStarts));
+    std::copy(std::begin(s.blockEnds) + blockIndex, std::end(s.blockEnds), std::begin(blockEnds));
 
     if(std::is_same<TDir, Rev>::value){
         //modify blockstart in case we are still inside a block

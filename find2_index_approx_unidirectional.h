@@ -121,10 +121,18 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
         }
     }
     else
-    {
+    {/*
         vector<uint32_t> blockStarts(blocks - blockIndex);
         vector<uint32_t> blockEnds(blocks - blockIndex);
-        getForwardBlockLimits(s, blockIndex, blockStarts, blockEnds);
+        getForwardBlockLimits(s, blockIndex, blockStarts, blockEnds);*/
+
+//         std::vector<uint32_t> blockStarts(std::begin(s.blockStarts) + blockIndex, std::end(s.blockStarts));
+//         std::vector<uint32_t> blockEnds(std::begin(s.blockEnds) + blockIndex, std::end(s.blockEnds));
+
+        std::array<uint32_t, nbrBlocks> blockStarts;
+        std::array<uint32_t, nbrBlocks> blockEnds;
+        std::copy(std::begin(s.blockStarts) + blockIndex, std::end(s.blockStarts), std::begin(blockStarts));
+        std::copy(std::begin(s.blockEnds) + blockIndex, std::end(s.blockEnds), std::begin(blockEnds));
 
         //this time i use the mappability from "inside" the needle since i can garantue i am at a blockend
         for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){

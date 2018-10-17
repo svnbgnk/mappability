@@ -50,32 +50,6 @@ template <size_t nbrBlocks, size_t N>
 /*constexpr */inline void _optimalSearchSchemeComputeChronBlocklength(std::array<OptimalSearch<nbrBlocks>, N> & ss)
 {
     for (OptimalSearch<nbrBlocks> & s : ss){
-//         int bsize = s.pi.size();
-    /*
-        uint8_t min = s.pi[0];
-        uint8_t max = s.pi[0];
-        // maybe < N?
-        for(int i = 0; i < bsize; ++i){
-            if(min > s.pi[i])
-                min = s.pi[i];
-            if(max < s.pi[i])
-                max = s.pi[i];
-            s.min[i] = min;
-            s.max[i] = max;
-        }
-        uint8_t lastValue = s.pi[bsize - 1];
-        int k = bsize - 2;
-        while(k >= 0){
-            if(s.pi[k] == lastValue - 1 || s.pi[k] == lastValue + 1)
-            {
-                lastValue = s.pi[k];
-                --k;
-            }else{
-                s.startUniDir = k + 1;
-                break;
-            }
-        }*/
-
         s.chronBL[s.pi[0] - 1]  = s.blocklength[0];
         for(int j = 1; j < nbrBlocks; ++j)
             s.chronBL[s.pi[j] - 1] = s.blocklength[j] -  s.blocklength[j - 1];
@@ -88,6 +62,18 @@ template <size_t nbrBlocks, size_t N>
         }
         for(int i = static_cast<int> (nbrBlocks) - 2; i >= 0; --i)
             s.revChronBL[i] += s.revChronBL[i + 1];
+    }
+    for (OptimalSearch<nbrBlocks> & s : ss){
+        for (uint8_t j = 0; j < s.pi.size(); ++j)
+        {
+            s.blockStarts[j] = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
+            s.blockEnds[j] = s.chronBL[s.pi[j] - 1];
+        }
+
+        for(uint8_t j = 0; j < s.pi.size(); ++j){
+            s.revblockStarts[j] = (s.pi[j] == s.pi.size()) ? 0 : s.revChronBL[s.pi[j]];
+            s.revblockEnds[j] = s.revChronBL[s.pi[j] - 1];
+        }
     }
 }
 
