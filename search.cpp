@@ -3,6 +3,7 @@
 #include <seqan/arg_parse.h>
 #include "auxiliary.h"
 #include "common_auxiliary.h"
+#include "newStats.h"
 #include "find2_index_approx_extension.h"
 #include "global.h"
 #include <thread>         // std::this_thread::sleep_for
@@ -21,38 +22,6 @@ std::vector<hit> hitsDe;
 std::vector<hit> dhitsDe;
 std::vector<uint32_t> readOccCount;
 std::vector<uint32_t> readOccCountDeT;
-
-vector<uint32_t> histogram(vector<uint32_t> & b , int const his_size, int const bucket_width)
-{
-    vector<uint32_t> hist(his_size, 0);
-    auto it = b.begin();
-    while(it != b.end()){
-        if(*it < ((his_size) * bucket_width))
-        {
-            hist[floor(*it / bucket_width)] += 1;
-        }
-        else
-        {
-            ++hist[his_size - 1];
-        }
-        ++it;
-    }
-    return(hist);
-}
-
-/*
-template <typename T>
-inline void save(vector<T> const & c, string const & output_path)
-{
-    ofstream outfile(output_path, ios::out | ios::binary);
-    outfile.write((const char*) &c[0], c.size() * sizeof(TVector::value_type));
-    outfile.close();
-
-    // ofstream outfile(output_path, std::ios::out | std::ofstream::binary);
-    // copy(c.begin(), c.end(), (std::ostream_iterator<uint8_t>(outfile), std::ostream_iterator<int>(outfile, " ")));
-}
-*/
-
 
 StringSet<DnaString> createRCReads(StringSet<DnaString> & reads)
 {
@@ -114,8 +83,11 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("n", "notmy",
         "Compare my Version and default version"));
 
+    addOption(parser, ArgParseOption("st", "stats",
+        "Show stats for Default Search with ITV and Search with mappability"));
+
     addOption(parser, ArgParseOption("su", "startuni",
-        "Start Unidirectional"));;
+        "Start Unidirectional"));
 
 
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
@@ -142,6 +114,7 @@ int main(int argc, char *argv[])
     bool split = isSet(parser, "sp");
     bool ecompare = isSet(parser, "ecompare");
     bool notmy = isSet(parser, "notmy");
+    bool stats = isSet(parser, "stats");
     bool startuni = isSet(parser, "startuni");
 
     //load reads
@@ -188,8 +161,6 @@ int main(int argc, char *argv[])
         cout << "added reversed Reads in " << elapsedT.count() << "s" << endl;
     }
 
-
-
     //load index
     cout << "Loading Index" << endl;
     MyIndex index;
@@ -229,7 +200,7 @@ int main(int argc, char *argv[])
         dhits.push_back(me);
     };
 
-    std::this_thread::sleep_for (std::chrono::seconds(60));
+//     std::this_thread::sleep_for (std::chrono::seconds(60));
 
     if(startuni){
         params.startUnidirectional = true;
@@ -374,149 +345,19 @@ int main(int argc, char *argv[])
     }
 
 
-    int found = 0, foundD = 0;
-    int notfound = 0, mymiss = 0, same = 0, nice = 0, verynice = 0;
-    vector<uint8_t> mycase(length(reads), 255);
-
 
 
     if(!notmy){
-    if(rc){
-        int nr = readOccCountDeT.size()/2;
-        for(int i = 0; i < readOccCountDeT.size()/2; ++i)
-        {
-            readOccCount[i] += readOccCount[i + nr];
-            readOccCountDeT[i] += readOccCountDeT[i + nr];
-
-        }
-        readOccCount.erase(readOccCount.begin() + nr, readOccCount.end());
-        readOccCountDeT.erase(readOccCountDeT.begin() + nr, readOccCountDeT.end());
-    }
-
-
-    cout << "Test " << readOccCountDeT.size() << endl;
-
-    for(int i = 0; i < readOccCountDeT.size(); ++i)
-    {
-        found += readOccCount[i] > 0;
-        foundD += readOccCountDeT[i] > 0;
-//         cout << readOccCount[i] << " - " <<  readOccCountDeT[i] << endl;
-        if(readOccCount[i] == readOccCountDeT[i]){
-            if(readOccCount[i] == 0){
-                ++notfound;
-                mycase[i] = 0;
-            }
-            else
-            {
-                ++same;
-                mycase[i] = 2;
-            }
-        }
-        else
-        {
-            if(readOccCount[i] == 0){
-                ++mymiss;
-                mycase[i] = 1;
-            }
-            else
-            {
-                ++nice;
-                if(static_cast<double>(readOccCountDeT[i]) / readOccCount[i] > 2)
-                    ++verynice;
-
-                mycase[i] = 3;
-                if(readOccCount[i] > readOccCountDeT[i]){
-                    cerr << "More occurrences with mappability" << endl;
-                    exit(0);
-                }
-            }
-        }
+        readOccurrences(reads, ids, outputpath, fr, rc, stats, notmy);
 
     }
-    }
-    else
-    {
-        for(int i = 0; i < readOccCountDeT.size(); ++i)
-        {
-            foundD += readOccCountDeT[i] > 0;
-        }
-
-    }
-
-
-    if(fr){
-        //write filtered fastas
-        SeqFileOut seqFileout0(toCString(outputpath + "/notfound.fa"));
-        SeqFileOut seqFileout1(toCString(outputpath + "/mymiss.fa"));
-        SeqFileOut seqFileout2(toCString(outputpath + "/same.fa"));
-        SeqFileOut seqFileout3(toCString(outputpath + "/nice.fa"));
-
-
-        for(int i = 0; i < length(reads); ++i)
-        {
-            switch(mycase[i])
-            {
-                case 0: writeRecord(seqFileout0, ids[i], reads[i]); break;
-                case 1: writeRecord(seqFileout1, ids[i], reads[i]); break;
-                case 2: writeRecord(seqFileout2, ids[i], reads[i]); break;
-                case 3: writeRecord(seqFileout3, ids[i], reads[i]); break;
-                default: break;
-            }
-
-        }
-
-        close(seqFileout0);
-        close(seqFileout1);
-        close(seqFileout2);
-        close(seqFileout3);
-    }
-    cout << "reads found with mappability: " << found << endl;
-    cout << "reads found without considering mappability: " << foundD << endl;
-    cout << "not found: " << notfound << endl;
-    cout << "mymiss: " << mymiss << endl;
-    cout << "same: " << same << endl;
-    cout << "nice: " << nice << endl;
-    cout << "thereof verynice: " << verynice << endl;
-
-
-
-    // investigating the vectors
-    int bucketSize = 10;
-    int histSize = 10;
-
-    if(!notmy){
-    vector<uint32_t> h = histogram(readOccCount, histSize, bucketSize);
-    cout << "Histogram buckets size " << bucketSize << ": " << endl;
-    for(int i = 0; i < h.size(); ++i){
-        cout << bucketSize*(i + 1) - 1 << "\t";
-    }
-    cout << endl;
-    for(int i = 0; i < h.size(); ++i){
-        cout << h[i] << "\t";
-    }
-    cout << endl;
-    }
-
-    vector<uint32_t> hDeT = histogram(readOccCountDeT, histSize, bucketSize);
-    cout << "Histogram buckets size " << bucketSize << ": " << endl;
-    for(int i = 0; i < hDeT.size(); ++i){
-        cout << bucketSize*(i + 1) - 1 << "\t";
-    }
-    cout << endl;
-    for(int i = 0; i < hDeT.size(); ++i){
-        cout << hDeT[i] << "\t";
-    }
-    cout << endl;
-
-
-    /*
 
     if(ecompare){
-        hitsDe = print_readocc_sorted(hitsDe, genome, true);
+        hitsDefault = print_readocc_sorted(hitsDefault, genome, true);
         cout << "Test if default and my version are the same: " << endl;
-//     cout.setstate(std::ios_base::failbit); //TODO revert this
-        vector<uint32_t> whitcount = compare(index, nerrors, threshold + 1, hits, hitsDe);
-//     std::cout.clear();  //TODO revert this
+        cout.setstate(std::ios_base::failbit);
+        vector<uint32_t> whitcount = compare(index, nerrors, threshold + 1, hits, hitsDefault);
+        std::cout.clear();
 
         if(whitcount.size() == 0){
             cout << "MyVersion is still correct!" << endl;
@@ -531,7 +372,6 @@ int main(int argc, char *argv[])
     }
 //     params.print();
 
-*/
     return 0;
 
 }

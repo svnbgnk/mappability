@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "common_auxiliary.h"
+
 using namespace seqan;
 
 struct readOcc
@@ -77,7 +78,6 @@ void calcfwdPos(TIndex & index,
 
     }
 }
-
 
 template <typename TText, typename TIndex, typename TIndexSpec>
 void print_beginsa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
