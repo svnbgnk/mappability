@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
             hitsDe.push_back(me);
         }
     };
-    auto delegateDirect2 = [&dhitsDe](Pair<uint16_t, uint32_t> const & pos, DnaString const & needle, uint8_t const errors)
+    auto delegateDirect2 = [&dhitsDe](auto const & pos, DnaString const & needle, uint8_t const errors)
     {
         hit me;
         me.occ = pos;
