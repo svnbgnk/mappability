@@ -479,18 +479,21 @@ inline void _optimalSearchSchemeDeletion(TDelegate & delegate,
 
     if (minErrorsLeftInBlock == 0)
     {
+
         uint8_t const blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
         bool const goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
 
-        if (goToRight2)
-        {
-            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, Rev(),
-                                 EditDistance());
-        }
-        else
-        {
-            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, Fwd(),
-                                 EditDistance());
+        //check mappability after last deletion
+        ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, goToRight2, TDir(), EditDistance());
+        if(!(rcode == ReturnCode::FINISHED)){
+            if (goToRight2)
+            {
+                _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, Rev(), EditDistance());
+            }
+            else
+            {
+                _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, Fwd(), EditDistance());
+            }
         }
     }
 
@@ -543,7 +546,6 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
             {
                 if (std::is_same<TDistanceTag, EditDistance>::value)
                 {
-                    //TODO it does not make sense to check mappability for deletions, right?
                     _optimalSearchSchemeDeletion(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2,
                                                  errors + delta, s, blockIndex, TDir());
                 }
@@ -687,11 +689,21 @@ inline void _optimalSearchScheme(TDelegate & delegate,
             uint32_t const needleRightPos2 = needleRightPos + goToRight;
 
             //if we are at the end of block we need to add possible deletions because _optimalSearchScheme does not check it
-            // though checking 1 deletion makes no sense since that would be equivalent to a match
+
             if (needleRightPos - needleLeftPos == s.blocklength[blockIndex])
             {
-                // leave the possibility for one or multiple deletions! therefore, don't change direction, etc!
-                _optimalSearchSchemeDeletion(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex, TDir());
+                    uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
+                    bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
+
+                    ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, goToRight2, TDir(), TDistanceTag());
+                    if(!(rcode == ReturnCode::FINISHED))
+                    {
+                        if (goToRight2)
+                            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, Rev(), TDistanceTag());
+                        else
+                            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, Fwd(), TDistanceTag());
+                    }
+
             }
             else
             {
