@@ -8,7 +8,8 @@ template <typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
           size_t nbrBlocks,
-          typename TDir>
+          typename TDir,
+          typename TDistanceTag>
 inline void directSearch(TDelegateD & delegateDirect,
                   Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                   TNeedle const & needle,
@@ -17,7 +18,8 @@ inline void directSearch(TDelegateD & delegateDirect,
                   uint8_t const errors,
                   OptimalSearch<nbrBlocks> const & s,
                   uint8_t const blockIndex,
-                  TDir const & /**/)
+                  TDir const & /**/,
+                  TDistanceTag const & )
 {
     auto const & genome = indexText(*iter.fwdIter.index);
     //cut of blockStarts and Ends that where already checked by the search
@@ -230,7 +232,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
         // if (doInTextVerification(s, blockIndex, iter))
         if(params.comp.directsearch && iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1 + params.uni.directsearchblockoffset) * params.comp.directsearch_th)
         {
-            directSearch(delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir());
+            directSearch(delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), TDistanceTag());
             return;
         }
         _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex,

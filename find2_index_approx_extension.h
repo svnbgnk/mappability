@@ -67,13 +67,13 @@ inline void filter_interval(TDelegate & delegate,
         if (std::is_same<TDir, Rev>::value){
             iter.revIter.vDesc.range.i1 = consOnes[i].first + noi;
             iter.revIter.vDesc.range.i2 = consOnes[i].second + noi;
-            _optimalSearchScheme(delegate, delegateDirect, iter.revIter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Rev());
+            _optimalSearchScheme(delegate, delegateDirect, iter.revIter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Rev(), TDistanceTag());
         }
         else
         {
             iter.fwdIter.vDesc.range.i1 = consOnes[i].first + noi;
             iter.fwdIter.vDesc.range.i2 = consOnes[i].second + noi;
-            _optimalSearchScheme(delegate, delegateDirect, iter.fwdIter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Fwd());
+            _optimalSearchScheme(delegate, delegateDirect, iter.fwdIter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Fwd(), TDistanceTag());
         }
     }
 }
@@ -651,9 +651,9 @@ inline void _optimalSearchScheme(TDelegate & delegate,
             _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Fwd(), TDistanceTag());
     }else{
         if(initialDirection)
-            _uniOptimalSearchScheme(delegate, delegateDirect, it.revIter, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Rev());
+            _uniOptimalSearchScheme(delegate, delegateDirect, it.revIter, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Rev(), HammingDistance());
         else
-            _uniOptimalSearchScheme(delegate, delegateDirect, it.fwdIter, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Fwd());
+            _uniOptimalSearchScheme(delegate, delegateDirect, it.fwdIter, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Fwd(), HammingDistance());
     }
 }
 
