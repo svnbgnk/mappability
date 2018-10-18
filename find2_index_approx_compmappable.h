@@ -201,7 +201,6 @@ template <typename TDelegate, typename TDelegateD,
           typename TDistanceTag>
 inline void _optimalSearchScheme(TDelegate & delegate,
                                  TDelegateD & delegateDirect,
-                                 // TDelegateTV & doInTextVerification,
                                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                  TNeedle const & needle,
                                  uint32_t const needleLeftPos,

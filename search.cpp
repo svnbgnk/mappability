@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
     if(!notmy){
         cout << "Start My Search!" << endl;
         start = std::chrono::high_resolution_clock::now();
-        find(0, nerrors, delegate, delegateDirect, index, reads, bitvectors);
+        find(0, nerrors, delegate, delegateDirect, index, reads, bitvectors, HammingDistance());
         finish = std::chrono::high_resolution_clock::now();
         elapsed = finish - start;
         cout << "Finished My Search" << endl;
@@ -264,6 +264,7 @@ int main(int argc, char *argv[])
         cout << "Calc revPositions to forward positions: "<< elapsedcalc.count() << "s" << endl;
     }
 
+    /*
     cout << "DirectHits: " << dhits.size() << endl;
 
     if(ecompare){
@@ -370,6 +371,8 @@ int main(int argc, char *argv[])
             cout << whitcount[i] << endl;
         cout << endl;
     }
+
+    */
 //     params.print();
 
     return 0;
