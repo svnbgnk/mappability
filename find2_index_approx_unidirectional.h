@@ -31,7 +31,6 @@ inline void get_bitvector_interval_inside(Iter<Index<TText, FMIndex<void, TConfi
     uint32_t nseq = countSequences(*iter.index);
     dirrange.i1 = dirrange.i1 - nseq;
     dirrange.i2 = dirrange.i2 - nseq;
-//     Pair<uint8_t, Pair<uint32_t, uint32_t>> brangeOutput(needed_bitvector, dirrange);
     brangeOutput.i1 = needed_bitvector;
     brangeOutput.i2 = dirrange;
 }
@@ -57,10 +56,6 @@ inline void genomeSearch(TDelegateD & delegateDirect,
 {
     uint32_t needleL = length(needle);
     for(uint8_t j = 0; j < nbrBlocks - blockIndex; ++j){
-        //what is this
-//         if(needleLeftPos < length(needle) - blockStart && needleLeftPos > length(needle) - blockEnd){
-//             blockStart = length(needle) - needleLeftPos; //- 1 + 1
-//         }
         for(uint32_t k = blockStarts[j]; k < blockEnds[j]; ++k){
             if(needle[needleL - k - 1] != rgenome[sa_info.i1][sa_info.i2 + k])
                 ++errors;
@@ -139,7 +134,6 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
                 //calculate correct starting position of the needle  on the forward index
                 sa_info.i2 = sa_info.i2 - needleLeftPos;
                 //use modified genomeSearch in case of forward index
-
                 genomeSearch(delegateDirect, needle, errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds);
             }
         }

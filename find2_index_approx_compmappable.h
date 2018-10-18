@@ -20,37 +20,36 @@ inline void directSearch(TDelegateD & delegateDirect,
                   TDir const & /**/)
 {
     auto const & genome = indexText(*iter.fwdIter.index);
-    uint32_t needleL = length(needle);
-    uint32_t blocks = s.pi.size();
-
-    vector<uint32_t> blockStarts(blocks - blockIndex);
-    vector<uint32_t> blockEnds(blocks - blockIndex);
-    for(uint32_t j = blockIndex; j < s.pi.size(); ++j){
-        uint32_t blockStart = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2]; //TODO fix this
-        blockStarts[j - blockIndex] = blockStart;
-        blockEnds[j - blockIndex] = s.chronBL[s.pi[j] - 1];
-    }
+    //cut of blockStarts and Ends that where already checked by the search
+    std::vector<uint32_t> blockStarts(s.pi.size() - blockIndex);
+    std::vector<uint32_t> blockEnds(s.pi.size() - blockIndex);
+    std::copy(std::begin(s.blockStarts) + blockIndex, std::end(s.blockStarts), std::begin(blockStarts));
+    std::copy(std::begin(s.blockEnds) + blockIndex, std::end(s.blockEnds), std::begin(blockEnds));
 
     if(std::is_same<TDir, Rev>::value){
+
         if(needleRightPos - 1 > blockStarts[0] && needleRightPos - 1 < blockEnds[0])
             blockStarts[0] = needleRightPos - 1;
-    }else{
+    }
+    else
+    {
         if(needleLeftPos > blockStarts[0] && needleLeftPos < blockEnds[0])
             blockEnds[0] = needleLeftPos;
     }
 
     //iterate over each block according to search scheme
-    for(uint32_t i = iter.fwdIter.vDesc.range.i1; i < iter.fwdIter.vDesc.range.i2; ++i){
+    for(uint32_t i = iter.fwdIter.vDesc.range.i1; i < iter.fwdIter.vDesc.range.i2; ++i)
+    {
         bool valid = true;
         Pair<uint16_t, uint32_t> sa_info = iter.fwdIter.index->sa[i];
         //dont need look at the reverse index in this case since i dont use mappability
-        uint32_t chromlength = length(genome[sa_info.i1]);
-        if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1))
+        uint32_t const chromlength = length(genome[sa_info.i1]);
+        if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + length(needle) - 1))
             continue;
 
         sa_info.i2 = sa_info.i2 - needleLeftPos;
         uint8_t errors2 = errors;
-        for(uint32_t j = 0; j < blockStarts.size(); ++j){
+        for(uint32_t j = 0; j < nbrBlocks - blockIndex; ++j){
             // compare bases to needle
             for(uint32_t k = blockStarts[j]; k <  blockEnds[j]; ++k){
                 if(needle[k] != genome[sa_info.i1][sa_info.i2 + k])

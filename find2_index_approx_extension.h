@@ -139,7 +139,7 @@ inline void directSearch(TDelegateD & delegateDirect,
             if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
                 // mappability information is in reverse index order if we use the forward index
                 Pair<uint16_t, uint32_t> sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
-                uint32_t chromlength = length(genome[sa_info.i1]);
+                uint32_t const chromlength = length(genome[sa_info.i1]);
                 //Info make sure we dont DS search something going over the chromosom edge
                 //check left chromosom boundry && check right chromosom boundry
                 if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + length(needle) - 1))
@@ -442,9 +442,6 @@ inline ReturnCode checkMappability(TDelegate & delegate,
                     return ReturnCode::FINISHED;
                 }
             }
- /*
-            default:
-                ReturnCode::MAPPABLE;*/
          }
     }
     return ReturnCode::MAPPABLE;
@@ -738,21 +735,16 @@ template <size_t minErrors, size_t maxErrors,
           typename TDelegate, typename TDelegateD,
           typename TText, typename TIndexSpec,
           typename TNeedle, typename TStringSetSpec,
-          typename TVector, typename TVSupport,
-          typename TParallelTag>
+          typename TVector, typename TVSupport>
 inline void
 find(TDelegate & delegate,
      TDelegateD & delegateDirect,
      Index<TText, BidirectionalIndex<TIndexSpec> > & index,
      StringSet<TNeedle, TStringSetSpec> const & needles,
-     vector<pair<TVector, TVSupport>> & bitvectors,
-     TParallelTag const & )
+     vector<pair<TVector, TVSupport>> & bitvectors)
 {
     auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
     calcConstParameters(scheme);
-
-//     typedef typename Iterator<StringSet<TNeedle, TStringSetSpec> const, Rooted>::Type TNeedleIt;
-//     typedef typename Reference<TNeedleIt>::Type                                       TNeedleRef;
     checkTime time;
     int k = 0;
     uint32_t lastcount = 0;
@@ -765,84 +757,11 @@ find(TDelegate & delegate,
         }
         ++k;
 
-//         std::cout << "hits " << hits.size() << "\n";
-//         std::cout << "dhits " << dhits.size() << "\n";
-//         std::cout << "lastcount " << lastcount << "\n";
         uint32_t currentcount = hits.size() + dhits.size() - lastcount;
         readOccCount.push_back(currentcount);
         lastcount += currentcount;
-//         std::cout << "Size: " << readOccCount.size() << "\n";
     }
-
-
-
-    /*
-    iterate(needles, [&](TNeedleIt const & needleIt)
-    {
-        TNeedleRef needle = value(needleIt);
-        if(!(params.clocking && time.stopnow(params.terminateDuration))){
-            find(delegate, delegateDirect, index, needle, bitvectors, scheme);
-        }else{
-            params.wasStopped = true;
-        }
-
-    },
-    Rooted(), TParallelTag());
-    */
-
 }
-
-template <size_t minErrors, size_t maxErrors,
-          typename TDelegate, typename TDelegateD,
-          typename TText, typename TIndexSpec,
-          typename TNeedle, typename TStringSetSpec,
-          typename TParallelTag>
-inline void
-find(TDelegate & delegate,
-     TDelegateD & delegateDirect,
-     Index<TText, BidirectionalIndex<TIndexSpec> > & index,
-     StringSet<TNeedle, TStringSetSpec> const & needles,
-     TParallelTag const & )
-{
-//     typedef typename Iterator<StringSet<TNeedle, TStringSetSpec> const, Rooted>::Type TNeedleIt;
-//     typedef typename Reference<TNeedleIt>::Type                                       TNeedleRef;
-    int k = 0;
-    uint32_t lastcount = 0;
-    while(k < length(needles))
-    {
-        find<minErrors, maxErrors>(delegate, delegateDirect, index, needles[k]);
-        ++k;
-        uint32_t currentcount = hitsDe.size() + dhitsDe.size() - lastcount;
-        readOccCountDeT.push_back(currentcount);
-        lastcount += currentcount;
-
-    }
-    /*
-    iterate(needles, [&](TNeedleIt const & needleIt)
-    {
-        TNeedleRef needle = value(needleIt);
-        find<minErrors, maxErrors>(delegate, delegateDirect, index, needle);
-    },
-    Rooted(), TParallelTag());
-    */
-}
-
-
-template <size_t minErrors, size_t maxErrors,
-          typename TDelegate, typename TDelegateD,
-          typename TText, typename TIndexSpec,
-          typename TNeedle, typename TStringSetSpec,
-          typename TVector, typename TVSupport>
-inline void
-find(TDelegate & delegate,
-     TDelegateD & delegateDirect,
-     Index<TText, BidirectionalIndex<TIndexSpec> > & index,
-     StringSet<TNeedle, TStringSetSpec> const & needles,
-     vector<pair<TVector, TVSupport>> & bitvectors)
-{
-    find<minErrors, maxErrors>(delegate, delegateDirect, index, needles, bitvectors, Serial());
-}
-
 
 template <size_t minErrors, size_t maxErrors,
           typename TDelegate, typename TDelegateD,
@@ -854,10 +773,18 @@ find(TDelegate & delegate,
      Index<TText, BidirectionalIndex<TIndexSpec> > & index,
      StringSet<TNeedle, TStringSetSpec> const & needles)
 {
-    find<minErrors, maxErrors>(delegate, delegateDirect, index, needles, Serial());
+    int k = 0;
+    uint32_t lastcount = 0;
+    while(k < length(needles))
+    {
+        find<minErrors, maxErrors>(delegate, delegateDirect, index, needles[k]);
+        ++k;
+        uint32_t currentcount = hitsDe.size() + dhitsDe.size() - lastcount;
+        readOccCountDeT.push_back(currentcount);
+        lastcount += currentcount;
+
+    }
 }
-
-
 
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TIndexSpec,
