@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <sdsl/bit_vectors.hpp>
+#include <seqan/align.h>
 #include "global.h"
 #include "auxiliary.h"
 #include "common_auxiliary.h"
@@ -689,7 +690,6 @@ inline void _optimalSearchScheme(TDelegate & delegate,
             uint32_t const needleRightPos2 = needleRightPos + goToRight;
 
             //if we are at the end of block we need to add possible deletions because _optimalSearchScheme does not check it
-
             if (needleRightPos - needleLeftPos == s.blocklength[blockIndex])
             {
                     uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
