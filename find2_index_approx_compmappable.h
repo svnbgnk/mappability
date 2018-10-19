@@ -92,20 +92,18 @@ inline void directSearch(TDelegateD & delegateDirect,
                         //i is number of insertions
                         int d = e - i; //number of deletions
                         cout << "Number of insertions: " << i << endl;
-                        for(unsigned pos = 0; pos < 2; ++pos){
-                            auto sa_info_tmp = sa_info;
-                            if(pos == 0){
-                                auto const & tmp = infix(ex_needle, 2 - i, length(needle) + 2 - d);
-                                sa_info_tmp.i2 - i;
-                                if(0 - globalAlignmentScore(tmp, needle, MyersBitVector()) <= max_e)
-                                    delegateDirect(sa_info_tmp , needle, score);
-                            }else{
-                                auto const & tmp = infix(ex_needle, 2 + d, length(needle) + 2 + i);
-                                sa_info_tmp.i2 + d;
-                                if(0 - globalAlignmentScore(tmp, needle, MyersBitVector()) <= max_e)
-                                    delegateDirect(sa_info_tmp , needle, score);
-                            }
-                        }
+                        //insertions left
+                        auto sa_info_tmp = sa_info;
+                        auto const & tmp = infix(ex_needle, 2 - i, length(needle) + 2 - d);
+                        sa_info_tmp.i2 - i;
+                        if(0 - globalAlignmentScore(tmp, needle, MyersBitVector()) <= max_e)
+                            delegateDirect(sa_info_tmp , needle, score);
+                        //insertions right
+                        sa_info_tmp = sa_info; //TODO just include i from before into the calculation
+                        tmp = infix(ex_needle, 2 + d, length(needle) + 2 + i);
+                        sa_info_tmp.i2 + d;
+                        if(0 - globalAlignmentScore(tmp, needle, MyersBitVector()) <= max_e)
+                            delegateDirect(sa_info_tmp , needle, score);
                     }
                 }*/
             }
