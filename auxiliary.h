@@ -211,21 +211,39 @@ void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIn
 
 bool occ_smaller(const hit & x, const hit & y)
 {
-    if(x.occ.i1 == y.occ.i1)
-        return x.occ.i2 < y.occ.i2;
+    if(x.occ.i1 == y.occ.i1){
+        if(x.occ.i2 == y.occ.i2)
+            return x.errors < y.errors;
+        else
+            return x.occ.i2 < y.occ.i2;
+    }
     else
+    {
         return x.occ.i1 < y.occ.i1;
+    }
 }
 
-std::vector<hit> print_readocc_sorted(std::vector<hit> hits, auto const & genome, bool const occEnabled)
+bool occ_same(const hit & x, const hit & y)
 {
+    return(x.occ.i1 == y.occ.i1 && x.occ.i2 == y.occ.i2 && x.errors == y.errors);
+}
+
+std::vector<hit> print_readocc_sorted(std::vector<hit> hits, auto const & genome, bool const editD, int nerrors, bool const occEnabled)
+{
+    if(!editD)
+        nerrors = 0;
     std::sort(hits.begin(), hits.end(), occ_smaller);
+    //TODO compare also needle to not remove identical reads
+    if(editD){
+        hits.erase(std::unique(hits.begin(), hits.end(), occ_same), hits.end());
+        std::cout << "unique number: "  << hits.size() << "\n";
+    }
+
     for(uint32_t i = 0; i < hits.size(); ++i){
-        std::cout << "Errors: "<< (uint32_t)hits[i].errors;
+        std::cout << "Errors: "<< (int)hits[i].errors;
         std::cout << "   " << hits[i].occ << " " << hits[i].read << "\n";
         if(occEnabled)
-            std::cout << infix(genome[hits[i].occ.i1], hits[i].occ.i2, hits[i].occ.i2 + seqan::length(hits[i].read)) << "\n";
-
+            std::cout << infix(genome[hits[i].occ.i1], hits[i].occ.i2 - nerrors, hits[i].occ.i2 + seqan::length(hits[i].read) + nerrors) << "\n";
     }
     return(hits);
 }

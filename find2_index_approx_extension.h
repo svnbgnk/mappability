@@ -536,7 +536,7 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
         do
         {
             bool delta = !ordEqual(parentEdgeLabel(iter, TDir()), needle[goToRight ? needleRightPos - 1 : needleLeftPos - 1]);
-            if (minErrorsLeftInBlock > 0 && charsLeft + delta < minErrorsLeftInBlock + 1u)
+            if (!std::is_same<TDistanceTag, EditDistance>::value && minErrorsLeftInBlock > 0 && charsLeft + delta < minErrorsLeftInBlock + 1u)
             {
                 continue;
             }
@@ -769,9 +769,9 @@ inline void _optimalSearchScheme(TDelegate & delegate,
 {
     bool initialDirection = s.pi[1] > s.pi[0];
     if(initialDirection)
-        _optimalSearchScheme(delegate, delegateDirect, it, needle, s.startPos, s.startPos + 1, 0, s, 0, Rev(), HammingDistance());
+        _optimalSearchScheme(delegate, delegateDirect, it, needle, s.startPos, s.startPos + 1, 0, s, 0, Rev(), TDistanceTag());
     else
-        _optimalSearchScheme(delegate, delegateDirect, it, needle, s.startPos, s.startPos + 1, 0, s, 0, Fwd(), HammingDistance());
+        _optimalSearchScheme(delegate, delegateDirect, it, needle, s.startPos, s.startPos + 1, 0, s, 0, Fwd(), TDistanceTag());
 }
 
 
@@ -938,7 +938,7 @@ inline void find(const int minErrors,
                 exit(1);
     }
 }
-/*
+
 template <typename TDelegate,
           typename TText, typename TIndexSpec,
           typename TNeedle, typename TStringSetSpec,
@@ -979,18 +979,18 @@ inline void find(const int minErrors,
 {
     switch (maxErrors)
     {
-        case 1: find<0, 1>(delegate, delegateDirect, index, needles, HammingDistance());
+        case 1: find<0, 1>(delegate, delegateDirect, index, needles, TDistanceTag());
                 break;
-        case 2: find<0, 2>(delegate, delegateDirect, index, needles, HammingDistance());
+        case 2: find<0, 2>(delegate, delegateDirect, index, needles, TDistanceTag());
                 break;
-        case 3: find<0, 3>(delegate, delegateDirect, index, needles, HammingDistance());
+        case 3: find<0, 3>(delegate, delegateDirect, index, needles, TDistanceTag());
                 break;
-        case 4: find<0, 4>(delegate, delegateDirect, index, needles, HammingDistance());
+        case 4: find<0, 4>(delegate, delegateDirect, index, needles, TDistanceTag());
                 break;
         default: cerr << "E = " << maxErrors << " not yet supported.\n";
                 exit(1);
     }
-}*/
+}
 
 }
 

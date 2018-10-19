@@ -60,6 +60,8 @@ int main(int argc, char *argv[])
 
     addOption(parser, ArgParseOption("r", "r", "number of reads to test ", ArgParseArgument::INTEGER, "INT"));
 
+    addOption(parser, ArgParseOption("e", "edit", "Search Edit Distance, correct bitvectors have to be selected"));
+
     addOption(parser, ArgParseOption("d", "default",
         "Test default with in Text Search"));
 
@@ -107,6 +109,7 @@ int main(int argc, char *argv[])
     getOptionValue(r, parser, "r");
     getOptionValue(threshold, parser, "threshold");
     getOptionValue(benchparams, parser, "benchparams");
+    bool editD = isSet(parser, "edit");
     bool mdefault = isSet(parser, "default");
     bool defaultT = isSet(parser, "defaultT");
     bool rc = isSet(parser, "rc");
@@ -252,7 +255,10 @@ int main(int argc, char *argv[])
     if(!notmy){
         cout << "Start My Search!" << endl;
         start = std::chrono::high_resolution_clock::now();
-        find(0, nerrors, delegate, delegateDirect, index, reads, bitvectors, HammingDistance());
+        if(!editD)
+            find(0, nerrors, delegate, delegateDirect, index, reads, bitvectors, HammingDistance());
+        else
+            find(0, nerrors, delegate, delegateDirect, index, reads, bitvectors, EditDistance());
         finish = std::chrono::high_resolution_clock::now();
         elapsed = finish - start;
         cout << "Finished My Search" << endl;
@@ -264,15 +270,14 @@ int main(int argc, char *argv[])
         cout << "Calc revPositions to forward positions: "<< elapsedcalc.count() << "s" << endl;
     }
 
-    /*
+
     cout << "DirectHits: " << dhits.size() << endl;
 
-    if(ecompare){
+    if(ecompare && notmy){
         for(uint32_t i = 0; i < dhits.size(); ++i){
             hits.push_back(dhits[i]);
         }
         std::sort(hits.begin(), hits.end(), occ_smaller);
-
         for(uint32_t i = 0; i < hits.size(); ++i){
             cout << "Errors: "<< (uint32_t)hits[i].errors;
             cout << "   "  << hits[i].occ << " " << hits[i].read << endl;
@@ -302,7 +307,10 @@ int main(int argc, char *argv[])
         };
         cout << "Test default" << endl;
         start = std::chrono::high_resolution_clock::now();
-        find(0, nerrors, delegateDefault, index, reads, HammingDistance());
+        if(!editD)
+            find(0, nerrors, delegateDefault, index, reads, HammingDistance());
+        else
+            find(0, nerrors, delegateDefault, index, reads, EditDistance());
         finish = std::chrono::high_resolution_clock::now();
 
         elapsed = finish - start;
@@ -338,7 +346,10 @@ int main(int argc, char *argv[])
             dhitsDe.push_back(me);
         };
         auto start2 = std::chrono::high_resolution_clock::now();
-        find(0, nerrors, delegate2, delegateDirect2, index, reads);
+        if(!editD)
+            find(0, nerrors, delegate2, delegateDirect2, index, reads, HammingDistance());
+        else
+            find(0, nerrors, delegate2, delegateDirect2, index, reads, EditDistance());
         auto finish2 = std::chrono::high_resolution_clock::now();
         elapsed = finish2 - start2;
         cout << "Default Version with DS: " << elapsed.count() << "s" << endl;
@@ -353,8 +364,56 @@ int main(int argc, char *argv[])
 
     }
 
-    if(ecompare){
-        hitsDefault = print_readocc_sorted(hitsDefault, genome, true);
+    if(ecompare && editD && defaultT && mdefault){
+        cout << "Hits with InTextSearch: " << endl;
+        hitsDe.insert(hitsDe.end(), dhitsDe.begin(), dhitsDe.end());
+        std::sort(hitsDe.begin(), hitsDe.end(), occ_smaller);
+        //TODO compare also needle to not remove identical reads
+        hitsDe.erase(std::unique(hitsDe.begin(), hitsDe.end(), occ_same), hitsDe.end());
+
+        cout << "unique number: "  << hitsDe.size() << endl;
+        for(uint32_t i = 0; i < hitsDe.size(); ++i){
+            cout << "Errors: "<< (int)hitsDe[i].errors;
+            cout << "   "  << hitsDe[i].occ << " " << hitsDe[i].read << endl;
+            cout << infix(genome[hitsDe[i].occ.i1], hitsDe[i].occ.i2 - nerrors, hitsDe[i].occ.i2 + seqan::length(hitsDe[i].read) + nerrors)  << endl;
+        }
+
+        cout << endl;
+        cout << "Hits without InTextSearch: " << endl;
+
+        hitsDefault = print_readocc_sorted(hitsDefault, genome, editD, nerrors, true);
+        cout << "Test if default in Text and default are the same: " << endl;
+
+        if(hitsDe.size() != hitsDefault.size())
+            cout << "My: " << hitsDe.size() << "default: " << hitsDefault.size() << "\n";
+
+        for(int i = 0; i < hitsDe.size(); ++i){
+            if(!occ_same(hitsDe[i], hitsDefault[i])){
+                cout << "Something went wrong at: " << "i: " << i << hitsDefault[i].occ << endl;
+                exit(0);
+            }
+        }
+        cout << "Same, finished" << endl;
+/*
+        cout.setstate(std::ios_base::failbit);
+        vector<uint32_t> whitcount = compare(index, nerrors, threshold + 1, hits, hitsDefault);
+        std::cout.clear();
+        if(whitcount.size() == 0){
+            cout << "MyVersion is still correct!" << endl;
+        }else{
+            cout << "Missed hits mappability" << endl;
+        }
+        cout << endl;
+        cout << "M: " << endl;
+        for(uint32_t i = 0; i < whitcount.size(); ++i)
+            cout << whitcount[i] << endl;
+        cout << endl;*/
+    }
+
+
+
+    if(ecompare && !notmy){
+        hitsDefault = print_readocc_sorted(hitsDefault, genome, editD, nerrors, true);
         cout << "Test if default and my version are the same: " << endl;
         cout.setstate(std::ios_base::failbit);
         vector<uint32_t> whitcount = compare(index, nerrors, threshold + 1, hits, hitsDefault);
@@ -372,7 +431,7 @@ int main(int argc, char *argv[])
         cout << endl;
     }
 
-    */
+
 //     params.print();
 
     return 0;
