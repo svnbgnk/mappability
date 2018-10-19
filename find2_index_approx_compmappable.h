@@ -77,14 +77,12 @@ inline void directSearch(TDelegateD & delegateDirect,
             sa_info.i2 = sa_info.i2 - needleLeftPos;
             uint8_t errors2 = 0;
             int8_t max_e = s.u[s.u.size() - 1];
-            auto ex_needle = infix(genome, sa_info.i2 - max_e, sa_info.i2 + length(needle) + max_e);
-            String<Dna> myneedle = needle;
+            auto /*const &*/ ex_needle = infix(genome, sa_info.i2 - max_e, sa_info.i2 + length(needle) + max_e);
 
             //Unfortunately, since for example (E = 2) 2 Insertion lead to a score of -4 we cannot conclude the number of errors the read will have at the end. (O Errors would also have a score -4 2 Deletion in the beginning to Insertions at the end)
-//             uint8_t score = globalAlignmentScore(ex_needle, ex_needle2, MyersBitVector());
-            globalAlignmentScore(ex_needle, myneedle, MyersBitVector());
-            uint8_t score = 0;
-//             uint8_t score = 0 - (globalAlignmentScore(ex_needle, needle, MyersBitVector()) + 2 * max_e);
+
+            uint8_t score = 0 - (globalAlignmentScore(ex_needle, needle, MyersBitVector()) + max_e);
+            //for speed up split into  more or equal deltions  and   more insertions
             if(score <= max_e)
             {/*
                 int max_e = 2; //max number of Insertion + Deletions
