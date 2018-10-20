@@ -87,28 +87,19 @@ inline void directSearch(TDelegateD & delegateDirect,
                 continue;
             sa_info.i2 = sa_info.i2 - needleLeftPos;
 
-//             std::cout << (int)sa_info.i2 << "\n";
-
             TString const & ex_needle = infix(genome[sa_info.i1], sa_info.i2 - overlap_l, sa_info.i2 + needleL + overlap_r);
             TString const & n_infix = infix(genome[sa_info.i1], sa_info.i2, sa_info.i2 + needleL);
 
-            //Unfortunately, since for example (E = 2) 2 Insertion lead to a score of -4 we cannot conclude the number of errors the read will have at the end. (O Errors would also have a score -4 2 Deletion in the beginning to Insertions at the end)
-            //for E = 2 we allow a score -6 since 2 MM + 2 D + 2 I
+            //Unfortunately, since for example (E = 2) 2 Insertions lead to a score of -4 we cannot conclude the number of errors the read will have at the end. (O Errors would also have a score -4 2 Deletion in the beginning to Insertions at the end)
+            //for E = 2 we allow a score -6 since 2 MM + 2 D + 2 I.
+            //To Insertion on the otherhand lead to 2D + 2I + 4D -> 8 errors
 
-            //TODO keep track what kind of error where made
-            //for speed up split into  more or equal deletions  and   more insertions
             int initialScore = globalAlignmentScore(ex_needle, needle, MyersBitVector());
 
             //assume more Insertions (in the read) than deletions
             int ins_initialScore = globalAlignmentScore(n_infix, needle, MyersBitVector());
 
-//             cout << "NLP: " << (int) needleLeftPos << " NRP: " << needleRightPos << endl;
-//             std::cout  << "  " << needle << "  needle" << endl;
-//             std::cout << endl;
-//             std::cout << ex_needle << endl;
-
-//             std::cout << "iS: " << initialScore << "\t" << ins_initialScore << "\t" <<  "overlapL: " << (int)overlap_l << " " << (int)overlap_r << " errors: " << (int) errors << "\n";
-
+            //TODO switch Insertion and deltions in the following code!!
             if(ins_initialScore >= 0 - 2 * max_e || initialScore >= 0 - overlap_l - overlap_r + max_e) //MM creates one error D creates one error since now it also align to overlap
             {
                 //No Insertions or Deletions
@@ -133,9 +124,6 @@ inline void directSearch(TDelegateD & delegateDirect,
                             {
                                 if(overlap_l < (pos * k) || 0 - (pos * (m - k)) > overlap_r)
                                     continue;
-//                                 std::cout << (int)i << ":" << (int)d << "\n";
-//                                 std::cout << "on the left side" << ":" << (int)k << ":  " << (int)(m - k) << "\n";
-
                                 sa_info_tmp = sa_info;
                                 sa_info_tmp.i2 = sa_info_tmp.i2 + (pos * k);
                                 TString const & tmp2 = infix(ex_needle, overlap_l + (pos * k), needleL + overlap_l - (pos * (m - k)));
@@ -146,8 +134,6 @@ inline void directSearch(TDelegateD & delegateDirect,
                         }
                         else
                         {
-//                            cout << "Number of insertions: " << (int)i << endl;
-//                            cout << "Number of deletions: " << (int)d << endl;
                             if(overlap_l >= i){
 
                             //insertions left and deletion right
@@ -156,22 +142,12 @@ inline void directSearch(TDelegateD & delegateDirect,
                             errors2 = 0 - globalAlignmentScore(tmp, needle, MyersBitVector());
                             if(errors2 <= max_e)
                                 delegateDirect(sa_info_tmp , needle, errors2);
-
-//                                std::cout << (int) sa_info.i2 << endl;
-//                                std::cout << "1Errors2:" << errors2 << "\n";
-//                                std::cout << (int)i << ":" << (int)d << "\n";
-//                                cout << tmp << endl;
                             }
                             if(overlap_r >= i){
                             //insertions right and deletion left
                             sa_info_tmp = sa_info; //TODO just include i from before into the calculation
                             TString const & tmp1 = infix(ex_needle, overlap_l + d, needleL + overlap_l + i);
                             errors2 = 0 - globalAlignmentScore(tmp1, needle, MyersBitVector());
-
-//                             std::cout << "ins is right Errors2:" << errors2 << "\n";
-//                             std::cout << (int)i << ":" << (int)d << "\n";
-//                             cout << tmp1 << endl;
-
                             sa_info_tmp.i2 = sa_info_tmp.i2 + d;
                             if(errors2 <= max_e)
                                 delegateDirect(sa_info_tmp , needle, errors2);
@@ -402,7 +378,6 @@ inline void _optimalSearchScheme(TDelegate & delegate,
 
     else
     {
-        //TODO put this into _optimalSearchSchemeChildren right at the end
         // Insertion
         if (std::is_same<TDistanceTag, EditDistance>::value)
         {
