@@ -1,6 +1,7 @@
 #ifndef SEQAN_INDEX_FIND2_INDEX_APPROX_UNIDIRECTIONAL_H_
 #define SEQAN_INDEX_FIND2_INDEX_APPROX_UNIDIRECTIONAL_H_
 
+#include <seqan/modifier.h>
 
 using namespace std;
 
@@ -68,16 +69,92 @@ inline void genomeSearch(TDelegateD & delegateDirect,
     delegateDirect(sa_info, needle, errors);
 }
 
+template <typename TDelegateD,
+          typename TString,
+          typename TNeedle>
+inline void alignmentMyersBitvector(TDelegateD & delegateDirect,
+                                    TNeedle const & needle,
+                                    TString const & n_infix,
+                                    TString const & ex_infix,
+                                    auto const & genome,
+                                    Pair<uint16_t, uint32_t> const & sa_info,
+                                    uint8_t max_e,
+                                    uint8_t overlap_l,
+                                    uint8_t overlap_r)
+{
+    uint16_t needleL = length(needle);
+    uint16_t ex_infixL = needleL + overlap_l + overlap_r;
+
+    int initialScore = globalAlignmentScore(ex_infix, needle, MyersBitVector());
+    //assume more Insertions (in the read) than deletions
+    int ins_initialScore = globalAlignmentScore(n_infix, needle, MyersBitVector());
+
+    if(ins_initialScore >= 0 - 2 * max_e || initialScore >= 0 - overlap_l - overlap_r + max_e) //MM creates one error D creates one error since now it also align to overlap
+    {
+        //No Insertions or Deletions
+        TString const & tmp0 = infix(ex_infix, overlap_l, ex_infixL - overlap_r);
+        int errors2 = 0 - globalAlignmentScore(tmp0, needle, MyersBitVector()); //
+        if(errors2 <= max_e)
+            delegateDirect(sa_info , needle, errors2);
+
+        for(uint8_t e = 1; e <= max_e /*overlap*/; ++e){
+//                     cout << "E: " << (int)e << endl;
+            for(uint8_t del = 0; del <= e; ++del){
+                //del is number of deletions
+                uint8_t ins = e - del; //number of insertions
+                auto sa_info_tmp = sa_info;
+
+                if(del > 1 && ins == 0 || ins > 1 && del == 0){
+                //only insertion or deletions
+                    int16_t pos = (ins > del) ? 1 : (-1);
+                    int16_t m = std::max(del,ins);
+                    for(int16_t k = 0; k <= m; ++k)
+                    {
+                        if(overlap_l < (pos * k) || 0 - (pos * (m - k)) > overlap_r)
+                            continue;
+                        sa_info_tmp = sa_info;
+                        sa_info_tmp.i2 = sa_info_tmp.i2 + (pos * k);
+                        TString const & tmp2 = infix(ex_infix, overlap_l + (pos * k), ex_infixL - overlap_r - (pos * (m - k)));
+                        errors2 = 0 - globalAlignmentScore(tmp2, needle, MyersBitVector());
+                        if(errors2 <= max_e)
+                            delegateDirect(sa_info_tmp , needle, errors2);
+                    }
+                }
+                else
+                {
+                    //insertions left and deletion right
+                    if(overlap_l >= del){
+                        TString const & tmp = infix(ex_infix, overlap_l - del, ex_infixL - overlap_r - ins);
+                        sa_info_tmp.i2 = sa_info_tmp.i2 - del;
+                        errors2 = 0 - globalAlignmentScore(tmp, needle, MyersBitVector());
+                        if(errors2 <= max_e)
+                            delegateDirect(sa_info_tmp , needle, errors2);
+                    }
+
+                    //insertions right and deletion left
+                    if(overlap_r >= del){
+                        sa_info_tmp = sa_info; //just include del from before into the calculation
+                        TString const & tmp1 = infix(ex_infix, overlap_l + ins, ex_infixL - overlap_r + del);
+                        errors2 = 0 - globalAlignmentScore(tmp1, needle, MyersBitVector());
+                        sa_info_tmp.i2 = sa_info_tmp.i2 + ins;
+                        if(errors2 <= max_e)
+                            delegateDirect(sa_info_tmp , needle, errors2);
+                    }
+                }
+            }
+        }
+    }
+}
 
 template <typename TDelegateD,
-          typename TText, typename TConfig, typename TIndexSpec,
+          typename TString, typename TConf, typename TConfig, typename TIndexSpec,
           typename TNeedle,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir,
           typename TDistanceTag>
 inline void uniDirectSearch(TDelegateD & delegateDirect,
-                  Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
+                  Iter<Index<StringSet<TString, TConf>, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
                   TNeedle const & needle,
                   vector<pair<TVector, TVSupport>> & bitvectors,
                   uint32_t const needleLeftPos,
@@ -90,10 +167,62 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
                   TDistanceTag const & )
 {
 
+
     //this can also be the reverse genome
     auto const & genome = indexText(*iter.index);
     uint32_t needleL = length(needle);
-    uint32_t blocks = s.pi.size();
+
+    if(std::is_same<TDistanceTag, EditDistance>::value){
+        uint16_t needleL = length(needle);
+        uint8_t max_e = s.u[s.u.size() - 1];
+        uint8_t overlap_l = max_e;
+        uint8_t overlap_r = max_e;
+        if(needleLeftPos == 0)
+            overlap_l = errors;
+        if(needleRightPos == needleL + 1)
+            overlap_r = errors;
+        uint16_t ex_infixL = needleL + overlap_l + overlap_r;
+
+
+        if(std::is_same<TDir, Rev>::value){
+            for(uint32_t r = 0; r < brange.i2.i2 - brange.i2.i1; ++r){
+                if(bitvectors[brange.i1].first[brange.i2.i1 + r] == 1){
+                    Pair<uint16_t, uint32_t> sa_info = iter.index->sa[r];
+                    uint32_t const chromlength = length(genome[sa_info.i1]);
+                    if(!(sa_info.i2 >= needleL - needleRightPos + 1 && chromlength - 1 >= sa_info.i2 + needleRightPos - 2))
+                        continue;
+                    sa_info.i2 = sa_info.i2 - needleL + needleRightPos - 1;
+                    //TODO fix this mess
+                    TString /*const &*/ n_infix = infix(genome[sa_info.i1], sa_info.i2, sa_info.i2 + needleL);
+                    TString /*const &*/ ex_infix = infix(genome[sa_info.i1], sa_info.i2 - overlap_l, sa_info.i2 + needleL + overlap_r);
+                    DnaStringReverse n_infix_rev(n_infix);
+                    DnaStringReverse ex_infix_rev(ex_infix);
+                    TString n_infix_rev_copy = n_infix_rev;
+                    TString ex_infix_rev_copy = ex_infix_rev;
+
+                    alignmentMyersBitvector(delegateDirect, needle, n_infix_rev_copy, ex_infix_rev_copy, genome, sa_info, max_e, overlap_l, overlap_r);
+                }
+            }
+        }else{
+            for(uint32_t r = 0; r < brange.i2.i2 - brange.i2.i1; ++r){
+
+                if(bitvectors[brange.i1].first[brange.i2.i1 + r] == 1){
+                    Pair<uint16_t, uint32_t> sa_info = iter.index->sa[r];
+                    uint32_t const chromlength = length(genome[sa_info.i1]);
+                    if(!(needleLeftPos + overlap_l <= sa_info.i2  && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1 + overlap_r))
+                        continue;
+                     sa_info.i2 = sa_info.i2 - needleLeftPos;
+                    TString const & ex_infix = infix(genome[sa_info.i1], sa_info.i2 - overlap_l, sa_info.i2 + needleL + overlap_r);
+                    TString const & n_infix = infix(genome[sa_info.i1], sa_info.i2, sa_info.i2 + needleL);
+                    alignmentMyersBitvector(delegateDirect, needle, n_infix, ex_infix, genome, sa_info, max_e, overlap_l, overlap_r);
+
+                }
+            }
+        }
+
+    }
+    else
+    {
 
     if(std::is_same<TDir, Rev>::value){
 
@@ -139,6 +268,7 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
                 genomeSearch(delegateDirect, needle, errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds);
             }
         }
+    }
     }
 }
 

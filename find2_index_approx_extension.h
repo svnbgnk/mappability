@@ -80,7 +80,6 @@ inline void filter_interval(TDelegate & delegate,
 }
 
 
-//TODO remove blockindex ??
 template <typename TDelegateD,
           typename TNeedle,
           size_t nbrBlocks>
@@ -110,14 +109,14 @@ inline void genomeSearch(TDelegateD & delegateDirect,
 }
 
 template <typename TDelegateD,
-          typename TText, typename TIndex, typename TIndexSpec,
+          typename TString, typename TConfig, typename TIndex, typename TIndexSpec,
           typename TNeedle,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir,
           typename TDistanceTag>
 inline void directSearch(TDelegateD & delegateDirect,
-                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+                  Iter<Index<StringSet<TString, TConfig>, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                   TNeedle const & needle,
                   vector<pair<TVector, TVSupport>> & bitvectors,
                   uint32_t const needleLeftPos,
