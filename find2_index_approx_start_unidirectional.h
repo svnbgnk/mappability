@@ -191,7 +191,7 @@ inline ReturnCode uniCheckMappability(TDelegate & delegate,
 
     if(rcode == ReturnCode::NOMAPPABILITY)
         return ReturnCode::FINISHED;
-    // Done. (Last step)
+    // Searched everything with OSS still need to check Mappability
     if (done)
     {
         bool rev = std::is_same<TDir, Rev>::value;

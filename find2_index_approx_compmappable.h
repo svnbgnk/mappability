@@ -7,47 +7,9 @@ using namespace std;
 
 namespace seqan{
 
-template <typename TDelegate,
-          typename TDelegateDirect,
-          typename TText, typename TIndex, typename TIndexSpec,
-          typename TNeedle,
-          size_t nbrBlocks,
-          typename TDir>
-inline void _optimalSearchSchemeDeletion(TDelegate & delegate,
-                                         TDelegateDirect & delegateDirect,
-                                         Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-                                         TNeedle const & needle,
-                                         uint32_t const needleLeftPos,
-                                         uint32_t const needleRightPos,
-                                         uint8_t const errors,
-                                         OptimalSearch<nbrBlocks> const & s,
-                                         uint8_t const blockIndex,
-                                         TDir const & /**/)
-{
-    uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
-    uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
 
-    if (minErrorsLeftInBlock == 0)
-    {
-        uint8_t const blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
-        bool const goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
-        if (goToRight2)
-            _optimalSearchScheme(delegate, delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex2, Rev(), EditDistance());
-        else
-            _optimalSearchScheme(delegate, delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex2, Fwd(), EditDistance());
-    }
 
-    if (maxErrorsLeftInBlock > 0 && goDown(iter, TDir()))
-    {
-        do
-        {
-            _optimalSearchSchemeDeletion(delegate, delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors + 1, s,
-                                         blockIndex, TDir());
-        } while (goRight(iter, TDir()));
-    }
-}
 
-//
 template <typename TDelegateD,
           typename TString, typename TConfig, typename TIndex, typename TIndexSpec,
           typename TNeedle,
@@ -66,25 +28,22 @@ inline void directSearch(TDelegateD & delegateDirect,
                   TDistanceTag const & )
 {
     auto const & genome = indexText(*iter.fwdIter.index);
-    uint16_t needleL = length(needle);
-    uint8_t max_e = s.u[s.u.size() - 1];
 
-    uint8_t overlap_l = max_e;
-    uint8_t overlap_r = max_e;
-    if(needleLeftPos == 0)
-        overlap_l = errors;
-    if(needleRightPos == length(needle) + 1)
-        overlap_r = errors;
-
-    uint16_t ex_infixL = needleL + overlap_l + overlap_r;
-
-    uint8_t rest_errors = max_e - errors;
     if (std::is_same<TDistanceTag, EditDistance>::value){
+        uint16_t needleL = length(needle);
+        uint8_t max_e = s.u[s.u.size() - 1];
+        uint8_t overlap_l = max_e;
+        uint8_t overlap_r = max_e;
+        if(needleLeftPos == 0)
+            overlap_l = errors;
+        if(needleRightPos == needleL + 1)
+            overlap_r = errors;
+        uint16_t ex_infixL = needleL + overlap_l + overlap_r;
+
         for(uint32_t r = iter.fwdIter.vDesc.range.i1; r < iter.fwdIter.vDesc.range.i2; ++r)
         {
             Pair<uint16_t, uint32_t> sa_info = iter.fwdIter.index->sa[r];
             uint32_t const chromlength = length(genome[sa_info.i1]);
-            //TODO use new limits everywhere for EditDistance
             if(!(needleLeftPos + overlap_l <= sa_info.i2  && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1 + overlap_r))
                 continue;
             sa_info.i2 = sa_info.i2 - needleLeftPos;
@@ -101,11 +60,9 @@ inline void directSearch(TDelegateD & delegateDirect,
             //assume more Insertions (in the read) than deletions
             int ins_initialScore = globalAlignmentScore(n_infix, needle, MyersBitVector());
 
-            //TODO switch Insertion and deltions in the following code!!
             if(ins_initialScore >= 0 - 2 * max_e || initialScore >= 0 - overlap_l - overlap_r + max_e) //MM creates one error D creates one error since now it also align to overlap
             {
                 //No Insertions or Deletions
-                //TODO use length(ex_infix) to make it easier
                 TString const & tmp0 = infix(ex_infix, overlap_l, ex_infixL - overlap_r);
                 int errors2 = 0 - globalAlignmentScore(tmp0, needle, MyersBitVector()); //
                 if(errors2 <= max_e)
@@ -147,7 +104,7 @@ inline void directSearch(TDelegateD & delegateDirect,
 
                             //insertions right and deletion left
                             if(overlap_r >= del){
-                                sa_info_tmp = sa_info; //TODO just include del from before into the calculation
+                                sa_info_tmp = sa_info; //just include del from before into the calculation and delete this
                                 TString const & tmp1 = infix(ex_infix, overlap_l + ins, ex_infixL - overlap_r + del);
                                 errors2 = 0 - globalAlignmentScore(tmp1, needle, MyersBitVector());
                                 sa_info_tmp.i2 = sa_info_tmp.i2 + ins;
@@ -204,6 +161,46 @@ inline void directSearch(TDelegateD & delegateDirect,
             if(valid)
                 delegateDirect(sa_info, needle, errors2);
         }
+    }
+}
+
+template <typename TDelegate,
+          typename TDelegateDirect,
+          typename TText, typename TIndex, typename TIndexSpec,
+          typename TNeedle,
+          size_t nbrBlocks,
+          typename TDir>
+inline void _optimalSearchSchemeDeletion(TDelegate & delegate,
+                                         TDelegateDirect & delegateDirect,
+                                         Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+                                         TNeedle const & needle,
+                                         uint32_t const needleLeftPos,
+                                         uint32_t const needleRightPos,
+                                         uint8_t const errors,
+                                         OptimalSearch<nbrBlocks> const & s,
+                                         uint8_t const blockIndex,
+                                         TDir const & /**/)
+{
+    uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
+    uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
+
+    if (minErrorsLeftInBlock == 0)
+    {
+        uint8_t const blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
+        bool const goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
+        if (goToRight2)
+            _optimalSearchScheme(delegate, delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex2, Rev(), EditDistance());
+        else
+            _optimalSearchScheme(delegate, delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex2, Fwd(), EditDistance());
+    }
+
+    if (maxErrorsLeftInBlock > 0 && goDown(iter, TDir()))
+    {
+        do
+        {
+            _optimalSearchSchemeDeletion(delegate, delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors + 1, s,
+                                         blockIndex, TDir());
+        } while (goRight(iter, TDir()));
     }
 }
 
@@ -308,15 +305,11 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
             return;
 
         if (goToRight2)
-        {
             _optimalSearchScheme(delegate, delegateDirect, iter, needle, needleLeftPos, infixPosRight + 2, errors, s,
                                  blockIndex2, Rev(), TDistanceTag());
-        }
         else
-        {
             _optimalSearchScheme(delegate, delegateDirect, iter, needle, needleLeftPos, infixPosRight + 2, errors, s,
                                  blockIndex2, Fwd(), TDistanceTag());
-        }
     }
     else
     {
@@ -331,15 +324,11 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
             --infixPosRight;
         }
         if (goToRight2)
-        {
             _optimalSearchScheme(delegate, delegateDirect, iter, needle, infixPosLeft, needleRightPos, errors, s,
                                  blockIndex2, Rev(), TDistanceTag());
-        }
         else
-        {
             _optimalSearchScheme(delegate, delegateDirect, iter, needle, infixPosLeft, needleRightPos, errors, s,
                                  blockIndex2, Fwd(), TDistanceTag());
-        }
     }
 }
 

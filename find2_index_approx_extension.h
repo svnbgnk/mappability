@@ -129,8 +129,102 @@ inline void directSearch(TDelegateD & delegateDirect,
                   TDir const & ,
                   TDistanceTag const &)
 {
-    //TODO implement myers bitvector
+
     auto const & genome = indexText(*iter.fwdIter.index);
+
+
+    if(std::is_same<TDistanceTag, EditDistance>::value){
+        uint16_t needleL = length(needle);
+        uint8_t max_e = s.u[s.u.size() - 1];
+        uint8_t overlap_l = max_e;
+        uint8_t overlap_r = max_e;
+        if(needleLeftPos == 0)
+            overlap_l = errors;
+        if(needleRightPos == needleL + 1)
+            overlap_r = errors;
+        uint16_t ex_infixL = needleL + overlap_l + overlap_r;
+
+
+        for(uint32_t r = 0; r < brange.i2.i2 - brange.i2.i1; ++r){
+            //TODO make if conditional for checking with bitvectors give empty bitvectors ?
+            if(bitvectors[brange.i1].first[brange.i2.i1 + r] == 1){
+                Pair<uint16_t, uint32_t> sa_info = iter.fwdIter.index->sa[r];
+                uint32_t const chromlength = length(genome[sa_info.i1]);
+                if(!(needleLeftPos + overlap_l <= sa_info.i2  && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1 + overlap_r))
+                    continue;
+                sa_info.i2 = sa_info.i2 - needleLeftPos;
+
+                TString const & ex_infix = infix(genome[sa_info.i1], sa_info.i2 - overlap_l, sa_info.i2 + needleL + overlap_r);
+                TString const & n_infix = infix(genome[sa_info.i1], sa_info.i2, sa_info.i2 + needleL);
+
+                int initialScore = globalAlignmentScore(ex_infix, needle, MyersBitVector());
+                //assume more Insertions (in the read) than deletions
+                int ins_initialScore = globalAlignmentScore(n_infix, needle, MyersBitVector());
+
+                if(ins_initialScore >= 0 - 2 * max_e || initialScore >= 0 - overlap_l - overlap_r + max_e) //MM creates one error D creates one error since now it also align to overlap
+                {
+                //No Insertions or Deletions
+                    TString const & tmp0 = infix(ex_infix, overlap_l, ex_infixL - overlap_r);
+                    int errors2 = 0 - globalAlignmentScore(tmp0, needle, MyersBitVector()); //
+                    if(errors2 <= max_e)
+                        delegateDirect(sa_info , needle, errors2);
+
+                    for(uint8_t e = 1; e <= max_e /*overlap*/; ++e){
+//                         cout << "E: " << (int)e << endl;
+                        for(uint8_t del = 0; del <= e; ++del){
+                            //del is number of deletions
+                            uint8_t ins = e - del; //number of insertions
+                            auto sa_info_tmp = sa_info;
+
+                            if(del > 1 && ins == 0 || ins > 1 && del == 0){
+                            //only insertion or deletions
+                                int16_t pos = (ins > del) ? 1 : (-1);
+                                int16_t m = std::max(del,ins);
+                                for(int16_t k = 0; k <= m; ++k)
+                                {
+                                    if(overlap_l < (pos * k) || 0 - (pos * (m - k)) > overlap_r)
+                                        continue;
+                                    sa_info_tmp = sa_info;
+                                    sa_info_tmp.i2 = sa_info_tmp.i2 + (pos * k);
+                                    TString const & tmp2 = infix(ex_infix, overlap_l + (pos * k), ex_infixL - overlap_r - (pos * (m - k)));
+                                    errors2 = 0 - globalAlignmentScore(tmp2, needle, MyersBitVector());
+                                    if(errors2 <= max_e)
+                                        delegateDirect(sa_info_tmp , needle, errors2);
+                                }
+                            }
+                            else
+                            {
+                                //insertions left and deletion right
+                                if(overlap_l >= del){
+                                    TString const & tmp = infix(ex_infix, overlap_l - del, ex_infixL - overlap_r - ins);
+                                    sa_info_tmp.i2 = sa_info_tmp.i2 - del;
+                                    errors2 = 0 - globalAlignmentScore(tmp, needle, MyersBitVector());
+                                    if(errors2 <= max_e)
+                                        delegateDirect(sa_info_tmp , needle, errors2);
+                                }
+
+                                //insertions right and deletion left
+                                if(overlap_r >= del){
+                                    sa_info_tmp = sa_info; //just include del from before into the calculation
+                                    TString const & tmp1 = infix(ex_infix, overlap_l + ins, ex_infixL - overlap_r + del);
+                                    errors2 = 0 - globalAlignmentScore(tmp1, needle, MyersBitVector());
+                                    sa_info_tmp.i2 = sa_info_tmp.i2 + ins;
+                                    if(errors2 <= max_e)
+                                        delegateDirect(sa_info_tmp , needle, errors2);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+    else
+    {
+
+
+
     std::array<uint32_t, nbrBlocks> blockStarts;
     std::array<uint32_t, nbrBlocks> blockEnds;
     std::copy(std::begin(s.blockStarts) + blockIndex, std::end(s.blockStarts), std::begin(blockStarts));
@@ -178,6 +272,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                 genomeSearch(delegateDirect, needle, errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds);
             }
         }
+    }
     }
 
 }
@@ -488,13 +583,9 @@ inline void _optimalSearchSchemeDeletion(TDelegate & delegate,
         ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, goToRight2, TDir(), EditDistance());
         if(!(rcode == ReturnCode::FINISHED)){
             if (goToRight2)
-            {
                 _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, Rev(), EditDistance());
-            }
             else
-            {
                 _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, Fwd(), EditDistance());
-            }
         }
     }
 
@@ -502,8 +593,7 @@ inline void _optimalSearchSchemeDeletion(TDelegate & delegate,
     {
         do
         {
-            _optimalSearchSchemeDeletion(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors + 1, s,
-                                         blockIndex, TDir());
+            _optimalSearchSchemeDeletion(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors + 1, s, blockIndex, TDir());
         } while (goRight(iter, TDir()));
     }
 }
@@ -547,8 +637,7 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
             {
                 if (std::is_same<TDistanceTag, EditDistance>::value)
                 {
-                    _optimalSearchSchemeDeletion(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2,
-                                                 errors + delta, s, blockIndex, TDir());
+                    _optimalSearchSchemeDeletion(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex, TDir());
                 }
                 else
                 {
@@ -572,8 +661,7 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
 
             // Deletion
             if (std::is_same<TDistanceTag, EditDistance>::value)
-                _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors + 1, s, blockIndex,
-                                     TDir(), TDistanceTag());
+                _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors + 1, s, blockIndex, TDir(), TDistanceTag());
         } while (goRight(iter, TDir()));
     }
 }
@@ -673,6 +761,8 @@ inline void _optimalSearchScheme(TDelegate & delegate,
         //last input only matters for unidirectional searches (has to be false in this case)
         delegate(iter, needle, errors, false);
     }
+    //TODO move mappbility check here ... check if we are done before remove goToRight and copy TDir
+    // only need to reverse blockIndex = (static_cast<uint8_t>(s.u.size()) == blockIndex) ? blockIndex : blockIndex - 1;
     // Exact search in current block.
     else if (maxErrorsLeftInBlock == 0 && needleRightPos - needleLeftPos - 1 != s.blocklength[blockIndex])
     {
@@ -681,7 +771,6 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     // Approximate search in current block.
     else
     {
-        //TODO put this into _optimalSearchSchemeChildren right at the end
         // Insertion
         if (std::is_same<TDistanceTag, EditDistance>::value)
         {
@@ -692,6 +781,9 @@ inline void _optimalSearchScheme(TDelegate & delegate,
             //if we are at the end of block we need to add possible deletions because _optimalSearchScheme does not check it
             if (needleRightPos - needleLeftPos == s.blocklength[blockIndex])
             {
+                uint8_t const minErrorsLeftInBlock2 = (s.l[blockIndex] > (errors + 1)) ? (s.l[blockIndex] - (errors + 1)) : 0;
+                if (minErrorsLeftInBlock2 == 0)
+                {
                     uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
                     bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
 
@@ -703,7 +795,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
                         else
                             _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, Fwd(), TDistanceTag());
                     }
-
+                }
             }
             else
             {
