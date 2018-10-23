@@ -21,6 +21,7 @@ struct Options
 };
 
 #include "common.h"
+#include "algo1.hpp"
 #include "algo2.hpp"
 #include "algo3.hpp"
 #include "algo4.hpp"
@@ -46,6 +47,25 @@ inline void run(TIndex & index, TText const & text, Options const & opt, SearchP
 {
     vector<value_type> c(length(text) - searchParams.length + 1, 0);
 
+    if(opt.indels){
+        switch (opt.errors)
+        {
+            case 0:  runAlgoTrivial<0>(index, text, c, searchParams);
+                    break;
+            case 1:  runAlgoTrivial<1>(index, text, c, searchParams);
+                    break;
+            case 2:  runAlgoTrivial<2>(index, text, c, searchParams);
+                    break;
+            case 3:  runAlgoTrivial<3>(index, text, c, searchParams);
+                    break;
+            case 4:  runAlgoTrivial<4>(index, text, c, searchParams);
+                    break;
+            default: cerr << "E = " << opt.errors << " not yet supported.\n";
+                    exit(1);
+        }
+    }
+    else
+    {
     switch (opt.errors)
     {
         case 0:  runAlgo4<0>(index, text, c, searchParams);
@@ -60,6 +80,7 @@ inline void run(TIndex & index, TText const & text, Options const & opt, SearchP
                  break;
         default: cerr << "E = " << opt.errors << " not yet supported.\n";
                  exit(1);
+    }
     }
 
     if (SearchParams::outputProgress)
@@ -180,12 +201,12 @@ int main(int argc, char *argv[])
 
     // searchParams.overlap - length of common overlap
     searchParams.overlap = searchParams.length - searchParams.overlap;
-
+/*
     if (opt.indels)
     {
         cerr << "ERROR: Indels are not supported yet.\n";
         exit(1);
-    }
+    }*/
 
     CharString _indexPath = opt.indexPath;
     _indexPath += ".alphabet";

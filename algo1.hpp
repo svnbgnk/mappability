@@ -1,7 +1,7 @@
 using namespace seqan;
 
 template <unsigned errors, typename TIndex, typename TText, typename TContainer>
-inline void runAlgoTrivial(TIndex & index, TText const & text, TContainer & c, SearchParams const & params)
+inline void runAlgoTrivial(TIndex & index, TText const & text, TContainer & c, SearchParams const & searchParams)
 {
     typedef typename TContainer::value_type value_type;
 
@@ -11,7 +11,7 @@ inline void runAlgoTrivial(TIndex & index, TText const & text, TContainer & c, S
 
     uint64_t textLength = seqan::length(text);
 
-    #pragma omp parallel for schedule(dynamic, 1000000) num_threads(params.threads)
+    #pragma omp parallel for schedule(dynamic, 1000000) num_threads(searchParams.threads)
     for (uint64_t i = 0; i < textLength - searchParams.length + 1; ++i)
     {
         value_type hits = 0;
