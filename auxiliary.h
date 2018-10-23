@@ -253,7 +253,7 @@ std::vector<hit> print_readocc_sorted(std::vector<hit> hits, auto const & genome
 template <size_t minErrors, size_t maxErrors,
           typename TText, typename TIndexSpec>
 uint32_t testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
-              hit testhit)
+              hit testhit, int const mErrors, bool const editD)
 {
     auto const & genome = indexText(index);
     std::vector<hit> hits;
@@ -270,8 +270,20 @@ uint32_t testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
     };
 
     StringSet<DnaString> testocc;
+
     DnaString part = infix(genome[testhit.occ.i1], testhit.occ.i2, testhit.occ.i2 + seqan::length(testhit.read));
     appendValue(testocc, part);
+
+    bool common = testhit.occ.i2 > mErrors && testhit.occ.i2 + seqan::length(testhit.read) + mErrors < length(genome[testhit.occ.i1]);
+
+    if(editD && !common){
+        std::cout << "out of boundry skip!!" << "\n";
+        return(666);
+    }
+
+
+    if(editD && common)
+        part = infix(genome[testhit.occ.i1], testhit.occ.i2 - maxErrors, testhit.occ.i2 + seqan::length(testhit.read) + maxErrors);
     std::cout << "Search occ: " << (uint32_t)testhit.occ.i2 << " which has seq: " << "\n";
     std::cout << part << "\n"; //TODO revert this
 
@@ -282,15 +294,15 @@ uint32_t testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
 
 template <typename TText, typename TIndexSpec>
 uint32_t testread(int minErrors, int maxErrors, Index<TText, BidirectionalIndex<TIndexSpec> > & index,
-              hit testhit){
+              hit testhit, bool const editD){
     int nhits;
     switch (maxErrors)
     {
-        case 1: nhits = testread<0, 1>(index, testhit);
+        case 1: nhits = testread<0, 1>(index, testhit, maxErrors, editD);
                 break;
-        case 2: nhits = testread<0, 2>(index, testhit);
+        case 2: nhits = testread<0, 2>(index, testhit, maxErrors, editD);
                 break;
-        case 3: nhits = testread<0, 3>(index, testhit);
+        case 3: nhits = testread<0, 3>(index, testhit, maxErrors, editD);
                 break;
         default: std::cerr << "E = " << maxErrors << " not yet supported.\n";
                 std::exit(1);
@@ -306,6 +318,7 @@ template <typename TText, typename TIndexSpec>
 std::vector<uint32_t> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
                     int errors,
                     uint32_t threshold,
+                    const bool editD,
                     std::vector<hit> x,
                     std::vector<hit> y)
 {
@@ -318,15 +331,13 @@ std::vector<uint32_t> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & in
     }
     int offset = 0;
     for(uint32_t i = 0; i + offset < y.size(); ++i){
-        same = false;
-        same = (i < x.size() && x[i].occ.i1 == y[i + offset].occ.i1 && x[i].occ.i2 == y[i + offset].occ.i2);
-        while(!same && i + offset < y.size()){
+        same = i < x.size() && occ_same(x[i], y[i + offset])/*x[i].occ.i1 == y[i + offset].occ.i1 && x[i].occ.i2 == y[i + offset].occ.i2)*/;
+        while(!same /*&& i + offset < y.size()*/){
             if(wrongHitCount.size() > 0)
                 std::cout << "Something went wrong" << "\n";
-            if(i < x.size())
-                std::cout << "MyVersion has: " << x[i].occ.i2 << " while " ;
+            std::cout << "MyVersion has: " << x[i].occ.i2 << " while " ;
             std::cout << "default version has: " << y[i + offset].occ.i2 << "\n";
-            uint32_t nhits = testread(0, errors, index, y[i + offset]);
+            uint32_t nhits = testread(0, errors, index, y[i + offset], editD);
             if(nhits < threshold){
                 std::cout << "To few hits should have found this part!!!!" << "\n";
                 wrongHitCount.push_back(nhits);

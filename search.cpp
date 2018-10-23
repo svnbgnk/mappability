@@ -394,20 +394,7 @@ int main(int argc, char *argv[])
             }
         }
         cout << "Same, finished" << endl;
-/*
-        cout.setstate(std::ios_base::failbit);
-        vector<uint32_t> whitcount = compare(index, nerrors, threshold + 1, hits, hitsDefault);
-        std::cout.clear();
-        if(whitcount.size() == 0){
-            cout << "MyVersion is still correct!" << endl;
-        }else{
-            cout << "Missed hits mappability" << endl;
-        }
-        cout << endl;
-        cout << "M: " << endl;
-        for(uint32_t i = 0; i < whitcount.size(); ++i)
-            cout << whitcount[i] << endl;
-        cout << endl;*/
+
     }
 
 
@@ -416,7 +403,7 @@ int main(int argc, char *argv[])
         hitsDefault = print_readocc_sorted(hitsDefault, genome, editD, nerrors, true);
         cout << "Test if default and my version are the same: " << endl;
         cout.setstate(std::ios_base::failbit);
-        vector<uint32_t> whitcount = compare(index, nerrors, threshold + 1, hits, hitsDefault);
+        vector<uint32_t> whitcount = compare(index, nerrors, threshold + 1, editD, hits, hitsDefault);
         std::cout.clear();
 
         if(whitcount.size() == 0){
