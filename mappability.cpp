@@ -6,6 +6,9 @@
 #include <seqan/seq_io.h>
 #include <seqan/index.h>
 
+
+
+
 using namespace std;
 using namespace seqan;
 
@@ -21,22 +24,33 @@ struct Options
 };
 
 #include "common.h"
+
+#include "common_auxiliary.h"
+#include "global.h"
+#include "find2_index_approx_extension.h"
+#include "find2_index_approx_compmappable.h"
+
 #include "algo1.hpp"
 #include "algo2.hpp"
 #include "algo3.hpp"
 #include "algo4.hpp"
 
+myGlobalParameters params;
+
 string get_output_path(Options const & opt, SearchParams const & searchParams)
 {
     string output_path = toCString(opt.outputPath);
     output_path += "_" + to_string(opt.errors) + "_" + to_string(searchParams.length) + "_" + to_string(searchParams.overlap);
-    output_path += ".gmapp" + string(opt.high ? "16" : "8");
+//     output_path += ".gmapp" + string(opt.high ? "16" : "8");
     return output_path;
 }
 
 template <typename T>
 inline void save(vector<T> const & c, string const & output_path)
 {
+    for(int i = 0; i < c.size(); ++i)
+        std::cout << (int)c[i] << " ";
+    std::cout << "\n";
     ofstream outfile(output_path, ios::out | ios::binary);
     outfile.write((const char*) &c[0], c.size() * sizeof(T));
     outfile.close();
@@ -186,6 +200,9 @@ int main(int argc, char *argv[])
     getOptionValue(searchParams.length, parser, "length");
     getOptionValue(searchParams.threads, parser, "threads");
     getOptionValue(searchParams.overlap, parser, "overlap");
+
+    params.comp.directsearch_th = 5;
+    params.comp.directsearchblockoffset = 0;
 
     if (searchParams.overlap > searchParams.length - 1)
     {
