@@ -228,6 +228,11 @@ bool occ_same(const hit & x, const hit & y)
     return(x.occ.i1 == y.occ.i1 && x.occ.i2 == y.occ.i2 && x.errors == y.errors);
 }
 
+bool occ_similar(const hit & x, const hit & y, uint32_t dis = 5)
+{
+    return(x.occ.i1 == y.occ.i1 && x.occ.i2 + dis >= y.occ.i2 && x.occ.i2 - dis <= y.occ.i2);
+}
+
 std::vector<hit> print_readocc_sorted(std::vector<hit> hits, auto const & genome, bool const editD, int nerrors, bool const occEnabled)
 {
     if(!editD)
