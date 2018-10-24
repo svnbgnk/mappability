@@ -62,6 +62,7 @@ inline void run(TIndex & index, TText const & text, Options const & opt, SearchP
     vector<value_type> c(length(text) - searchParams.length + 1, 0);
 
     if(opt.indels){
+        /*
         switch (opt.errors)
         {
             case 0:  runAlgoTrivial<0>(index, text, c, searchParams);
@@ -77,6 +78,7 @@ inline void run(TIndex & index, TText const & text, Options const & opt, SearchP
             default: cerr << "E = " << opt.errors << " not yet supported.\n";
                     exit(1);
         }
+        */
     }
     else
     {
