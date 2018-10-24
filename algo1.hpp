@@ -19,6 +19,7 @@ inline void runAlgoTrivial(TIndex & index, TText const & text, TContainer & c, S
         auto delegate = [&hits](auto const &it, auto const & /*read*/, unsigned const /*errors*/) {
 //             for(uint32_t i = it.fwdIter.vDesc.range.i1; i < it.fwdIter.vDesc.range.i2; ++i)
 //                 std::cout << it.fwdIter.index->sa[i] << std::endl;
+
             if ((uint64_t) hits + countOccurrences(it) <= max_val)
                 hits += countOccurrences(it);
             else
@@ -31,6 +32,7 @@ inline void runAlgoTrivial(TIndex & index, TText const & text, TContainer & c, S
                 ++hits;
         };
 
+
         auto const & needle = infix(text, i, i + searchParams.length);
         Iter<TIndex, VSTree<TopDown<> > > it(index);
         _optimalSearchScheme(delegate, delegateDirect, it, needle, scheme, EditDistance());
@@ -41,3 +43,29 @@ inline void runAlgoTrivial(TIndex & index, TText const & text, TContainer & c, S
 
     resetLimits(indexText(index), c, searchParams.length);
 }
+
+
+// vector<hit> myhits;
+/*
+           for (auto occ : getOccurrences(iter.fwdIter)){
+                hit me;
+                me.occ = occ;
+                me.errors;
+                myhits.push_back(me);
+
+            }
+
+
+                hit me;
+                me.occ = occ;
+                me.errors;
+                myhits.push_back(me);
+
+
+
+
+
+    std::sort(myhits.begin(), myhits.end(), occ_similar<5>);
+    myhits.erase(std::unique(myhits.begin(), myhits.end(), occ_same), myhits.end());
+            */
+

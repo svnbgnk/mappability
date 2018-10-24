@@ -393,7 +393,8 @@ int main(int argc, char *argv[])
                 exit(0);
             }
         }
-        cout << "Same, finished" << endl;
+        if(hitsDe.size() == hitsDefault.size())
+            cout << "Same, finished" << endl;
 
     }
 

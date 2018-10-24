@@ -120,8 +120,8 @@ inline void directSearch(TDelegateD & delegateDirect,
     else
     {
         //cut of blockStarts and Ends that where already checked by the search
-        std::vector<uint32_t> blockStarts(s.pi.size() - blockIndex);
-        std::vector<uint32_t> blockEnds(s.pi.size() - blockIndex);
+        std::array<uint32_t, nbrBlocks> blockStarts;
+        std::array<uint32_t, nbrBlocks> blockEnds;
         std::copy(std::begin(s.blockStarts) + blockIndex, std::end(s.blockStarts), std::begin(blockStarts));
         std::copy(std::begin(s.blockEnds) + blockIndex, std::end(s.blockEnds), std::begin(blockEnds));
 
@@ -195,7 +195,7 @@ inline void _optimalSearchSchemeDeletion(TDelegate & delegate,
             _optimalSearchScheme(delegate, delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex2, lastEdit, Fwd(), EditDistance());
     }
 
-    bool not_surface =  std::is_same<TDir, Rev>::value && needleRightPos != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos != 0;
+    bool not_surface =  std::is_same<TDir, Rev>::value && needleRightPos != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos != 0 || true;
 
     if (not_surface && maxErrorsLeftInBlock > 0 && goDown(iter, TDir()))
     {
@@ -269,14 +269,14 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
             else
             {
 //                 bool not_surface = repLength(iter) > 1 && s.pi[blockIndex] != 1 || s.pi[blockIndex] != s.pi.size()/* || true*/;
-                    bool not_surface =  std::is_same<TDir, Rev>::value && needleRightPos2 != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos2 != 0;
+                    bool not_surface =  std::is_same<TDir, Rev>::value && needleRightPos2 != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos2 != 0 || true;
                 if(!delta || not_surface) //TODO maybe reverse MM
                     _optimalSearchScheme(delegate, delegateDirect, iter, needle, needleLeftPos2, needleRightPos2, errors + delta, s,
                                      blockIndex, delta/*true*/, TDir(), TDistanceTag()); //TODO maybe reverse MM
             }
 
             // Deletion
-            bool not_surface =  std::is_same<TDir, Rev>::value && needleRightPos2 != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos2 != 0/* || true*/;
+            bool not_surface =  std::is_same<TDir, Rev>::value && needleRightPos2 != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos2 != 0 || true;
 //             std::cout << "SS: " << (int) s.pi[0] << "\n";
 //             std::cout << "length: " << repLength(iter) << "  NLP: " << needleLeftPos << "  NRP: " << needleRightPos;
 
@@ -370,7 +370,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     // Done.
     if (minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1)
     {
-        if(!lastEdit /*|| true*/){
+        if(!lastEdit || true){
 /*
             std::cout << "Pos: " << "\n";
             for(uint32_t i = iter.fwdIter.vDesc.range.i1; i < iter.fwdIter.vDesc.range.i2; ++i)
@@ -394,7 +394,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     {
         // Insertion
 //         bool not_surface = repLength(iter) > 0 && s.pi[blockIndex] != 1 || s.pi[blockIndex] != s.pi.size()/* || true*/;
-        bool not_surface =  std::is_same<TDir, Rev>::value && needleRightPos != length(needle) || !std::is_same<TDir, Rev>::value && needleLeftPos != 1;
+        bool not_surface =  std::is_same<TDir, Rev>::value && needleRightPos != length(needle) || !std::is_same<TDir, Rev>::value && needleLeftPos != 1 || true;
 
         if (std::is_same<TDistanceTag, EditDistance>::value && not_surface)
         {
