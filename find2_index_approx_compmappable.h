@@ -201,7 +201,7 @@ inline void _optimalSearchSchemeDeletion(TDelegate & delegate,
     {
         do
         {
-            std::cout << "Deletionb " << needleLeftPos << " : " << needleRightPos << "(" << (int) errors << "\n";
+//             std::cout << "Deletionb " << needleLeftPos << " : " << needleRightPos << "(" << (int) errors << "\n";
             _optimalSearchSchemeDeletion(delegate, delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors + 1, s,
                                          blockIndex, true, TDir());
         } while (goRight(iter, TDir()));
@@ -281,7 +281,7 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
 //             std::cout << "length: " << repLength(iter) << "  NLP: " << needleLeftPos << "  NRP: " << needleRightPos;
 
             if (std::is_same<TDistanceTag, EditDistance>::value && not_surface){
-                std::cout << "Deletion. " << needleLeftPos << " : " << needleRightPos << "(" << (int) errors << "\n";
+//                 std::cout << "Deletion. " << needleLeftPos << " : " << needleRightPos << "(" << (int) errors << "\n";
                 _optimalSearchScheme(delegate, delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors + 1, s, blockIndex, true, TDir(), TDistanceTag());
             }
         } while (goRight(iter, TDir()));
@@ -371,13 +371,13 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     if (minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1)
     {
         if(!lastEdit /*|| true*/){
-
+/*
             std::cout << "Pos: " << "\n";
             for(uint32_t i = iter.fwdIter.vDesc.range.i1; i < iter.fwdIter.vDesc.range.i2; ++i)
                 std::cout << iter.fwdIter.index->sa[i] << std::endl;
             std::cout << "SS: " << (int) s.pi[0] << "\n";
             std::cout << "Piece: " << (int) s.pi[blockIndex] << "\n";
-            std::cout << "Error: " << (int) errors << "\n";
+            std::cout << "Error: " << (int) errors << "\n";*/
 
             delegate(iter, needle, errors, false);
 
@@ -401,7 +401,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
             bool const goToRight = std::is_same<TDir, Rev>::value;
             int32_t const needleLeftPos2 = needleLeftPos - !goToRight;
             uint32_t const needleRightPos2 = needleRightPos + goToRight;
-            std::cout << "Insertion. " << needleLeftPos2 << " : " << needleRightPos2 << "(" << (int) errors << "\n";
+//             std::cout << "Insertion. " << needleLeftPos2 << " : " << needleRightPos2 << "(" << (int) errors << "\n";
 
             if (needleRightPos - needleLeftPos == s.blocklength[blockIndex])
             {
