@@ -1,7 +1,7 @@
 using namespace seqan;
 
-template <unsigned max_errors, typename TIter, typename value_type>
-inline void extendExact3(TIter it, value_type * hits, TIter * it_zero_errors, auto & text, unsigned const length,
+template <unsigned max_errors, typename TIter, typename value_type, typename TText>
+inline void extendExact3(TIter it, value_type * hits, TIter * it_zero_errors, TText const & text, unsigned const length,
     uint64_t a, uint64_t b, // searched interval
     uint64_t ab, uint64_t bb // entire interval
 )
@@ -37,7 +37,7 @@ inline void extendExact3(TIter it, value_type * hits, TIter * it_zero_errors, au
     if (a - 1 >= ab)
     {
         int64_t alm = b + 1 - length;
-        int64_t a_new = alm + std::max((int64_t) ((a - alm) - 1) >> 1, 0l);
+        int64_t a_new = alm + std::max((int64_t) ((a - alm) - 1) >> 1, (int64_t)0);
         for (int64_t i = a - 1; i >= a_new; --i)
         {
             if(!goDown(it, text[i], Fwd()))
@@ -48,15 +48,15 @@ inline void extendExact3(TIter it, value_type * hits, TIter * it_zero_errors, au
 }
 
 // forward
-template <unsigned max_errors, typename TIter, typename value_type>
-inline void extend3(TIter it, value_type * hits, TIter * it_zero_errors, unsigned errors_left, auto & text, unsigned const length,
+template <unsigned max_errors, typename TIter, typename value_type, typename TText>
+inline void extend3(TIter it, value_type * hits, TIter * it_zero_errors, unsigned errors_left, TText const & text, unsigned const length,
             uint64_t a, uint64_t b, // searched interval
             uint64_t ab, uint64_t bb // entire interval
 );
 
 // TODO: remove text everywhere: auto & text = indexText(index(it));
-template <unsigned max_errors, typename TIter, typename value_type>
-inline void approxSearch3(TIter it, value_type * hits, TIter * it_zero_errors, unsigned errors_left, auto & text, unsigned const length,
+template <unsigned max_errors, typename TIter, typename value_type, typename TText>
+inline void approxSearch3(TIter it, value_type * hits, TIter * it_zero_errors, unsigned errors_left, TText const & text, unsigned const length,
             uint64_t a, uint64_t b, // searched interval
             uint64_t ab, uint64_t bb, // entire interval
             uint64_t b_new,
@@ -88,8 +88,8 @@ inline void approxSearch3(TIter it, value_type * hits, TIter * it_zero_errors, u
         extendExact3<max_errors>(it, hits, it_zero_errors, text, length, a, b_new, ab, bb);
     }
 }
-template <unsigned max_errors, typename TIter, typename value_type>
-inline void approxSearch3(TIter it, value_type * hits, TIter * it_zero_errors, unsigned errors_left, auto & text, unsigned const length,
+template <unsigned max_errors, typename TIter, typename value_type, typename TText>
+inline void approxSearch3(TIter it, value_type * hits, TIter * it_zero_errors, unsigned errors_left, TText const & text, unsigned const length,
                   uint64_t a, uint64_t b, // searched interval
                   uint64_t ab, uint64_t bb, // entire interval
                   int64_t a_new,
@@ -122,8 +122,8 @@ inline void approxSearch3(TIter it, value_type * hits, TIter * it_zero_errors, u
     }
 }
 
-template <unsigned max_errors, typename TIter, typename value_type>
-inline void extend3(TIter it, value_type * hits, TIter * it_zero_errors, unsigned errors_left, auto & text, unsigned const length,
+template <unsigned max_errors, typename TIter, typename value_type, typename TText>
+inline void extend3(TIter it, value_type * hits, TIter * it_zero_errors, unsigned errors_left, TText const & text, unsigned const length,
     uint64_t a, uint64_t b, // searched interval
     uint64_t ab, uint64_t bb // entire interval
 )
@@ -160,7 +160,7 @@ inline void extend3(TIter it, value_type * hits, TIter * it_zero_errors, unsigne
     if (a - 1 >= ab)
     {
         int64_t alm = b + 1 - length;
-        int64_t a_new = alm + std::max((int64_t) ((a - alm) - 1) >> 1, 0l);
+        int64_t a_new = alm + std::max((int64_t) ((a - alm) - 1) >> 1, (int64_t)0);
         approxSearch3<max_errors>(it, hits, it_zero_errors, errors_left, text, length,
                      a, b, // searched interval
                      ab, bb, // entire interval
@@ -170,8 +170,8 @@ inline void extend3(TIter it, value_type * hits, TIter * it_zero_errors, unsigne
     }
 }
 
-template <unsigned errors, typename TIndex, typename TContainer>
-inline void runAlgo3(TIndex & index, auto const & text, TContainer & c, SearchParams const & params)
+template <unsigned errors, typename TIndex, typename TText, typename TContainer>
+inline void runAlgo3(TIndex & index, TText const & text, TContainer & c, SearchParams const & params)
 {
     typedef typename TContainer::value_type value_type;
     typedef Iter<TIndex, VSTree<TopDown<> > > TIter;
@@ -191,7 +191,7 @@ inline void runAlgo3(TIndex & index, auto const & text, TContainer & c, SearchPa
     uint64_t progress_step;
     initProgress<SearchParams::outputProgress>(progress_count, progress_step, progress_max, step_size, max_i);
 
-    #pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*params.threads*50))) num_threads(params.threads)
+    //#pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*params.threads*50))) num_threads(params.threads)
     for (uint64_t i = 0; i < max_i; i += step_size)
     {
         uint64_t max_pos = std::min(i + params.length - params.overlap, textLength - params.length) + 1;

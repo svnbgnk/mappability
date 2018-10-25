@@ -1,7 +1,7 @@
 using namespace seqan;
 
-template <unsigned errors, typename TIndex, typename TContainer>
-inline void runAlgo4(TIndex & index, auto const & text, TContainer & c, SearchParams const & params)
+template <unsigned errors, typename TIndex, typename TText, typename TContainer>
+inline void runAlgo4(TIndex & index, TText const & text, TContainer & c, SearchParams const & params)
 {
     typedef typename TContainer::value_type value_type;
     typedef Iter<TIndex, VSTree<TopDown<> > > TIter;
@@ -12,7 +12,7 @@ inline void runAlgo4(TIndex & index, auto const & text, TContainer & c, SearchPa
 
     const uint64_t max_i = textLength - params.length + 1;
     const uint64_t step_size = params.length - params.overlap + 1;
-    #pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*params.threads*50))) num_threads(params.threads)
+  //  #pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*params.threads*50))) num_threads(params.threads)
     for (uint64_t i = 0; i < max_i; i += step_size)
     {
         uint64_t max_pos = std::min(i + params.length - params.overlap, textLength - params.length) + 1;
@@ -39,7 +39,9 @@ inline void runAlgo4(TIndex & index, auto const & text, TContainer & c, SearchPa
             TIter it_zero_errors[end_pos - begin_pos];
             value_type hits[end_pos - begin_pos] = {};
 
-            auto delegate = [&hits, &it_zero_errors, begin_pos, &params, textLength, new_overlap, &text](auto it, auto const & /*read*/, unsigned const errors_spent) {
+            auto delegate = [&hits, &it_zero_errors, begin_pos, &params, textLength, new_overlap, &text](
+                TIter it, auto const & /*read*/, unsigned const errors_spent)
+            {
                 uint64_t const bb = std::min(textLength - 1, begin_pos + params.length - 1 + params.length - new_overlap);
                 if (errors_spent == 0)
                 {

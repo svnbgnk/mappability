@@ -6,38 +6,29 @@
 #include <seqan/seq_io.h>
 #include <seqan/index.h>
 
-#include "common.h"
+using namespace std;
+using namespace seqan;
 
 struct Options
 {
     unsigned errors;
     bool mmap;
     bool indels;
-    bool knut;
-    bool knut2;
-    seqan::CharString indexPath;
-    seqan::CharString outputPath;
-    seqan::CharString alphabet;
     bool high;
+    CharString indexPath;
+    CharString outputPath;
+    CharString alphabet;
 };
 
+#include "common.h"
 #include "algo2.hpp"
 #include "algo3.hpp"
 #include "algo4.hpp"
 
-using namespace std;
-using namespace seqan;
-
-string get_output_path(Options const & opt, SearchParams const & searchParams, signed const chromosomeId)
+string get_output_path(Options const & opt, SearchParams const & searchParams)
 {
     string output_path = toCString(opt.outputPath);
     output_path += "_" + to_string(opt.errors) + "_" + to_string(searchParams.length) + "_" + to_string(searchParams.overlap);
-    if (opt.knut)
-        output_path += "_knut";
-    if (opt.knut2)
-        output_path += "_knut2";
-    if (chromosomeId >= 0)
-        output_path += "-" + to_string(chromosomeId);
     output_path += ".gmapp" + string(opt.high ? "16" : "8");
     return output_path;
 }
@@ -51,63 +42,24 @@ inline void save(vector<T> const & c, string const & output_path)
 }
 
 template <typename TDistance, typename value_type, typename TIndex, typename TText>
-inline void run(TIndex & index, TText const & text, Options const & opt, SearchParams const & searchParams, signed const chromosomeId)
+inline void run(TIndex & index, TText const & text, Options const & opt, SearchParams const & searchParams)
 {
     vector<value_type> c(length(text) - searchParams.length + 1, 0);
 
-    if (opt.knut)
+    switch (opt.errors)
     {
-        switch (opt.errors)
-        {
-            case 0:  runAlgo3<0>(index, text, c, searchParams);
-                     break;
-            case 1:  runAlgo3<1>(index, text, c, searchParams);
-                     break;
-            case 2:  runAlgo3<2>(index, text, c, searchParams);
-                     break;
-            case 3:  runAlgo3<3>(index, text, c, searchParams);
-                     break;
-            case 4:  runAlgo3<4>(index, text, c, searchParams);
-                     break;
-            default: cerr << "E = " << opt.errors << " not yet supported.\n";
-                     exit(1);
-        }
-    }
-    else if (opt.knut2)
-        {
-            switch (opt.errors)
-            {
-                case 0:  runAlgo4<0>(index, text, c, searchParams);
-                         break;
-                case 1:  runAlgo4<1>(index, text, c, searchParams);
-                         break;
-                case 2:  runAlgo4<2>(index, text, c, searchParams);
-                         break;
-                case 3:  runAlgo4<3>(index, text, c, searchParams);
-                         break;
-                case 4:  runAlgo4<4>(index, text, c, searchParams);
-                         break;
-                default: cerr << "E = " << opt.errors << " not yet supported.\n";
-                         exit(1);
-            }
-        }
-    else
-    {
-        switch (opt.errors)
-        {
-            case 0:  runAlgo2<0>(index, text, c, searchParams);
-                     break;
-            case 1:  runAlgo2<1>(index, text, c, searchParams);
-                     break;
-            case 2:  runAlgo2<2>(index, text, c, searchParams);
-                     break;
-            case 3:  runAlgo2<3>(index, text, c, searchParams);
-                     break;
-            case 4:  runAlgo2<4>(index, text, c, searchParams);
-                     break;
-            default: cerr << "E = " << opt.errors << " not yet supported.\n";
-                     exit(1);
-        }
+        case 0:  runAlgo4<0>(index, text, c, searchParams);
+                 break;
+        case 1:  runAlgo4<1>(index, text, c, searchParams);
+                 break;
+        case 2:  runAlgo4<2>(index, text, c, searchParams);
+                 break;
+        case 3:  runAlgo4<3>(index, text, c, searchParams);
+                 break;
+        case 4:  runAlgo4<4>(index, text, c, searchParams);
+                 break;
+        default: cerr << "E = " << opt.errors << " not yet supported.\n";
+                 exit(1);
     }
 
     if (SearchParams::outputProgress)
@@ -115,7 +67,7 @@ inline void run(TIndex & index, TText const & text, Options const & opt, SearchP
     std::cout << "Progress: 100.00%\n" << std::flush;
     cout.flush();
 
-    string output_path = get_output_path(opt, searchParams, chromosomeId);
+    string output_path = get_output_path(opt, searchParams);
     save(c, output_path);
 }
 
@@ -128,7 +80,7 @@ inline void run(Options const & opt, SearchParams const & searchParams)
     TIndex<TStringSet> index;
     open(index, toCString(opt.indexPath), OPEN_RDONLY);
     auto const & text = indexText(index);
-    run<TDistance, value_type>(index, text.concat, opt, searchParams, -1);
+    run<TDistance, value_type>(index, text.concat, opt, searchParams);
 }
 
 template <typename TChar, typename TAllocConfig, typename TDistance>
@@ -182,9 +134,6 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("i", "indels", "Turns on indels (EditDistance). "
         "If not selected, only mismatches will be considered."));
 
-    addOption(parser, ArgParseOption("z", "knut", "Turns on knuts trick."));
-    addOption(parser, ArgParseOption("z2", "knut2", "Turns on knuts trick with considering leading/trailing non-zero values."));
-
     addOption(parser, ArgParseOption("hi", "high", "Stores the mappability vector in 16 bit unsigned integers instead of 8 bit (max. value 65535 instead of 255)"));
 
     addOption(parser, ArgParseOption("o", "overlap", "Number of overlapping reads (o + 1 Strings will be searched at once beginning with their overlap region)", ArgParseArgument::INTEGER, "INT"));
@@ -198,9 +147,6 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("t", "threads", "Number of threads", ArgParseArgument::INTEGER, "INT"));
     setDefaultValue(parser, "threads", omp_get_max_threads());
 
-    // addOption(parser, ArgParseOption("x", "threshold", "Threshold for approximate calculation", ArgParseArgument::INTEGER, "INT"));
-    // setDefaultValue(parser, "threshold", "7");
-
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
     if (res != ArgumentParser::PARSE_OK)
         return res == ArgumentParser::PARSE_ERROR;
@@ -213,31 +159,26 @@ int main(int argc, char *argv[])
     getOptionValue(opt.outputPath, parser, "output");
     opt.mmap = isSet(parser, "mmap");
     opt.indels = isSet(parser, "indels");
-    opt.knut = isSet(parser, "knut");
-    opt.knut2 = isSet(parser, "knut2");
     opt.high = isSet(parser, "high");
 
     getOptionValue(searchParams.length, parser, "length");
     getOptionValue(searchParams.threads, parser, "threads");
     getOptionValue(searchParams.overlap, parser, "overlap");
 
+    if (searchParams.overlap > searchParams.length - 1)
+    {
+        cerr << "ERROR: overlap cannot be larger than K - 1.\n";
+        exit(1);
+    }
+
+    if (!(searchParams.length - searchParams.overlap >= opt.errors + 2))
+    {
+        cerr << "ERROR: overlap should be at least K - E - 2. (K - O >= E + 2 must hold since common overlap has length K - O and will be split into E + 2 parts).\n";
+        exit(1);
+    }
+
+    // searchParams.overlap - length of common overlap
     searchParams.overlap = searchParams.length - searchParams.overlap;
-
-    // if (isSet(parser, "threshold"))
-    //     getOptionValue(opt.threshold, parser, "threshold");
-
-    // TODO: error for -E 0 -K 10 -o 1 ????
-    if (searchParams.overlap > searchParams.length - opt.errors - 2)
-    {
-        cerr << "ERROR: overlap should be <= K - E - 2 (Common overlap has length K-O and will be split into E+2 parts).\n";
-        exit(1);
-    }
-
-    if (opt.knut && opt.knut2)
-    {
-        cerr << "ERROR: --knut and --knut2 are mutually exclusive.\n";
-        exit(1);
-    }
 
     if (opt.indels)
     {
