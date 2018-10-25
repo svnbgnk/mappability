@@ -23,10 +23,10 @@ std::vector<int> getInt(std::string const& mappability_str)
   };
 }
 
-vector<uint8_t> read(const string mappability_path){
+vector<uint16_t> read(const string mappability_path){
     string mappability_str;
 
-    vector<uint8_t> mappability_int;
+    vector<uint16_t> mappability_int;
     ifstream file(toCString(mappability_path), std::ios::binary);
     if (!file.eof() && !file.fail())
     {
@@ -42,7 +42,7 @@ vector<uint8_t> read(const string mappability_path){
 }
 
 template <unsigned errors>
-bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, uint32_t const len, uint32_t const threshold){
+bitvectors create_all_bit_vectors(const vector <uint16_t> & mappability, uint32_t const len, int16_t const offset, uint32_t const threshold){
     bitvectors b;
     int e = errors;
     auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
@@ -52,9 +52,9 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, uint32_t
     sdsl::bit_vector righti (mappability.size() + len - 1, 0);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
     #pragma omp parallel for schedule(static)
-    for(uint32_t i = 0; i < mappability.size(); ++i){
-        lefti[i + len - 1] = (mappability[i] <= threshold);
-        righti[i] = (mappability[i] <= threshold);
+    for(uint32_t i = 0; i < mappability.size() - offset; ++i){
+        lefti[i + len - 1 + offset] = (mappability[i] <= threshold);
+        righti[i + offset] = (mappability[i] <= threshold);
     }
     cout << "Finished Default Bit Vectors.  Length: " << righti.size() << endl;
 
@@ -105,7 +105,7 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, uint32_t
 
 
 template <unsigned errors>
-bitvectors create_bit_vectors(const vector <uint8_t> & mappability, uint32_t const len, uint32_t const threshold){
+bitvectors create_bit_vectors(const vector <uint16_t> & mappability, uint32_t const len, int16_t const offset, uint32_t const threshold){
 
     int e = errors;
     cout << "Create minimum amount of bitvectors" << endl;
@@ -113,9 +113,9 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, uint32_t con
     sdsl::bit_vector righti (mappability.size() + len - 1, 0);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
     #pragma omp parallel for schedule(static)
-    for(uint32_t i = 0; i < mappability.size(); ++i){
-        lefti[i + len - 1] = (mappability[i] <= threshold);
-        righti[i] = (mappability[i] <= threshold);
+    for(uint32_t i = 0; i < mappability.size() - offset; ++i){
+        lefti[i + len - 1 + offset] = (mappability[i] <= threshold);
+        righti[i + offset] = (mappability[i] <= threshold);
     }
     cout << "Finished Default Bit Vectors.  Length: " << righti.size() << endl;
     vector<sdsl::bit_vector> bit_vectors;
@@ -179,18 +179,18 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, uint32_t con
 }
 
 
-bitvectors create_bit_vectors(const vector <uint8_t> & mappability, uint32_t const len, uint32_t const threshold, bool const bit3, uint8_t const errors){
+bitvectors create_bit_vectors(const vector <uint16_t> & mappability, uint32_t const len, uint32_t const threshold, int16_t const offset, bool const bit3, uint8_t const errors){
     bitvectors result;
     if(bit3){
         switch (errors)
         {
-            case 0: result = create_bit_vectors<0>(mappability, len, threshold);
+            case 0: result = create_bit_vectors<0>(mappability, len, offset, threshold);
                     break;
-            case 1: result = create_bit_vectors<1>(mappability, len, threshold);
+            case 1: result = create_bit_vectors<1>(mappability, len, offset, threshold);
                     break;
-            case 2: result = create_bit_vectors<2>(mappability, len, threshold);
+            case 2: result = create_bit_vectors<2>(mappability, len, offset, threshold);
                     break;
-            case 3: result = create_bit_vectors<3>(mappability, len, threshold);
+            case 3: result = create_bit_vectors<3>(mappability, len, offset, threshold);
                     break;
             default: cerr << "E = " << errors << " not yet supported.\n";
                     exit(1);
@@ -198,13 +198,13 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, uint32_t con
     }else{
         switch (errors)
         {
-            case 0: result = create_all_bit_vectors<0>(mappability, len, threshold);
+            case 0: result = create_all_bit_vectors<0>(mappability, len, offset, threshold);
                     break;
-            case 1: result = create_all_bit_vectors<1>(mappability, len, threshold);
+            case 1: result = create_all_bit_vectors<1>(mappability, len, offset, threshold);
                     break;
-            case 2: result = create_all_bit_vectors<2>(mappability, len, threshold);
+            case 2: result = create_all_bit_vectors<2>(mappability, len, offset, threshold);
                     break;
-            case 3: result = create_all_bit_vectors<3>(mappability, len, threshold);
+            case 3: result = create_all_bit_vectors<3>(mappability, len, offset, threshold);
                     break;
             default: cerr << "E = " << errors << " not yet supported.\n";
                     exit(1);
@@ -223,7 +223,6 @@ void order_bit_vector(bitvectors & b, CharString const indexPath, uint32_t const
     uint32_t indexSize = seqan::length(index.fwd.sa);
     cout << mytime() << "Loaded Index. Size:" << indexSize << endl;
     vector<sdsl::bit_vector> bit_vectors_ordered (b.bv);
-
     uint32_t number_of_indeces = countSequences(index);
 
     std::vector<uint32_t> sequenceLengths = getSeqLengths(index);
@@ -311,6 +310,9 @@ int main(int argc, char *argv[])
 
     addOption(parser, ArgParseOption("E", "errors", "Max errors allowed during mapping", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "errors");
+
+    addOption(parser, ArgParseOption("OF", "offset", "Shift bitvectors to the right with positive number (needed for Edit Distance)", ArgParseArgument::INTEGER, "INT"));
+
     addOption(parser, ArgParseOption("d", "debug", "Also create chronical bit_vectors (for debugging)"));
 
     addOption(parser, ArgParseOption("s", "startSa", "Create first 1500 lines from SA array fwd and rev and then quit"));
@@ -333,6 +335,8 @@ int main(int argc, char *argv[])
     CharString indexPath, _indexPath, outputPath;
     string mappability_path;
     unsigned len, threshold, errors, threads = 0;
+    int offset = 0;
+    //still need to check for edge cases if offset is negative //TODO
 
     getOptionValue(mappability_path, parser, "map");
     getOptionValue(indexPath, parser, "index");
@@ -340,6 +344,7 @@ int main(int argc, char *argv[])
     getOptionValue(len, parser, "length");
     getOptionValue(threshold, parser, "threshold");
     getOptionValue(errors, parser, "errors");
+    getOptionValue(offset, parser, "offset");
     bool debug = isSet(parser, "debug");
     bool startSa = isSet(parser, "startSa");
     bool mmap = isSet(parser, "mmap");
@@ -364,7 +369,6 @@ int main(int argc, char *argv[])
         exit(0);
     }
 
-
     if(!file_exists(mappability_path))
     {
         cout << "Cannot find mappability file" << endl;
@@ -372,11 +376,11 @@ int main(int argc, char *argv[])
     }
 
     cout << mytime() << "Program start." << endl;
-    vector<uint8_t> mappability = read(mappability_path);
+    vector<uint16_t> mappability = read(mappability_path);
     cout << mytime() << "Loaded Mappability vector. Size: " << mappability.size() << endl;
 
 
-    bitvectors result = create_bit_vectors(mappability, len, threshold, bit3, errors);
+    bitvectors result = create_bit_vectors(mappability, len, offset, threshold, bit3, errors);
 
     cout << mytime() << "Finished bit vectors." << endl;
 
