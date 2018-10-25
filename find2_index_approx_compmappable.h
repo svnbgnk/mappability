@@ -69,14 +69,14 @@ inline void directSearch(TDelegateD & delegateDirect,
 
             if(ins_initialScore >= 0 - 2 * max_e || initialScore >= 0 - overlap_l - overlap_r - max_e + intDel) //MM creates one error D creates one error since now it also align to overlap
             {
-                cout << ex_infix << "        ex_infix " << (int)overlap_l << "  " << (int)overlap_r << "\n";
-                cout << needle << "        needle" << "\n";
+//                 cout << ex_infix << "        ex_infix " << (int)overlap_l << "  " << (int)overlap_r << "\n";
+//                 cout << needle << "        needle" << "\n";
                 //No Insertions or Deletions
                 TString const & tmp0 = infix(ex_infix, overlap_l, ex_infixL - overlap_r);
                 int errors2 = 0 - globalAlignmentScore(tmp0, needle, MyersBitVector()); //
                 if(errors2 <= max_e && tmp0[0] == needle[0] && tmp0[length(tmp0) - 1] == needle[needleL - 1]){
-                    std::cout << "c1 " << sa_info << "  " << (int) errors2 << "\n";
-                    std::cout << tmp0 << "\n";
+//                     std::cout << "c1 " << sa_info << "  " << (int) errors2 << "\n";
+//                     std::cout << tmp0 << "\n";
                     delegateDirect(sa_info , needle, errors2);
                 }
 
@@ -103,8 +103,8 @@ inline void directSearch(TDelegateD & delegateDirect,
                                 TString const & tmp2 = infix(ex_infix, overlap_l + (pos * k), ex_infixL - overlap_r - (pos * (m - k)));
                                 errors2 = 0 - globalAlignmentScore(tmp2, needle, MyersBitVector());
                                 if(errors2 <= max_e && tmp2[0] == needle[0] && tmp2[length(tmp2) - 1] == needle[needleL - 1]){
-                                    std::cout << "c2 " << sa_info_tmp << "  " << (int) errors2 << "\n";
-                                    std::cout << tmp2 << "\n";
+//                                     std::cout << "c2 " << sa_info_tmp << "  " << (int) errors2 << "\n";
+//                                     std::cout << tmp2 << "\n";
                                     delegateDirect(sa_info_tmp , needle, errors2);
                                 }
                             }
@@ -117,8 +117,8 @@ inline void directSearch(TDelegateD & delegateDirect,
                                 sa_info_tmp.i2 = sa_info_tmp.i2 - del;
                                 errors2 = 0 - globalAlignmentScore(tmp, needle, MyersBitVector());
                                 if(errors2 <= max_e && tmp[0] == needle[0] && tmp[length(tmp) - 1] == needle[needleL - 1]){
-                                    std::cout << "c3 " << sa_info_tmp << "  " << (int) errors2 << "\n";
-                                    std::cout << tmp << "\n";
+//                                     std::cout << "c3 " << sa_info_tmp << "  " << (int) errors2 << "\n";
+//                                     std::cout << tmp << "\n";
                                     delegateDirect(sa_info_tmp , needle, errors2);
                                 }
                             }
@@ -130,8 +130,8 @@ inline void directSearch(TDelegateD & delegateDirect,
                                 errors2 = 0 - globalAlignmentScore(tmp1, needle, MyersBitVector());
                                 sa_info_tmp.i2 = sa_info_tmp.i2 + ins;
                                 if(errors2 <= max_e && tmp1[0] == needle[0] && tmp1[length(tmp1) - 1] == needle[needleL - 1]){
-                                    std::cout << "c4 " << sa_info_tmp << "  " << (int) errors2 << "\n";
-                                    std::cout << tmp1 << "\n";
+//                                     std::cout << "c4 " << sa_info_tmp << "  " << (int) errors2 << "\n";
+//                                     std::cout << tmp1 << "\n";
                                     delegateDirect(sa_info_tmp , needle, errors2);
 
                                 }
@@ -293,7 +293,6 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
             }
             else
             {
-//                 bool not_surface = repLength(iter) > 1 && s.pi[blockIndex] != 1 || s.pi[blockIndex] != s.pi.size()/* || true*/;
                     bool not_surface =  std::is_same<TDir, Rev>::value && needleRightPos2 != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos2 != 0/* || true*/;
                 if(!delta || not_surface) //TODO maybe reverse MM
                     _optimalSearchScheme(delegate, delegateDirect, iter, needle, needleLeftPos2, needleRightPos2, errors + delta, s,

@@ -48,9 +48,9 @@ string get_output_path(Options const & opt, SearchParams const & searchParams)
 template <typename T>
 inline void save(vector<T> const & c, string const & output_path)
 {
-    for(int i = 0; i < c.size(); ++i)
-        std::cout << (int)c[i] << " ";
-    std::cout << "\n";
+//     for(int i = 0; i < c.size(); ++i)
+//         std::cout << (int)c[i] << " ";
+//     std::cout << "\n";
     ofstream outfile(output_path, ios::out | ios::binary);
     outfile.write((const char*) &c[0], c.size() * sizeof(T));
     outfile.close();
@@ -62,7 +62,6 @@ inline void run(TIndex & index, TText const & text, Options const & opt, SearchP
     vector<value_type> c(length(text) - searchParams.length + 1, 0);
 
     if(opt.indels){
-        /*
         switch (opt.errors)
         {
             case 0:  runAlgoTrivial<0>(index, text, c, searchParams);
@@ -78,7 +77,6 @@ inline void run(TIndex & index, TText const & text, Options const & opt, SearchP
             default: cerr << "E = " << opt.errors << " not yet supported.\n";
                     exit(1);
         }
-        */
     }
     else
     {

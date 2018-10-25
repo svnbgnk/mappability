@@ -85,20 +85,27 @@ inline void alignmentMyersBitvector(TDelegateD & delegateDirect,
     uint16_t needleL = length(needle);
     uint16_t ex_infixL = needleL + overlap_l + overlap_r;
 
+
     int initialScore = globalAlignmentScore(ex_infix, needle, MyersBitVector());
-    //assume more Insertions (in the read) than deletions
+
+ //assume more Insertions (in the read) than deletions
     int ins_initialScore = globalAlignmentScore(n_infix, needle, MyersBitVector());
 
-    if(ins_initialScore >= 0 - 2 * max_e || initialScore >= 0 - overlap_l - overlap_r + max_e) //MM creates one error D creates one error since now it also align to overlap
+    if(ins_initialScore >= 0 - 2 * max_e || initialScore >= 0 - overlap_l - overlap_r - max_e /*+ intDel*/) //MM creates one error D creates one error since now it also align to overlap
     {
+//         cout << ex_infix << "        ex_infix " << (int)overlap_l << "  " << (int)overlap_r << "\n";
+//         cout << needle << "        needle" << "\n";
         //No Insertions or Deletions
         TString const & tmp0 = infix(ex_infix, overlap_l, ex_infixL - overlap_r);
         int errors2 = 0 - globalAlignmentScore(tmp0, needle, MyersBitVector()); //
-        if(errors2 <= max_e)
+        if(errors2 <= max_e && tmp0[0] == needle[0] && tmp0[length(tmp0) - 1] == needle[needleL - 1]){
+//                     std::cout << "c1 " << sa_info << "  " << (int) errors2 << "\n";
+//                     std::cout << tmp0 << "\n";
             delegateDirect(sa_info , needle, errors2);
+        }
 
         for(uint8_t e = 1; e <= max_e /*overlap*/; ++e){
-//                     cout << "E: " << (int)e << endl;
+//                  cout << "E: " << (int)e << endl;
             for(uint8_t del = 0; del <= e; ++del){
                 //del is number of deletions
                 uint8_t ins = e - del; //number of insertions
@@ -110,14 +117,19 @@ inline void alignmentMyersBitvector(TDelegateD & delegateDirect,
                     int16_t m = std::max(del,ins);
                     for(int16_t k = 0; k <= m; ++k)
                     {
-                        if(overlap_l < (pos * k) || 0 - (pos * (m - k)) > overlap_r)
+//                                 cout << (int)k << ":" << (int)m-k << "\t" << (int)pos << "\n";
+//                                 cout << (int)overlap_l << ":" << (int)(pos * k) << " :: " << (int)overlap_r << ":" << (int)(pos * (m - k))  << endl;
+                        if(!(0 < overlap_l + (pos * k) && overlap_r > 0 - (pos * (m - k))))
                             continue;
                         sa_info_tmp = sa_info;
                         sa_info_tmp.i2 = sa_info_tmp.i2 + (pos * k);
                         TString const & tmp2 = infix(ex_infix, overlap_l + (pos * k), ex_infixL - overlap_r - (pos * (m - k)));
                         errors2 = 0 - globalAlignmentScore(tmp2, needle, MyersBitVector());
-                        if(errors2 <= max_e)
+                        if(errors2 <= max_e && tmp2[0] == needle[0] && tmp2[length(tmp2) - 1] == needle[needleL - 1]){
+//                                   std::cout << "c2 " << sa_info_tmp << "  " << (int) errors2 << "\n";
+//                                   std::cout << tmp2 << "\n";
                             delegateDirect(sa_info_tmp , needle, errors2);
+                        }
                     }
                 }
                 else
@@ -127,18 +139,25 @@ inline void alignmentMyersBitvector(TDelegateD & delegateDirect,
                         TString const & tmp = infix(ex_infix, overlap_l - del, ex_infixL - overlap_r - ins);
                         sa_info_tmp.i2 = sa_info_tmp.i2 - del;
                         errors2 = 0 - globalAlignmentScore(tmp, needle, MyersBitVector());
-                        if(errors2 <= max_e)
+                        if(errors2 <= max_e && tmp[0] == needle[0] && tmp[length(tmp) - 1] == needle[needleL - 1]){
+//                                  std::cout << "c3 " << sa_info_tmp << "  " << (int) errors2 << "\n";
+//                                  std::cout << tmp << "\n";
                             delegateDirect(sa_info_tmp , needle, errors2);
+                        }
                     }
 
                     //insertions right and deletion left
                     if(overlap_r >= del){
-                        sa_info_tmp = sa_info; //just include del from before into the calculation
+                        sa_info_tmp = sa_info; //just include del from before into the calculation and delete this
                         TString const & tmp1 = infix(ex_infix, overlap_l + ins, ex_infixL - overlap_r + del);
                         errors2 = 0 - globalAlignmentScore(tmp1, needle, MyersBitVector());
                         sa_info_tmp.i2 = sa_info_tmp.i2 + ins;
-                        if(errors2 <= max_e)
+                        if(errors2 <= max_e && tmp1[0] == needle[0] && tmp1[length(tmp1) - 1] == needle[needleL - 1]){
+//                                   std::cout << "c4 " << sa_info_tmp << "  " << (int) errors2 << "\n";
+//                                   std::cout << tmp1 << "\n";
                             delegateDirect(sa_info_tmp , needle, errors2);
+
+                        }
                     }
                 }
             }
@@ -175,21 +194,27 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
     if(std::is_same<TDistanceTag, EditDistance>::value){
         uint16_t needleL = length(needle);
         uint8_t max_e = s.u[s.u.size() - 1];
+        int intIns = 0;
+        int intDel = 0;
+        //calculate net sum of internal Insertions - Deletions
+        if(repLength(iter) < needleRightPos - needleLeftPos - 1)
+            intIns = needleRightPos - needleLeftPos - 1 - repLength(iter);
+        else
+            intDel = repLength(iter) - (needleRightPos - needleLeftPos - 1);
         uint8_t overlap_l = max_e;
         uint8_t overlap_r = max_e;
         if(needleLeftPos == 0)
-            overlap_l = errors;
+            overlap_l = intIns;
         if(needleRightPos == needleL + 1)
-            overlap_r = errors;
+            overlap_r = intIns;
         uint16_t ex_infixL = needleL + overlap_l + overlap_r;
-
 
         if(std::is_same<TDir, Rev>::value){
             for(uint32_t r = 0; r < brange.i2.i2 - brange.i2.i1; ++r){
                 if(bitvectors[brange.i1].first[brange.i2.i1 + r] == 1){
                     Pair<uint16_t, uint32_t> sa_info = iter.index->sa[r];
                     uint32_t const chromlength = length(genome[sa_info.i1]);
-                    if(!(sa_info.i2 >= needleL - needleRightPos + 1 && chromlength - 1 >= sa_info.i2 + needleRightPos - 2))
+                    if(!(sa_info.i2 >= needleL - needleRightPos + 1 + overlap_l && chromlength - 1 >= sa_info.i2 + needleRightPos - 2 + overlap_r))
                         continue;
                     sa_info.i2 = sa_info.i2 - needleL + needleRightPos - 1;
                     //TODO fix this mess
