@@ -108,6 +108,35 @@ inline void genomeSearch(TDelegateD & delegateDirect,
 
 }
 
+
+//find first match without insertion and errors at the beginning and end
+template<typename TNeedle,
+         typename TString>
+inline bool compareStartAndEnd(TNeedle const & needle,
+                              TString const & infix,
+                              uint8_t const alignment_errors)
+{
+    /*
+    uint8_t errors = 0;
+    for(int i = 0; i <= alignment_errors; ++i){
+        if(infix[i] == needle[i]){
+            errors = i;
+            break;
+        }
+    }
+
+    for(int i = 0; i <= alignment_errors - errors; ++i){
+        if(infix[length(infix) - 1 - i] == needle[length(needle) - 1 - i]){
+            return true;
+        }
+    }
+    return false;*/
+
+
+    //allow also no mismatches at the start and end
+    return(infix[0] == needle[0] && infix[length(infix) - 1] == needle[length(needle) - 1]);
+}
+
 template <typename TDelegateD,
           typename TString, typename TConfig, typename TIndex, typename TIndexSpec,
           typename TNeedle,
@@ -179,7 +208,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                     //No Insertions or Deletions
                     TString const & tmp0 = infix(ex_infix, overlap_l, ex_infixL - overlap_r);
                     int errors2 = 0 - globalAlignmentScore(tmp0, needle, MyersBitVector()); //
-                    if(errors2 <= max_e && tmp0[0] == needle[0] && tmp0[length(tmp0) - 1] == needle[needleL - 1]){
+                    if(errors2 <= max_e && compareStartAndEnd(needle, tmp0, errors2)){
     //                     std::cout << "c1 " << sa_info << "  " << (int) errors2 << "\n";
     //                     std::cout << tmp0 << "\n";
                         delegateDirect(sa_info , needle, errors2);
@@ -207,7 +236,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                                     sa_info_tmp.i2 = sa_info_tmp.i2 + (pos * k);
                                     TString const & tmp2 = infix(ex_infix, overlap_l + (pos * k), ex_infixL - overlap_r - (pos * (m - k)));
                                     errors2 = 0 - globalAlignmentScore(tmp2, needle, MyersBitVector());
-                                    if(errors2 <= max_e && tmp2[0] == needle[0] && tmp2[length(tmp2) - 1] == needle[needleL - 1]){
+                                    if(errors2 <= max_e && compareStartAndEnd(needle, tmp2, errors2)){
     //                                     std::cout << "c2 " << sa_info_tmp << "  " << (int) errors2 << "\n";
     //                                     std::cout << tmp2 << "\n";
                                         delegateDirect(sa_info_tmp , needle, errors2);
@@ -221,7 +250,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                                     TString const & tmp = infix(ex_infix, overlap_l - del, ex_infixL - overlap_r - ins);
                                     sa_info_tmp.i2 = sa_info_tmp.i2 - del;
                                     errors2 = 0 - globalAlignmentScore(tmp, needle, MyersBitVector());
-                                    if(errors2 <= max_e && tmp[0] == needle[0] && tmp[length(tmp) - 1] == needle[needleL - 1]){
+                                    if(errors2 <= max_e && compareStartAndEnd(needle, tmp, errors2)){
     //                                     std::cout << "c3 " << sa_info_tmp << "  " << (int) errors2 << "\n";
     //                                     std::cout << tmp << "\n";
                                         delegateDirect(sa_info_tmp , needle, errors2);
@@ -234,7 +263,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                                     TString const & tmp1 = infix(ex_infix, overlap_l + ins, ex_infixL - overlap_r + del);
                                     errors2 = 0 - globalAlignmentScore(tmp1, needle, MyersBitVector());
                                     sa_info_tmp.i2 = sa_info_tmp.i2 + ins;
-                                    if(errors2 <= max_e && tmp1[0] == needle[0] && tmp1[length(tmp1) - 1] == needle[needleL - 1]){
+                                    if(errors2 <= max_e && compareStartAndEnd(needle, tmp1, errors2)){
     //                                     std::cout << "c4 " << sa_info_tmp << "  " << (int) errors2 << "\n";
     //                                     std::cout << tmp1 << "\n";
                                         delegateDirect(sa_info_tmp , needle, errors2);

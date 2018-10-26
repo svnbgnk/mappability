@@ -263,6 +263,7 @@ uint32_t testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
 {
     auto const & genome = indexText(index);
     std::vector<hit> hits;
+    //TODO modify this in seqan3 to only count unique local hits
     auto delegate = [&hits](auto & iter, DnaString const & needle, uint8_t errors)
     {
         for (auto occ : getOccurrences(iter)){
