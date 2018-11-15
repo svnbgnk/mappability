@@ -295,7 +295,7 @@ uint32_t testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
     std::cout << "Search occ: " << (uint32_t)testhit.occ.i2 << " which has seq: " << "\n";
     std::cout << part << "\n"; //TODO revert this
 
-    if(editD)
+    if(!editD)
         find<minErrors, maxErrors>(delegate, index, testocc, HammingDistance());
     else
         find<minErrors, maxErrors>(delegate, index, testocc, EditDistance());
