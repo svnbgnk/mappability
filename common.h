@@ -35,7 +35,7 @@ struct FastFMIndexConfigS1
      typedef Levels<void, LevelsRDConfig<LengthSum, Alloc<>, LEVELS, WORDS_PER_BLOCK> >         Sentinels;
      static const unsigned SAMPLING = 1;
 };
-
+/*
 template <typename TText, typename TSpec, typename TConfig>
 inline bool open(Index<TText, BidirectionalIndex<FMIndex<TSpec, TConfig> > > & index, const char * fileName, int openMode)
 {
@@ -98,7 +98,7 @@ inline bool save(Index<TText, BidirectionalIndex<FMIndex<TSpec, TConfig> > > con
     }
 
     return true;
-}
+}*/
 
 }
 

@@ -12,15 +12,11 @@ void buildIndex(StringSet<TString, TStringSetConfig> const & chromosomes, CharSt
     // TODO(cpockrandt): avoid copying
     StringSet<TString, Owner<ConcatDirect<> > > chromosomesConcat(chromosomes);
     Index<StringSet<TString, Owner<ConcatDirect<> > >, TIndexConfig> index(chromosomesConcat);
-
-    indexCreate(index, FibreSALF());
-    /*
     // TODO: create fwd and rev separately and save them right afterwards to reduce memory peak
     indexCreateProgress(index, FibreSALF());
     // do not store
-    clear(getFibre(getFibre(getFibre(index.rev, FibreSA()), FibreSparseString()), FibreValues()));
-    clear(getFibre(getFibre(getFibre(index.rev, FibreSA()), FibreSparseString()), FibreIndicators()));
-    */
+//     clear(getFibre(getFibre(getFibre(index.rev, FibreSA()), FibreSparseString()), FibreValues()));
+//     clear(getFibre(getFibre(getFibre(index.rev, FibreSA()), FibreSparseString()), FibreIndicators()));
     save(index, toCString(indexPath));
 }
 
