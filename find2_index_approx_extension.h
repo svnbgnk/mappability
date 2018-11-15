@@ -521,7 +521,7 @@ inline ReturnCode checkCurrentMappability(TDelegate & delegate,
 
         case ReturnCode::COMPMAPPABLE:
         {
-            _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), HammingDistance());
+            _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), TDistanceTag());
             return ReturnCode::FINISHED;
         }
 
@@ -548,7 +548,6 @@ inline ReturnCode checkMappability(TDelegate & delegate,
                             uint8_t const errors,
                             OptimalSearch<nbrBlocks> const & s,
                             uint8_t const blockIndex,
-                            bool const goToRight2,
                             TDir const & ,
                             TDistanceTag const &)
 {
@@ -556,13 +555,11 @@ inline ReturnCode checkMappability(TDelegate & delegate,
     //check if we are done with the needle
     if(!finished){
         Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
-        if(goToRight2)
-            get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, Rev());
-        else
-            get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, Fwd());
+
+        get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, TDir());
+
 
         ReturnCode rcode = checkInterval(bitvectors, bit_interval, s, blockIndex);
-        //TODO switch
          switch(rcode)
          {
             case ReturnCode::NOMAPPABILITY:
@@ -571,36 +568,23 @@ inline ReturnCode checkMappability(TDelegate & delegate,
             case ReturnCode::DIRECTSEARCH:
             {
                 //search directly in Genome
-                // search in the next blocks only therefore need current error count
-                //TODO direction plays no role in this anymore?
-                if(goToRight2)
-                {
-                    directSearch(delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, Rev(), TDistanceTag());
-                }
-                else
-                {
-                    directSearch(delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, Fwd(), TDistanceTag());
-                }
+                directSearch(delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, TDir(), TDistanceTag());
+
                 return ReturnCode::FINISHED;
             }
             case ReturnCode::COMPMAPPABLE:
             {
-                if (goToRight2)
-                    _optimalSearchScheme(delegate, delegateDirect, iter, needle, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, Rev(), HammingDistance());
-                else
-                    _optimalSearchScheme(delegate, delegateDirect, iter, needle, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, Fwd(), HammingDistance());
+                _optimalSearchScheme(delegate, delegateDirect, iter, needle, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, TDir(), TDistanceTag());
                 return ReturnCode::FINISHED;
             }
 
             case ReturnCode::SUSPECTUNIDIRECTIONAL:
             {
+                bool goToRight2 = std::is_same<TDir, Fwd>::value; //TODO change function then remove this
                 //test unidirectional changes iter range if true
                 if(testUnidirectionalFilter(iter, bitvectors, bit_interval, s, blockIndex, goToRight2)){
                     //range on iter was changed in function before
-                    if(goToRight2)
-                        filter_interval(delegate, delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, Rev(), TDistanceTag());
-                    else
-                        filter_interval(delegate, delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s,blockIndex, bit_interval, Fwd(), TDistanceTag());
+                    filter_interval(delegate, delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, TDir(), TDistanceTag());
                     return ReturnCode::FINISHED;
                 }
             }
@@ -638,13 +622,13 @@ inline void _optimalSearchSchemeDeletion(TDelegate & delegate,
         bool const goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
 
         //check mappability after last deletion
-        ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, goToRight2, TDir(), EditDistance());
-        if(!(rcode == ReturnCode::FINISHED)){
+//         ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, goToRight2, TDir(), EditDistance());
+//         if(!(rcode == ReturnCode::FINISHED)){
             if (goToRight2)
                 _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, Rev(), EditDistance());
             else
                 _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, Fwd(), EditDistance());
-        }
+//         }
     }
 
     if (maxErrorsLeftInBlock > 0 && goDown(iter, TDir()))
@@ -702,9 +686,9 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
                     uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
                     bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
 
-                    ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, goToRight2, TDir(), TDistanceTag());
-                    if(rcode == ReturnCode::FINISHED)
-                        continue;
+//                     ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, goToRight2, TDir(), TDistanceTag());
+//                     if(rcode == ReturnCode::FINISHED)
+//                         continue;
 
                     if (goToRight2)
                         _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, Rev(), TDistanceTag());
@@ -756,10 +740,10 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
         if (!goDown(iter, infix(needle, infixPosLeft, infixPosRight + 1), TDir()))
             return;
 
-        ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, blockIndex2, goToRight2, TDir(), TDistanceTag());
+//         ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, blockIndex2, goToRight2, TDir(), TDistanceTag());
         //TDir() is in this case Rev() ...
-        if(rcode == ReturnCode::FINISHED)
-            return;
+//         if(rcode == ReturnCode::FINISHED)
+//             return;
         if (goToRight2)
             _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, blockIndex2, Rev(), TDistanceTag());
         else
@@ -778,9 +762,9 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
             --infixPosRight;
         }
 
-        ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, infixPosLeft, needleRightPos, errors, s, blockIndex2, goToRight2, TDir(), TDistanceTag());
-        if(rcode == ReturnCode::FINISHED)
-            return;
+//         ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, infixPosLeft, needleRightPos, errors, s, blockIndex2, goToRight2, TDir(), TDistanceTag());
+//         if(rcode == ReturnCode::FINISHED)
+//             return;
 
         if (goToRight2)
             _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, infixPosLeft, needleRightPos, errors, s, blockIndex2, Rev(), TDistanceTag());
@@ -810,6 +794,11 @@ inline void _optimalSearchScheme(TDelegate & delegate,
                                  TDir const & ,
                                  TDistanceTag const &)
 {
+    //check mappability here if we are at the end of a block
+
+
+    bool atEndOfBlock = needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex];
+
     uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
     uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
 
@@ -819,24 +808,28 @@ inline void _optimalSearchScheme(TDelegate & delegate,
         //last input only matters for unidirectional searches (has to be false in this case)
         delegate(iter, needle, errors, false);
     }
-    //TODO move mappbility check here ... check if we are done before remove goToRight and copy TDir
-    // only need to reverse blockIndex = (static_cast<uint8_t>(s.u.size()) == blockIndex) ? blockIndex : blockIndex - 1;
     // Exact search in current block.
-    else if (maxErrorsLeftInBlock == 0 && needleRightPos - needleLeftPos - 1 != s.blocklength[blockIndex])
+    else if (maxErrorsLeftInBlock == 0 && !atEndOfBlock)
     {
         _optimalSearchSchemeExact(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), TDistanceTag());
     }
-    // Approximate search in current block.
     else
     {
-        // Insertion
+        if (atEndOfBlock)
+        {
+            ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), TDistanceTag());
+            if(rcode == ReturnCode::FINISHED)
+                return;
+        }
+    // Approximate search in current block.
+    // Insertion
         if (std::is_same<TDistanceTag, EditDistance>::value)
         {
             bool const goToRight = std::is_same<TDir, Rev>::value;
             int32_t const needleLeftPos2 = needleLeftPos - !goToRight;
             uint32_t const needleRightPos2 = needleRightPos + goToRight;
 
-            //if we are at the end of block we need to add possible deletions because _optimalSearchScheme does not check it
+            //end of block or inside block
             if (needleRightPos - needleLeftPos == s.blocklength[blockIndex])
             {
                 uint8_t const minErrorsLeftInBlock2 = (s.l[blockIndex] > (errors + 1)) ? (s.l[blockIndex] - (errors + 1)) : 0;
@@ -845,14 +838,14 @@ inline void _optimalSearchScheme(TDelegate & delegate,
                     uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
                     bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
 
-                    ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, goToRight2, TDir(), TDistanceTag());
-                    if(!(rcode == ReturnCode::FINISHED))
-                    {
+//                     ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, goToRight2, TDir(), TDistanceTag());
+//                     if(!(rcode == ReturnCode::FINISHED))
+//                     {
                         if (goToRight2)
                             _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, Rev(), TDistanceTag());
                         else
                             _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, Fwd(), TDistanceTag());
-                    }
+//                     }
                 }
             }
             else
@@ -861,6 +854,7 @@ inline void _optimalSearchScheme(TDelegate & delegate,
             }
         }
 
+        //check Mappability inside a block here
         uint32_t pblocklength = (blockIndex > 0) ? s.blocklength[blockIndex - 1] : 0;
         uint32_t step = (needleRightPos - needleLeftPos - 1);
         if(((step & (params.normal.step - 1)) == 0) &&
