@@ -261,6 +261,7 @@ template <size_t minErrors, size_t maxErrors,
 uint32_t testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
               hit testhit, int const mErrors, bool const editD)
 {
+    //TODO
     auto const & genome = indexText(index);
     std::vector<hit> hits;
     //TODO modify this in seqan3 to only count unique local hits
@@ -294,7 +295,11 @@ uint32_t testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
     std::cout << "Search occ: " << (uint32_t)testhit.occ.i2 << " which has seq: " << "\n";
     std::cout << part << "\n"; //TODO revert this
 
-    find<minErrors, maxErrors>(delegate, index, testocc, HammingDistance());
+    if(editD)
+        find<minErrors, maxErrors>(delegate, index, testocc, HammingDistance());
+    else
+        find<minErrors, maxErrors>(delegate, index, testocc, EditDistance());
+    //TODO sort and filter hits // update once read id is established
     std::cout << hits.size() << " hits!!!!!!!!!!" << "\n";
     return(hits.size());
 }
