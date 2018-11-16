@@ -195,9 +195,9 @@ inline ReturnCode uniCheckMappability(TDelegate & delegate,
     if (done)
     {
         bool rev = std::is_same<TDir, Rev>::value;
-        //NOTE we only need to check mappability here to not create duplicates it is probably cheaper to just accept them
-        //but removing duplicates is not yet implemented
-        if(rcode == ReturnCode::MAPPABLE)
+        //NOTE we only need to check mappability here to not allow occurences with a frequency higher than allowed
+        //if the only concern is speed than reporting all occurrences would be faster
+        if(rcode != ReturnCode::COMPMAPPABLE /* add option for speed up here*/)
         {
             uint32_t rangeStart = iter.vDesc.range.i1;
             uint32_t rangeEnd = iter.vDesc.range.i2;
@@ -209,15 +209,17 @@ inline ReturnCode uniCheckMappability(TDelegate & delegate,
                     if(i != lastStart){
                         iter.vDesc.range.i1 = rangeStart + lastStart;
                         iter.vDesc.range.i2 = rangeStart + i - 1;
-                        cout << iter.vDesc.range.i1 << " - " << iter.vDesc.range.i2;
+//                         cout << iter.vDesc.range.i1 << " - " << iter.vDesc.range.i2;
                         delegate(iter, needle, errors, rev);
                     }
                     lastStart = i + 1;
                 }
             }
-            iter.vDesc.range.i1 = rangeStart + lastStart;
-            iter.vDesc.range.i2 = rangeStart + rangeEnd - rangeStart;
-            delegate(iter, needle, errors, rev);
+            if(lastStart < rangeEnd - rangeStart){
+                iter.vDesc.range.i1 = rangeStart + lastStart;
+                iter.vDesc.range.i2 = rangeStart + rangeEnd - rangeStart;
+                delegate(iter, needle, errors, rev);
+            }
         }
         else
         {

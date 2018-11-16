@@ -181,6 +181,7 @@ int main(int argc, char *argv[])
 //     std::vector<hit> hits;
     auto delegate = [/*&hits*/](auto const & iter, DnaString const & needle, uint8_t errors, bool const rev)
     {
+        //NOTE have to get Occurrences from the forward iter otherwise filtering does not work properly
         for (auto occ : getOccurrences(iter)){
             hit me;
             me.occ = occ;
