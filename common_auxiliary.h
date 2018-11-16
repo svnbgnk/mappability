@@ -9,6 +9,7 @@ struct hit{
     bool rev;
     Pair <unsigned, unsigned> occ;
     uint8_t errors;
+    uint32_t readId;
     DnaString read;
 };
 

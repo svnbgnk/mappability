@@ -6,9 +6,11 @@
 #include "global.h"
 #include "auxiliary.h"
 #include "common_auxiliary.h"
-#include "find2_index_approx_unidirectional.h"
-#include "find2_index_approx_compmappable.h"
+// #include "find2_index_approx_unidirectional.h"
+// #include "find2_index_approx_compmappable.h"
 #include "find2_index_approx_start_unidirectional.h"
+
+// class OSSContext
 
 namespace seqan{
 
@@ -67,31 +69,32 @@ inline void filter_interval(TDelegate & delegate,
         if (std::is_same<TDir, Rev>::value){
             iter.revIter.vDesc.range.i1 = consOnes[i].first + noi;
             iter.revIter.vDesc.range.i2 = consOnes[i].second + noi;
-            _optimalSearchScheme(delegate, delegateDirect, iter.revIter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Rev(), TDistanceTag());
+//             _optimalSearchScheme(delegate, delegateDirect, iter.revIter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Rev(), TDistanceTag());
         }
         else
         {
             iter.fwdIter.vDesc.range.i1 = consOnes[i].first + noi;
             iter.fwdIter.vDesc.range.i2 = consOnes[i].second + noi;
-            _optimalSearchScheme(delegate, delegateDirect, iter.fwdIter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Fwd(), TDistanceTag());
+//             _optimalSearchScheme(delegate, delegateDirect, iter.fwdIter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Fwd(), TDistanceTag());
         }
     }
 }
 
-
-//TODO remove blockindex ??
-template <typename TDelegateD,
+template <typename TContex,
+          typename TDelegateD,
           typename TNeedle,
           size_t nbrBlocks>
-inline void genomeSearch(TDelegateD & delegateDirect,
-                  TNeedle const & needle,
-                  uint8_t errors,
-                  OptimalSearch<nbrBlocks> const & s,
-                  uint8_t const blockIndex,
-                  auto const & genome,
-                  Pair<uint16_t, uint32_t> const & sa_info,
-                  std::array<uint32_t, nbrBlocks> & blockStarts,
-                  std::array<uint32_t, nbrBlocks> & blockEnds)
+inline void genomeSearch(TContex & ossContext,
+                         TDelegateD & delegateDirect,
+                         TNeedle const & needle,
+                         uint32_t needleId,
+                         uint8_t errors,
+                         OptimalSearch<nbrBlocks> const & s,
+                         uint8_t const blockIndex,
+                         auto const & genome,
+                         Pair<uint16_t, uint32_t> const & sa_info,
+                         std::array<uint32_t, nbrBlocks> & blockStarts,
+                         std::array<uint32_t, nbrBlocks> & blockEnds)
 {
     for(uint32_t j = 0; j < nbrBlocks - blockIndex; ++j){
         // compare bases to needle
@@ -104,7 +107,7 @@ inline void genomeSearch(TDelegateD & delegateDirect,
             return;
         }
     }
-    delegateDirect(sa_info, needle, errors);
+    delegateDirect(sa_info, needle, needleId, errors);
 
 }
 
@@ -144,30 +147,34 @@ inline bool checkSinglePos(vector<pair<TVector, TVSupport>> & bitvectors,
         return (bitvectors[brange.i1].first[brange.i2.i1 + offset] == 1);
 }
 
-template <typename TDelegateD,
+template <typename TContex,
+          typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir,
           typename TDistanceTag>
-inline void directSearch(TDelegateD & delegateDirect,
-                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-                  TNeedle const & needle,
-                  vector<pair<TVector, TVSupport>> & bitvectors,
-                  uint32_t const needleLeftPos,
-                  uint32_t const needleRightPos,
-                  uint8_t const errors,
-                  OptimalSearch<nbrBlocks> const & s,
-                  uint8_t const blockIndex,
-                  Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
-                  TDir const & ,
-                  TDistanceTag const &)
+inline void directSearch(TContex & ossContext,
+                         TDelegateD & delegateDirect,
+                         Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+                         TNeedle const & needle,
+                         uint32_t needleId,
+                         vector<pair<TVector, TVSupport>> & bitvectors,
+                         uint32_t const needleLeftPos,
+                         uint32_t const needleRightPos,
+                         uint8_t const errors,
+                         OptimalSearch<nbrBlocks> const & s,
+                         uint8_t const blockIndex,
+                         Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
+                         TDir const & ,
+                         TDistanceTag const &)
 {
     auto const & genome = indexText(*iter.fwdIter.index);
 
     if (std::is_same<TDistanceTag, EditDistance>::value){
         //TODO put this into a function
+        //TODO if we are only interested in the best hit call return after delegate calls
         uint16_t needleL = length(needle);
         uint8_t max_e = s.u[s.u.size() - 1];
         int intIns = 0;
@@ -216,7 +223,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                     if(errors2 <= max_e && compareStartAndEnd(needle, tmp0, errors2)){
     //                     std::cout << "c1 " << sa_info << "  " << (int) errors2 << "\n";
     //                     std::cout << tmp0 << "\n";
-                        delegateDirect(sa_info , needle, errors2);
+                        delegateDirect(sa_info, needle , needleId, errors2);
                     }
 
                     for(uint8_t e = 1; e <= max_e /*overlap*/; ++e){
@@ -244,7 +251,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                                     if(errors2 <= max_e && compareStartAndEnd(needle, tmp2, errors2)){
     //                                     std::cout << "c2 " << sa_info_tmp << "  " << (int) errors2 << "\n";
     //                                     std::cout << tmp2 << "\n";
-                                        delegateDirect(sa_info_tmp , needle, errors2);
+                                        delegateDirect(sa_info_tmp, needle, needleId, errors2);
                                     }
                                 }
                             }
@@ -258,7 +265,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                                     if(errors2 <= max_e && compareStartAndEnd(needle, tmp, errors2)){
     //                                     std::cout << "c3 " << sa_info_tmp << "  " << (int) errors2 << "\n";
     //                                     std::cout << tmp << "\n";
-                                        delegateDirect(sa_info_tmp , needle, errors2);
+                                        delegateDirect(sa_info_tmp, needle,  needleId, errors2);
                                     }
                                 }
 
@@ -271,7 +278,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                                     if(errors2 <= max_e && compareStartAndEnd(needle, tmp1, errors2)){
     //                                     std::cout << "c4 " << sa_info_tmp << "  " << (int) errors2 << "\n";
     //                                     std::cout << tmp1 << "\n";
-                                        delegateDirect(sa_info_tmp , needle, errors2);
+                                        delegateDirect(sa_info_tmp, needle, needleId, errors2);
 
                                     }
                                 }
@@ -308,7 +315,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                     sa_info.i2 = sa_info.i2 - needleLeftPos;
 
                     //search remaining blocks
-                    genomeSearch(delegateDirect, needle, errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds);
+                    genomeSearch(ossContext, delegateDirect, needle, needleId, errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds);
                 }
             }
         }
@@ -330,7 +337,7 @@ inline void directSearch(TDelegateD & delegateDirect,
                     sa_info.i2 = chromlength - sa_info.i2 - needleRightPos + 1;
 
                     //search remaining blocks
-                    genomeSearch(delegateDirect, needle, errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds);
+                    genomeSearch(ossContext, delegateDirect, needle, needleId , errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds);
                 }
             }
         }
@@ -482,7 +489,7 @@ inline ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
     if(params.normal.nomappability && ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
 
-     if(params.normal.directsearch && ivalOne < (s.pi.size() - blockIndex - 1 + params.normal.directsearchblockoffset) * params.normal.directsearch_th)
+    if(params.normal.directsearch && ivalOne < (s.pi.size() - blockIndex - 1 + params.normal.directsearchblockoffset) * params.normal.directsearch_th)
         return ReturnCode::DIRECTSEARCH;
 
 //     if(params.normal.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
@@ -495,26 +502,29 @@ inline ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
         return ReturnCode::MAPPABLE;
 }
 
-template <typename TDelegate, typename TDelegateD,
+template <typename TContex,
+          typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir,
           typename TDistanceTag>
-inline ReturnCode checkCurrentMappability(TDelegate & delegate,
-                            TDelegateD & delegateDirect,
-                            Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-                            TNeedle const & needle,
-                            vector<pair<TVector, TVSupport>> & bitvectors,
-                            uint32_t const needleLeftPos,
-                            uint32_t const needleRightPos,
-                            uint8_t const errors,
-                            OptimalSearch<nbrBlocks> const & s,
-                            uint8_t const blockIndex,
-                            uint8_t const minErrorsLeftInBlock,
-                            TDir const & ,
-                            TDistanceTag const &)
+inline ReturnCode checkCurrentMappability(TContex & ossContext,
+                                          TDelegate & delegate,
+                                          TDelegateD & delegateDirect,
+                                          Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+                                          TNeedle const & needle,
+                                          uint32_t needleId,
+                                          vector<pair<TVector, TVSupport>> & bitvectors,
+                                          uint32_t const needleLeftPos,
+                                          uint32_t const needleRightPos,
+                                          uint8_t const errors,
+                                          OptimalSearch<nbrBlocks> const & s,
+                                          uint8_t const blockIndex,
+                                          uint8_t const minErrorsLeftInBlock,
+                                          TDir const & ,
+                                          TDistanceTag const &)
 {
     Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
     get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, TDir());
@@ -527,13 +537,14 @@ inline ReturnCode checkCurrentMappability(TDelegate & delegate,
 
         case ReturnCode::DIRECTSEARCH:
         {
-            directSearch(delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir(), TDistanceTag());
+            directSearch(ossContext, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir(), TDistanceTag());
             return ReturnCode::FINISHED;
         }
 
         case ReturnCode::COMPMAPPABLE:
         {
-            _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), TDistanceTag());
+            vector<pair<TVector, TVSupport>> emtpy_bitvectors;
+            _optimalSearchSchemeChildren(ossContext, delegate, delegateDirect, iter, needle, needleId, emtpy_bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), TDistanceTag());
             return ReturnCode::FINISHED;
         }
 
@@ -543,25 +554,29 @@ inline ReturnCode checkCurrentMappability(TDelegate & delegate,
 }
 
 
-template <typename TDelegate, typename TDelegateD,
+template <typename TContex,
+          typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir,
           typename TDistanceTag>
-inline ReturnCode checkMappability(TDelegate & delegate,
-                            TDelegateD & delegateDirect,
-                            Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-                            TNeedle const & needle,
-                            vector<pair<TVector, TVSupport>> & bitvectors,
-                            uint32_t const current_needleLeftPos,
-                            uint32_t const current_needleRightPos,
-                            uint8_t const errors,
-                            OptimalSearch<nbrBlocks> const & s,
-                            uint8_t const blockIndex,
-                            TDir const & ,
-                            TDistanceTag const &)
+inline ReturnCode checkMappability(TContex & ossContext,
+                                   TDelegate & delegate,
+                                   TDelegateD & delegateDirect,
+                                   Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+                                   TNeedle const & needle,
+                                   uint32_t needleId,
+                                   vector<pair<TVector, TVSupport>> & bitvectors,
+                                   uint32_t const current_needleLeftPos,
+                                   uint32_t const current_needleRightPos,
+                                   uint8_t const errors,
+                                   OptimalSearch<nbrBlocks> const & s,
+                                   uint8_t const blockIndex,
+                                   bool const lastEdit,
+                                   TDir const & ,
+                                   TDistanceTag const &)
 {
     Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
     get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, TDir());
@@ -575,13 +590,15 @@ inline ReturnCode checkMappability(TDelegate & delegate,
         case ReturnCode::DIRECTSEARCH:
         {
             //search directly in Genome
-            directSearch(delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, TDir(), TDistanceTag());
+            directSearch(ossContext, delegateDirect, iter, needle, needleId, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, TDir(), TDistanceTag());
             return ReturnCode::FINISHED;
         }
 
         case ReturnCode::COMPMAPPABLE:
         {
-            _optimalSearchScheme(delegate, delegateDirect, iter, needle, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, TDir(), TDistanceTag());
+            vector<pair<TVector, TVSupport>> emtpy_bitvectors;
+            cout << "Size:B " << emtpy_bitvectors.size() << "\n";
+            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, emtpy_bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, lastEdit, TDir(), TDistanceTag());
             return ReturnCode::FINISHED;
         }
 
@@ -600,17 +617,20 @@ inline ReturnCode checkMappability(TDelegate & delegate,
     return ReturnCode::MAPPABLE;
 }
 
-template <typename TDelegate,
+template <typename TContex,
+          typename TDelegate,
           typename TDelegateDirect,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir>
-inline void _optimalSearchSchemeDeletion(TDelegate & delegate,
+inline void _optimalSearchSchemeDeletion(TContex & ossContext,
+                                         TDelegate & delegate,
                                          TDelegateDirect & delegateDirect,
                                          Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                          TNeedle const & needle,
+                                         uint32_t needleId,
                                          vector<pair<TVector, TVSupport>> & bitvectors,
                                          uint32_t const needleLeftPos,
                                          uint32_t const needleRightPos,
@@ -630,9 +650,9 @@ inline void _optimalSearchSchemeDeletion(TDelegate & delegate,
         bool const goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
 
         if (goToRight2)
-            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, lastEdit, Rev(), EditDistance());
+            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, lastEdit, Rev(), EditDistance());
         else
-            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, lastEdit, Fwd(), EditDistance());
+            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, lastEdit, Fwd(), EditDistance());
     }
 
     bool not_at_end = std::is_same<TDir, Rev>::value && needleRightPos != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos != 0/* || true*/;
@@ -641,22 +661,25 @@ inline void _optimalSearchSchemeDeletion(TDelegate & delegate,
     {
         do
         {
-            _optimalSearchSchemeDeletion(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors + 1, s, blockIndex, true, TDir());
+            _optimalSearchSchemeDeletion(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors + 1, s, blockIndex, true, TDir());
         } while (goRight(iter, TDir()));
     }
 }
 
-template <typename TDelegate, typename TDelegateD,
+template <typename TContex,
+          typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir,
           typename TDistanceTag>
-inline void _optimalSearchSchemeChildren(TDelegate & delegate,
+inline void _optimalSearchSchemeChildren(TContex & ossContext,
+                                         TDelegate & delegate,
                                          TDelegateD & delegateDirect,
                                          Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                          TNeedle const & needle,
+                                         uint32_t needleId,
                                          vector<pair<TVector, TVSupport>> & bitvectors,
                                          uint32_t const needleLeftPos,
                                          uint32_t const needleRightPos,
@@ -686,43 +709,46 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
                 if (std::is_same<TDistanceTag, EditDistance>::value)
                 {
                     //use delta instead of false if no mismatches are allowed
-                    _optimalSearchSchemeDeletion(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex, false, TDir());
+                    _optimalSearchSchemeDeletion(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex, false, TDir());
                 }
                 else
                 {
                     uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
                     bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
                     if (goToRight2)
-                        _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, false, Rev(), TDistanceTag());
+                        _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, false, Rev(), TDistanceTag());
                     else
-                        _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, false, Fwd(), TDistanceTag());
+                        _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, false, Fwd(), TDistanceTag());
                 }
             }
             else
             {
                 //if want to disable mismatches at the start and end (!delta || not_at_end) && use delta instead of false
-                _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex, false, TDir(), TDistanceTag());
+                _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex, false, TDir(), TDistanceTag());
             }
 
             //Deletion
             bool not_at_end = std::is_same<TDir, Rev>::value && needleRightPos2 != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos2 != 0/* || true*/;
             if (std::is_same<TDistanceTag, EditDistance>::value && not_at_end)
-                _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors + 1, s, blockIndex, true, TDir(), TDistanceTag());
+                _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors + 1, s, blockIndex, true, TDir(), TDistanceTag());
         } while (goRight(iter, TDir()));
     }
 }
 
-template <typename TDelegate, typename TDelegateD,
+template <typename TContex,
+          typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir,
           typename TDistanceTag>
-inline void _optimalSearchSchemeExact(TDelegate & delegate,
+inline void _optimalSearchSchemeExact(TContex & ossContext,
+                                      TDelegate & delegate,
                                       TDelegateD & delegateDirect,
                                       Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                       TNeedle const & needle,
+                                      uint32_t needleId,
                                       vector<pair<TVector, TVSupport>> & bitvectors,
                                       uint32_t const needleLeftPos,
                                       uint32_t const needleRightPos,
@@ -745,9 +771,9 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
             return;
 
         if (goToRight2)
-            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, blockIndex2, false, Rev(), TDistanceTag());
+            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, blockIndex2, false, Rev(), TDistanceTag());
         else
-            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, blockIndex2, false, Fwd(), TDistanceTag());
+            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, blockIndex2, false, Fwd(), TDistanceTag());
     }
     else
     {
@@ -763,9 +789,9 @@ inline void _optimalSearchSchemeExact(TDelegate & delegate,
         }
 
         if (goToRight2)
-            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, infixPosLeft, needleRightPos, errors, s, blockIndex2, false, Rev(), TDistanceTag());
+            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, infixPosLeft, needleRightPos, errors, s, blockIndex2, false, Rev(), TDistanceTag());
         else
-            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, infixPosLeft, needleRightPos, errors, s, blockIndex2, false, Fwd(), TDistanceTag());
+            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, infixPosLeft, needleRightPos, errors, s, blockIndex2, false, Fwd(), TDistanceTag());
     }
 }
 
@@ -776,6 +802,7 @@ template <typename TDelegate,
 inline void filteredDelegate(TDelegate & delegate,
                              Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                              TNeedle const & needle,
+                             uint32_t needleId,
                              vector<pair<TVector, TVSupport>> & bitvectors,
                              uint8_t const errors)
 {
@@ -792,7 +819,7 @@ inline void filteredDelegate(TDelegate & delegate,
             if(i != lastStart){
                 iter.fwdIter.vDesc.range.i1 = rangeStart + lastStart;
                 iter.fwdIter.vDesc.range.i2 = rangeStart + i - 1;
-                delegate(iter, needle, errors, false);
+                delegate(iter, needle, needleId, errors, false);
             }
             lastStart = i + 1;
         }
@@ -800,21 +827,24 @@ inline void filteredDelegate(TDelegate & delegate,
     if(lastStart < rangeEnd - rangeStart){
         iter.fwdIter.vDesc.range.i1 = rangeStart + lastStart;
         iter.fwdIter.vDesc.range.i2 = rangeStart + rangeEnd - rangeStart;
-        delegate(iter, needle, errors, false);
+        delegate(iter, needle, needleId, errors, false);
     }
 }
 
-template <typename TDelegate, typename TDelegateD,
+template <typename TContex,
+          typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir,
           typename TDistanceTag>
-inline void _optimalSearchScheme(TDelegate & delegate,
+inline void _optimalSearchScheme(TContex & ossContext,
+                                 TDelegate & delegate,
                                  TDelegateD & delegateDirect,
                                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                  TNeedle const & needle,
+                                 uint32_t needleId,
                                  vector<pair<TVector, TVSupport>> & bitvectors,
                                  uint32_t const needleLeftPos,
                                  uint32_t const needleRightPos,
@@ -836,11 +866,11 @@ inline void _optimalSearchScheme(TDelegate & delegate,
         //last input only matters for unidirectional searches (has to be false in this case)
         if(!lastEdit){
             if(true /*!speed up*/ ){
-                filteredDelegate(delegate, iter, needle, bitvectors, errors);
+                filteredDelegate(delegate, iter, needle, needleId, bitvectors, errors);
             }
             else
             {
-                delegate(iter, needle, errors, false);
+                delegate(iter, needle, needleId, errors, false);
             }
         }
     }
@@ -848,15 +878,15 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     // Exact search in current block.
     else if (maxErrorsLeftInBlock == 0 && !atBlockEnd)
     {
-        _optimalSearchSchemeExact(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), TDistanceTag());
+        _optimalSearchSchemeExact(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), TDistanceTag());
     }
 
     // Approximate search in current block.
     else
     {
         //check Mappability
-        if(atBlockEnd){
-            ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), TDistanceTag());
+        if(atBlockEnd && bitvectors.size() != 0){
+            ReturnCode rcode = checkMappability(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, lastEdit, TDir(), TDistanceTag());
             if(rcode == ReturnCode::FINISHED)
                 return;
         }
@@ -879,45 +909,45 @@ inline void _optimalSearchScheme(TDelegate & delegate,
                     uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
                     bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
 
-//                     ReturnCode rcode = checkMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, goToRight2, TDir(), TDistanceTag());
-//                     if(!(rcode == ReturnCode::FINISHED))
-//                     {
-                        if (goToRight2)
-                            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, true, Rev(), TDistanceTag());
-                        else
-                            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, true, Fwd(), TDistanceTag());
-//                     }
+                    if (goToRight2)
+                        _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, true, Rev(), TDistanceTag());
+                    else
+                        _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, true, Fwd(), TDistanceTag());
                 }
             }
             else
             {
-                _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex, true, TDir(), TDistanceTag());
+                _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex, true, TDir(), TDistanceTag());
             }
         }
         //checkCurrentMappability
         uint32_t pblocklength = (blockIndex > 0) ? s.blocklength[blockIndex - 1] : 0;
         uint32_t step = (needleRightPos - needleLeftPos - 1);
-        if(((step & (params.normal.step - 1)) == 0) &&
-            needleRightPos - needleLeftPos - 1 + params.normal.distancetoblockend < s.blocklength[blockIndex] && static_cast<int>(needleRightPos - needleLeftPos - 1) - params.normal.distancetoblockend > pblocklength)
+        if(bitvectors.size() != 0 && ((step & (params.normal.step - 1)) == 0) &&
+            needleRightPos - needleLeftPos - 1 + params.normal.distancetoblockend < s.blocklength[blockIndex] &&
+            static_cast<int>(needleRightPos - needleLeftPos - 1) - params.normal.distancetoblockend > pblocklength)
         {
-            ReturnCode rcode = checkCurrentMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), TDistanceTag());
+            ReturnCode rcode = checkCurrentMappability(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), TDistanceTag());
             if(rcode == ReturnCode::FINISHED)
                 return;
         }
-        _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), TDistanceTag());
+        _optimalSearchSchemeChildren(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), TDistanceTag());
     }
 }
 
-template <typename TDelegate, typename TDelegateD,
+template <typename TContex,
+          typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDistanceTag>
-inline void _optimalSearchScheme(TDelegate & delegate,
+inline void _optimalSearchScheme(TContex & ossContext,
+                                 TDelegate & delegate,
                                  TDelegateD & delegateDirect,
                                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it,
                                  TNeedle const & needle,
+                                 uint32_t needleId,
                                  vector<pair<TVector, TVSupport>> & bitvectors,
                                  OptimalSearch<nbrBlocks> const & s,
                                  TDistanceTag const &)
@@ -925,9 +955,9 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     bool initialDirection = s.pi[1] > s.pi[0];
 //     if(!params.startUnidirectional || s.startUniDir > 0){
         if(initialDirection)
-            _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, false, Rev(), TDistanceTag());
+            _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, false, Rev(), TDistanceTag());
         else
-            _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, false, Fwd(), TDistanceTag());
+            _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, false, Fwd(), TDistanceTag());
 //     }else{
 //         if(initialDirection)
 //             _uniOptimalSearchScheme(delegate, delegateDirect, it.revIter, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Rev(), HammingDistance());
@@ -937,72 +967,85 @@ inline void _optimalSearchScheme(TDelegate & delegate,
 }
 
 
-template <typename TDelegate, typename TDelegateD,
+template <typename TContex,
+          typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
           size_t nbrBlocks,
           typename TDistanceTag>
-inline void _optimalSearchScheme(TDelegate & delegate,
+inline void _optimalSearchScheme(TContex & ossContext,
+                                 TDelegate & delegate,
                                  TDelegateD & delegateDirect,
                                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it,
                                  TNeedle const & needle,
+                                 uint32_t needleId,
                                  OptimalSearch<nbrBlocks> const & s,
                                  TDistanceTag const &)
 {
+    vector<pair<TBitvector, TSupport>> emtpy_bitvectors;
     bool initialDirection = s.pi[1] > s.pi[0];
     if(initialDirection)
-        _optimalSearchScheme(delegate, delegateDirect, it, needle, s.startPos, s.startPos + 1, 0, s, 0, Rev(), HammingDistance());
+        _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, emtpy_bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Rev(), TDistanceTag());
     else
-        _optimalSearchScheme(delegate, delegateDirect, it, needle, s.startPos, s.startPos + 1, 0, s, 0, Fwd(), HammingDistance());
+        _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, emtpy_bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Fwd(), TDistanceTag());
 }
 
 
-template <typename TDelegate, typename TDelegateD,
+template <typename TContex,
+          typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
           typename TVector, typename TVSupport,
           size_t nbrBlocks, size_t N,
           typename TDistanceTag>
-inline void _optimalSearchScheme(TDelegate & delegate,
+inline void _optimalSearchScheme(TContex & ossContext,
+                                 TDelegate & delegate,
                                  TDelegateD & delegateDirect,
                                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it,
                                  TNeedle const & needle,
+                                 uint32_t needleId,
                                  vector<pair<TVector, TVSupport>> & bitvectors,
                                  std::array<OptimalSearch<nbrBlocks>, N> const & ss,
                                  TDistanceTag const &)
 {
     for (auto & s : ss)
-        _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, s, TDistanceTag());
+        _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, bitvectors, s, TDistanceTag());
 }
 
-template <typename TDelegate, typename TDelegateD,
+template <typename TContex,
+          typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
           size_t nbrBlocks, size_t N,
           typename TDistanceTag>
-inline void _optimalSearchScheme(TDelegate & delegate,
+inline void _optimalSearchScheme(TContex & ossContext,
+                                 TDelegate & delegate,
                                  TDelegateD & delegateDirect,
                                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it,
                                  TNeedle const & needle,
+                                 uint32_t needleId,
                                  std::array<OptimalSearch<nbrBlocks>, N> const & ss,
                                  TDistanceTag const &)
 {
     for (auto & s : ss)
-        _optimalSearchScheme(delegate, delegateDirect, it, needle, s, TDistanceTag());
+        _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, s, TDistanceTag());
 }
 
 
-template <typename TDelegate, typename TDelegateD,
+template <typename TContex,
+          typename TDelegate, typename TDelegateD,
           typename TText, typename TIndexSpec,
           typename TChar, typename TStringSpec,
           typename TVector, typename TVSupport,
           size_t nbrBlocks, size_t N,
           typename TDistanceTag>
 inline void
-find(TDelegate & delegate,
+find(TContex & ossContext,
+     TDelegate & delegate,
      TDelegateD & delegateDirect,
      Index<TText, BidirectionalIndex<TIndexSpec> > & index,
      String<TChar, TStringSpec> const & needle,
+     uint32_t needleId,
      vector<pair<TVector, TVSupport>> & bitvectors,
      std::array<OptimalSearch<nbrBlocks>, N> const & ss,
      TDistanceTag const &)
@@ -1012,37 +1055,42 @@ find(TDelegate & delegate,
     _optimalSearchSchemeComputeFixedBlocklength(scheme, length(needle));
     _optimalSearchSchemeComputeChronBlocklength(scheme);
     Iter<Index<TText, BidirectionalIndex<TIndexSpec> >, VSTree<TopDown<> > > it(index);
-    _optimalSearchScheme(delegate, delegateDirect, it, needle, bitvectors, scheme, TDistanceTag());
+    _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, bitvectors, scheme, TDistanceTag());
 }
 
-template <size_t minErrors, size_t maxErrors,
+template <typename TContex,
+          size_t minErrors, size_t maxErrors,
           typename TDelegate, typename TDelegateD,
           typename TText, typename TIndexSpec,
           typename TChar, typename TStringSpec,
           typename TDistanceTag>
 inline void
-find(TDelegate & delegate,
+find(TContex & ossContext,
+     TDelegate & delegate,
      TDelegateD & delegateDirect,
      Index<TText, BidirectionalIndex<TIndexSpec> > & index,
      String<TChar, TStringSpec> const & needle,
+     uint32_t needleId,
      TDistanceTag const & )
 {
     auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
     _optimalSearchSchemeComputeFixedBlocklength(scheme, length(needle));
     _optimalSearchSchemeComputeChronBlocklength(scheme);
     Iter<Index<TText, BidirectionalIndex<TIndexSpec> >, VSTree<TopDown<> > > it(index);
-    _optimalSearchScheme(delegate, delegateDirect, it, needle, scheme, TDistanceTag());
+    _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, scheme, TDistanceTag());
 }
 
 
 template <size_t minErrors, size_t maxErrors,
+          typename TContex,
           typename TDelegate, typename TDelegateD,
           typename TText, typename TIndexSpec,
           typename TNeedle, typename TStringSetSpec,
           typename TVector, typename TVSupport,
           typename TDistanceTag>
 inline void
-find(TDelegate & delegate,
+find(TContex & ossContext,
+     TDelegate & delegate,
      TDelegateD & delegateDirect,
      Index<TText, BidirectionalIndex<TIndexSpec> > & index,
      StringSet<TNeedle, TStringSetSpec> const & needles,
@@ -1057,25 +1105,27 @@ find(TDelegate & delegate,
     while(k < length(needles))
     {
         if(!(params.clocking && time.stopnow(params.terminateDuration))){
-            find(delegate, delegateDirect, index, needles[k], bitvectors, scheme, TDistanceTag());
+            find(ossContext, delegate, delegateDirect, index, needles[k], k, bitvectors, scheme, TDistanceTag());
         }else{
             params.wasStopped = true;
         }
         ++k;
 
         uint32_t currentcount = hits.size() + dhits.size() - lastcount;
-        readOccCount.push_back(currentcount);
+        ossContext.readOccCount.push_back(currentcount);
         lastcount += currentcount;
     }
 }
 
 template <size_t minErrors, size_t maxErrors,
+          typename TContex,
           typename TDelegate, typename TDelegateD,
           typename TText, typename TIndexSpec,
           typename TNeedle, typename TStringSetSpec,
           typename TDistanceTag>
 inline void
-find(TDelegate & delegate,
+find(TContex & ossContext,
+     TDelegate & delegate,
      TDelegateD & delegateDirect,
      Index<TText, BidirectionalIndex<TIndexSpec> > & index,
      StringSet<TNeedle, TStringSetSpec> const & needles,
@@ -1085,34 +1135,38 @@ find(TDelegate & delegate,
     uint32_t lastcount = 0;
     while(k < length(needles))
     {
-        find<minErrors, maxErrors>(delegate, delegateDirect, index, needles[k], TDistanceTag());
+        find<minErrors, maxErrors>(ossContext, delegate, delegateDirect, index, needles[k], k, TDistanceTag());
         ++k;
         uint32_t currentcount = hitsDe.size() + dhitsDe.size() - lastcount;
-        readOccCountDeT.push_back(currentcount);
+        ossContext.readOccCount.push_back(currentcount);
         lastcount += currentcount;
 
     }
 }
 
-template <typename TDelegate, typename TDelegateD,
+template <typename TContex,
+          typename TDelegate, typename TDelegateD,
           typename TText, typename TIndexSpec,
           typename TNeedle, typename TStringSetSpec,
-          typename TVector, typename TVSupport>
+          typename TVector, typename TVSupport,
+          typename TDistanceTag>
 inline void find(const int minErrors,
-     const int maxErrors,
-     TDelegate & delegate,
-     TDelegateD & delegateDirect,
-     Index<TText, BidirectionalIndex<TIndexSpec> > & index,
-     StringSet<TNeedle, TStringSetSpec> const & needles,
-     vector<pair<TVector, TVSupport>> & bitvectors) // cant be const since TVSupport.set_vector(&TVector)
+                 const int maxErrors,
+                 TContex & ossContext,
+                 TDelegate & delegate,
+                 TDelegateD & delegateDirect,
+                 Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+                 StringSet<TNeedle, TStringSetSpec> const & needles,
+                 vector<pair<TVector, TVSupport>> & bitvectors, // cant be const since TVSupport.set_vector(&TVector)
+                 TDistanceTag const & )
 {
     switch (maxErrors)
     {
-        case 1: find<0, 1>(delegate, delegateDirect, index, needles, bitvectors, HammingDistance());
+        case 1: find<0, 1>(ossContext, delegate, delegateDirect, index, needles, bitvectors, TDistanceTag());
                 break;
-        case 2: find<0, 2>(delegate, delegateDirect, index, needles, bitvectors, HammingDistance());
+        case 2: find<0, 2>(ossContext, delegate, delegateDirect, index, needles, bitvectors, TDistanceTag());
                 break;
-        case 3: find<0, 3>(delegate, delegateDirect, index, needles, bitvectors, HammingDistance());
+        case 3: find<0, 3>(ossContext, delegate, delegateDirect, index, needles, bitvectors, TDistanceTag());
                 break;
         default: cerr << "E = " << maxErrors << " not yet supported.\n";
                 exit(1);
@@ -1145,25 +1199,29 @@ inline void find(const int minErrors,
     }
 }
 
-template <typename TDelegate, typename TDelegateD,
+template <typename TContex,
+          typename TDelegate, typename TDelegateD,
           typename TText, typename TIndexSpec,
-          typename TNeedle, typename TStringSetSpec>
+          typename TNeedle, typename TStringSetSpec,
+          typename TDistanceTag>
 inline void find(const int minErrors,
-     const int maxErrors,
-     TDelegate & delegate,
-     TDelegateD & delegateDirect,
-     Index<TText, BidirectionalIndex<TIndexSpec> > & index,
-     StringSet<TNeedle, TStringSetSpec> const & needles)
+                 const int maxErrors,
+                 TContex & ossContext,
+                 TDelegate & delegate,
+                 TDelegateD & delegateDirect,
+                 Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+                 StringSet<TNeedle, TStringSetSpec> const & needles,
+                 TDistanceTag const & )
 {
     switch (maxErrors)
     {
-        case 1: find<0, 1>(delegate, delegateDirect, index, needles, HammingDistance());
+        case 1: find<0, 1>(ossContext, delegate, delegateDirect, index, needles, TDistanceTag());
                 break;
-        case 2: find<0, 2>(delegate, delegateDirect, index, needles, HammingDistance());
+        case 2: find<0, 2>(ossContext, delegate, delegateDirect, index, needles, TDistanceTag());
                 break;
-        case 3: find<0, 3>(delegate, delegateDirect, index, needles, HammingDistance());
+        case 3: find<0, 3>(ossContext, delegate, delegateDirect, index, needles, TDistanceTag());
                 break;
-        case 4: find<0, 4>(delegate, delegateDirect, index, needles, HammingDistance());
+        case 4: find<0, 4>(ossContext, delegate, delegateDirect, index, needles, TDistanceTag());
                 break;
         default: cerr << "E = " << maxErrors << " not yet supported.\n";
                 exit(1);

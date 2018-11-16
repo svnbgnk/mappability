@@ -27,21 +27,6 @@ std::vector<uint32_t> readOccCountDeT;
 struct DisOptions : public Options
 {
 public:
-    CharString              IndicesDirectory;
-    CharString              filterFile;
-    CharString              superOutputFile;
-
-    double                  loadFilter      = 0.0;
-    double                  filterReads     = 0.0;
-    double                  copyReads       = 0.0;
-    double                  copyAlignments  = 0.0;
-    double                  moveCigars      = 0.0;
-
-    bool                    skipSamHeader = false;
-
-    uint32_t                kmerSize = 20;
-    uint32_t                numberOfBins = 64;
-
     uint32_t                currentBinNo = 0;
     uint64_t                filteredReads = 0;
     std::vector<uint32_t>   contigOffsets;
@@ -71,7 +56,8 @@ public:
 
 };*/
 
-template <typename TTraits>
+
+// template <typename TTraits>
 class OSSContext
 {
 public:
@@ -261,33 +247,41 @@ int main(int argc, char *argv[])
 
     // load bitvectors
     vector<pair<TBitvector, TSupport>> bitvectors;
+    cout << "Short test remove afterwardsssssssssssssssssssssssss bitvector size before loading: " << bitvectors.size() << "\n";
     if(!notmy){
         cout << "Loading bitvectors" << endl;
         bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
         cout << "Bit vectors loaded. Number: " << bitvectors.size() << " Length: " << bitvectors[0].first.size() << endl;
     }
-//     std::vector<hit> dhits;
-//     std::vector<hit> hits;
-    auto delegate = [/*&hits*/](auto const & iter, DnaString const & needle, uint8_t errors, bool const rev)
+
+
+    std::vector<hit> myhits;
+    std::vector<hit> mydhits;
+    std::vector<uint32_t> myreadOccCount;
+    OSSContext myOSSContext(myhits, mydhits, myreadOccCount);
+
+    auto delegate = [&myhits](auto const & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
     {
         //NOTE have to get Occurrences from the forward iter otherwise filtering does not work properly
         for (auto occ : getOccurrences(iter)){
             hit me;
             me.occ = occ;
             me.read = needle;
+            me.readId = needleId;
             me.errors = errors;
             me.rev = rev;
-            hits.push_back(me);
+            myhits.push_back(me);
         }
     };
-    auto delegateDirect = [/*&dhits*/](Pair<uint16_t, uint32_t> const & pos, DnaString const & needle, uint8_t const errors)
+    auto delegateDirect = [&mydhits](Pair<uint16_t, uint32_t> const & pos, DnaString const & needle, uint32_t const needleId, uint8_t const errors)
     {
         hit me;
         me.occ = pos;
         me.read = needle;
+        me.readId = needleId;
         me.errors = errors;
         me.rev = false;
-        dhits.push_back(me);
+        mydhits.push_back(me);
     };
 
 //     std::this_thread::sleep_for (std::chrono::seconds(60));
@@ -342,36 +336,36 @@ int main(int argc, char *argv[])
     if(!notmy){
         cout << "Start My Search!" << endl;
         start = std::chrono::high_resolution_clock::now();
-        find(0, nerrors, delegate, delegateDirect, index, reads, bitvectors);
+        find(0, nerrors, myOSSContext, delegate, delegateDirect, index, reads, bitvectors, HammingDistance());
         finish = std::chrono::high_resolution_clock::now();
         elapsed = finish - start;
         cout << "Finished My Search" << endl;
 
         auto scalc = std::chrono::high_resolution_clock::now();
-        calcfwdPos(index, hits);
+        calcfwdPos(index, myhits);
         auto ecalc = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsedcalc = ecalc - scalc;
         cout << "Calc revPositions to forward positions: "<< elapsedcalc.count() << "s" << endl;
     }
 
-    cout << "DirectHits: " << dhits.size() << endl;
+    cout << "DirectHits: " << mydhits.size() << endl;
 
     if(ecompare){
-        for(uint32_t i = 0; i < dhits.size(); ++i){
-            hits.push_back(dhits[i]);
+        for(uint32_t i = 0; i < mydhits.size(); ++i){
+            myhits.push_back(mydhits[i]);
         }
-        std::sort(hits.begin(), hits.end(), occ_smaller);
+        std::sort(myhits.begin(), myhits.end(), occ_smaller);
 
-        for(uint32_t i = 0; i < hits.size(); ++i){
-            cout << "Errors: "<< (uint32_t)hits[i].errors;
-            cout << "   "  << hits[i].occ << " " << hits[i].read << endl;
-            cout << infix(genome[hits[i].occ.i1], hits[i].occ.i2, hits[i].occ.i2 + seqan::length(hits[i].read)) << endl;
+        for(uint32_t i = 0; i < myhits.size(); ++i){
+            cout << "Errors: "<< (uint32_t)myhits[i].errors;
+            cout << "   "  << myhits[i].occ << " " << myhits[i].read << endl;
+            cout << infix(genome[myhits[i].occ.i1], myhits[i].occ.i2, myhits[i].occ.i2 + seqan::length(myhits[i].read)) << endl;
         }
     }
 
     cout << "MyVersion elapsed: " << elapsed.count() << "s" << endl;
-    cout << "normal Hits: (if compare this also includes dhits)" << hits.size() << endl;
-    cout << "direct Hits: " << dhits.size() << endl;
+    cout << "normal Hits: (if compare this also includes mydhits)" << myhits.size() << endl;
+    cout << "direct Hits: " << mydhits.size() << endl;
 
     // Test default
     //TODO change vector name of lambda function
@@ -427,7 +421,7 @@ int main(int argc, char *argv[])
             dhitsDe.push_back(me);
         };
         auto start2 = std::chrono::high_resolution_clock::now();
-        find(0, nerrors, delegate2, delegateDirect2, index, reads);
+        find(0, nerrors, delegate2, delegateDirect2, index, reads, HammingDistance());
         auto finish2 = std::chrono::high_resolution_clock::now();
         elapsed = finish2 - start2;
         cout << "Default Version with DS: " << elapsed.count() << "s" << endl;
@@ -436,17 +430,16 @@ int main(int argc, char *argv[])
 */
 
 
-
+/*
     if(!notmy){
         readOccurrences(reads, ids, outputpath, fr, rc, stats, notmy);
-
-    }
+    }*/
 
     if(ecompare){
         hitsDefault = print_readocc_sorted(hitsDefault, genome, true);
         cout << "Test if default and my version are the same: " << endl;
         cout.setstate(std::ios_base::failbit);
-        vector<uint32_t> whitcount = compare(index, nerrors, threshold + 1, hits, hitsDefault);
+        vector<uint32_t> whitcount = compare(index, nerrors, threshold + 1, myhits, hitsDefault);
         std::cout.clear();
 
         if(whitcount.size() == 0){
