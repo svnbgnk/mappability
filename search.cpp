@@ -23,6 +23,93 @@ std::vector<hit> dhitsDe;
 std::vector<uint32_t> readOccCount;
 std::vector<uint32_t> readOccCountDeT;
 
+/*
+struct DisOptions : public Options
+{
+public:
+    CharString              IndicesDirectory;
+    CharString              filterFile;
+    CharString              superOutputFile;
+
+    double                  loadFilter      = 0.0;
+    double                  filterReads     = 0.0;
+    double                  copyReads       = 0.0;
+    double                  copyAlignments  = 0.0;
+    double                  moveCigars      = 0.0;
+
+    bool                    skipSamHeader = false;
+
+    uint32_t                kmerSize = 20;
+    uint32_t                numberOfBins = 64;
+
+    uint32_t                currentBinNo = 0;
+    uint64_t                filteredReads = 0;
+    std::vector<uint32_t>   contigOffsets;
+
+    std::vector<std::vector<uint32_t>>          origReadIdMap;
+    std::map<uint32_t, String<CigarElement<>>>  collectedCigars;
+
+    FilterType      filterType = BLOOM;
+
+    std::vector<std::string> filterTypeList = {"bloom", "kmer_direct", "none"};
+
+    uint32_t getContigOffsets()
+    {
+        return contigOffsets[currentBinNo];
+    }
+
+    uint16_t getThreshold(uint16_t readLen)
+    {
+        uint16_t maxError = errorRate * readLen;
+
+        // same as readLen - kmerSize + 1 - (maxError * kmerSize);
+        if (kmerSize * (1 + maxError) > readLen)
+            return 0;
+
+        return readLen - kmerSize * (1 + maxError) + 1;
+    }
+
+};*/
+
+template <typename TTraits>
+class OSSContext
+{
+public:
+    // Shared-memory read-write data.
+    std::vector<hit> & hits;
+    std::vector<hit> & dhits;
+    std::vector<uint32_t> & readOccCount;
+//     TMatches &          matches;
+
+    // Shared-memory read-only data.
+//     TContigSeqs const & contigSeqs;
+    bool filterDelegate = true;
+
+    OSSContext(std::vector<hit> & inhits,
+               std::vector<hit> & indhits,
+               std::vector<uint32_t> & inreadOccCount) :
+        hits(inhits),
+        dhits(indhits),
+        readOccCount(inreadOccCount)
+    {
+        ;
+    }
+
+    template <typename TText, typename TIndex, typename TIndexSpec,
+              size_t nbrBlocks>
+    bool itvCondition(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+                      uint32_t const needleLeftPos,
+                      uint32_t const needleRightPos,
+                      uint8_t const errors,
+                      OptimalSearch<nbrBlocks> const & s,
+                      uint8_t const blockIndex)
+    {
+        return(iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1) * 5);
+    }
+
+
+};
+
 StringSet<DnaString> createRCReads(StringSet<DnaString> & reads)
 {
     StringSet<DnaString> rcReads;
@@ -33,6 +120,8 @@ StringSet<DnaString> createRCReads(StringSet<DnaString> & reads)
     }
     return(rcReads);
 }
+
+
 
 int main(int argc, char *argv[])
 {
@@ -310,7 +399,7 @@ int main(int argc, char *argv[])
         cout << "default Hits: " << hitsDefault.size() << endl;
     }
 
-
+/*
     // default with in text search
     if(defaultT){
         params.comp.directsearch_th = 5;
@@ -344,7 +433,7 @@ int main(int argc, char *argv[])
         cout << "Default Version with DS: " << elapsed.count() << "s" << endl;
         cout << "default DS Hits: " << hitsDe.size() + dhitsDe.size() << endl;
     }
-
+*/
 
 
 
