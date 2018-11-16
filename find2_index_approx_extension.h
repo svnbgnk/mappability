@@ -108,6 +108,31 @@ inline void genomeSearch(TDelegateD & delegateDirect,
 
 }
 
+//find first match without insertion and errors at the beginning and end
+template<typename TNeedle,
+         typename TString>
+inline bool compareStartAndEnd(TNeedle const & needle,
+                              TString const & infix,
+                              uint8_t const alignment_errors)
+{
+    uint8_t errors = 0;
+    for(int i = 0; i <= alignment_errors; ++i){
+        if(infix[i] == needle[i]){
+            errors = i;
+            break;
+        }
+    }
+    for(int i = 0; i <= alignment_errors - errors; ++i){
+        if(infix[length(infix) - 1 - i] == needle[length(needle) - 1 - i]){
+            return true;
+        }
+    }
+    return false;
+
+    //allow also no mismatches at the start and end
+//     return(infix[0] == needle[0] && infix[length(infix) - 1] == needle[length(needle) - 1]);
+}
+
 template <typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
@@ -128,57 +153,172 @@ inline void directSearch(TDelegateD & delegateDirect,
                   TDir const & ,
                   TDistanceTag const &)
 {
-    //TODO implement myers bitvector
     auto const & genome = indexText(*iter.fwdIter.index);
-    std::array<uint32_t, nbrBlocks> blockStarts;
-    std::array<uint32_t, nbrBlocks> blockEnds;
-    std::copy(std::begin(s.blockStarts) + blockIndex, std::end(s.blockStarts), std::begin(blockStarts));
-    std::copy(std::begin(s.blockEnds) + blockIndex, std::end(s.blockEnds), std::begin(blockEnds));
 
-    if(std::is_same<TDir, Rev>::value){
-        //modify blockstart in case we are still inside a block
-        if(needleRightPos - 1 > blockStarts[0] && needleRightPos - 1 < blockEnds[0])
-            blockStarts[0] = needleRightPos - 1;
+    if (std::is_same<TDistanceTag, EditDistance>::value){
+        //TODO put this into a function
+        uint16_t needleL = length(needle);
+        uint8_t max_e = s.u[s.u.size() - 1];
+        int intIns = 0;
+        int intDel = 0;
+        //calculate net sum of internal Insertions - Deletions
+        if(repLength(iter) < needleRightPos - needleLeftPos - 1)
+            intIns = needleRightPos - needleLeftPos - 1 - repLength(iter);
+        else
+            intDel = repLength(iter) - (needleRightPos - needleLeftPos - 1);
+        uint8_t overlap_l = max_e;
+        uint8_t overlap_r = max_e;
+        if(needleLeftPos == 0)
+            overlap_l = intIns;
+        if(needleRightPos == needleL + 1)
+            overlap_r = intIns;
+        uint16_t ex_infixL = needleL + overlap_l + overlap_r;
+        for(uint32_t r = iter.fwdIter.vDesc.range.i1; r < iter.fwdIter.vDesc.range.i2; ++r)
+        {
+            Pair<uint16_t, uint32_t> sa_info = iter.fwdIter.index->sa[r];
+            uint32_t const chromlength = length(genome[sa_info.i1]);
+            if(!(needleLeftPos + overlap_l <= sa_info.i2  && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1 + overlap_r))
+                continue;
+            sa_info.i2 = sa_info.i2 - needleLeftPos;
 
-        for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
-            if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
-                // mappability information is in reverse index order if we use the forward index
-                Pair<uint16_t, uint32_t> sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
-                uint32_t const chromlength = length(genome[sa_info.i1]);
-                //Info make sure we dont DS search something going over the chromosom edge
-                //check left chromosom boundry && check right chromosom boundry
-                if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + length(needle) - 1))
-                    continue;
+            TString const & ex_infix = infix(genome[sa_info.i1], sa_info.i2 - overlap_l, sa_info.i2 + needleL + overlap_r);
+            TString const & n_infix = infix(genome[sa_info.i1], sa_info.i2, sa_info.i2 + needleL);
 
-                sa_info.i2 = sa_info.i2 - needleLeftPos;
+            //Unfortunately, since for example (E = 2) 2 Insertions lead to a score of -4 we cannot conclude the number of errors the read will have at the end. (O Errors would also have a score -4 2 Deletion in the beginning to Insertions at the end)
+            //for E = 2 we allow a score -6 since 2 MM + 2 D + 2 I.
+            //To Insertion on the otherhand lead to 2D + 2I + 4D -> 8 errors
 
-                //search remaining blocks
-                genomeSearch(delegateDirect, needle, errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds);
+            int initialScore = globalAlignmentScore(ex_infix, needle, MyersBitVector());
+
+            //assume more Insertions (in the read) than deletions
+            int ins_initialScore = globalAlignmentScore(n_infix, needle, MyersBitVector());
+
+            if(ins_initialScore >= 0 - 2 * max_e || initialScore >= 0 - overlap_l - overlap_r - max_e + intDel) //MM creates one error D creates one error since now it also align to overlap
+            {
+//                 cout << ex_infix << "        ex_infix " << (int)overlap_l << "  " << (int)overlap_r << "\n";
+//                 cout << needle << "        needle" << "\n";
+                //No Insertions or Deletions
+                TString const & tmp0 = infix(ex_infix, overlap_l, ex_infixL - overlap_r);
+                int errors2 = 0 - globalAlignmentScore(tmp0, needle, MyersBitVector()); //
+                if(errors2 <= max_e && compareStartAndEnd(needle, tmp0, errors2)){
+//                     std::cout << "c1 " << sa_info << "  " << (int) errors2 << "\n";
+//                     std::cout << tmp0 << "\n";
+                    delegateDirect(sa_info , needle, errors2);
+                }
+
+                for(uint8_t e = 1; e <= max_e /*overlap*/; ++e){
+//                     cout << "E: " << (int)e << endl;
+                    for(uint8_t del = 0; del <= e; ++del){
+                        //del is number of deletions
+                        uint8_t ins = e - del; //number of insertions
+                        auto sa_info_tmp = sa_info;
+
+                        if(del > 1 && ins == 0 || ins > 1 && del == 0){
+                        //only insertion or deletions
+                            int16_t pos = (ins > del) ? 1 : (-1);
+                            int16_t m = std::max(del,ins);
+                            for(int16_t k = 0; k <= m; ++k)
+                            {
+//                                 cout << (int)k << ":" << (int)m-k << "\t" << (int)pos << "\n";
+//                                 cout << (int)overlap_l << ":" << (int)(pos * k) << " :: " << (int)overlap_r << ":" << (int)(pos * (m - k))  << endl;
+                                if(!(0 < overlap_l + (pos * k) && overlap_r > 0 - (pos * (m - k))))
+                                    continue;
+
+                                sa_info_tmp = sa_info;
+                                sa_info_tmp.i2 = sa_info_tmp.i2 + (pos * k);
+                                TString const & tmp2 = infix(ex_infix, overlap_l + (pos * k), ex_infixL - overlap_r - (pos * (m - k)));
+                                errors2 = 0 - globalAlignmentScore(tmp2, needle, MyersBitVector());
+                                if(errors2 <= max_e && compareStartAndEnd(needle, tmp2, errors2)){
+//                                     std::cout << "c2 " << sa_info_tmp << "  " << (int) errors2 << "\n";
+//                                     std::cout << tmp2 << "\n";
+                                    delegateDirect(sa_info_tmp , needle, errors2);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            //insertions left and deletion right
+                            if(overlap_l >= del){
+                                TString const & tmp = infix(ex_infix, overlap_l - del, ex_infixL - overlap_r - ins);
+                                sa_info_tmp.i2 = sa_info_tmp.i2 - del;
+                                errors2 = 0 - globalAlignmentScore(tmp, needle, MyersBitVector());
+                                if(errors2 <= max_e && compareStartAndEnd(needle, tmp, errors2)){
+//                                     std::cout << "c3 " << sa_info_tmp << "  " << (int) errors2 << "\n";
+//                                     std::cout << tmp << "\n";
+                                    delegateDirect(sa_info_tmp , needle, errors2);
+                                }
+                            }
+
+                            //insertions right and deletion left
+                            if(overlap_r >= del){
+                                sa_info_tmp = sa_info; //just include del from before into the calculation and delete this
+                                TString const & tmp1 = infix(ex_infix, overlap_l + ins, ex_infixL - overlap_r + del);
+                                errors2 = 0 - globalAlignmentScore(tmp1, needle, MyersBitVector());
+                                sa_info_tmp.i2 = sa_info_tmp.i2 + ins;
+                                if(errors2 <= max_e && compareStartAndEnd(needle, tmp1, errors2)){
+//                                     std::cout << "c4 " << sa_info_tmp << "  " << (int) errors2 << "\n";
+//                                     std::cout << tmp1 << "\n";
+                                    delegateDirect(sa_info_tmp , needle, errors2);
+
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
     else
     {
-        //modify blockend in case we are still inside a block
-        if(needleLeftPos > blockStarts[0] && needleLeftPos < blockEnds[0])
-            blockEnds[0] = needleLeftPos;
+        std::array<uint32_t, nbrBlocks> blockStarts;
+        std::array<uint32_t, nbrBlocks> blockEnds;
+        std::copy(std::begin(s.blockStarts) + blockIndex, std::end(s.blockStarts), std::begin(blockStarts));
+        std::copy(std::begin(s.blockEnds) + blockIndex, std::end(s.blockEnds), std::begin(blockEnds));
 
-        for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
-            if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
-                Pair<uint16_t, uint32_t> sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
-                uint32_t const chromlength = length(genome[sa_info.i1]);
-                //check left chromosom boundry && check right chromosom boundry
-                if(!(chromlength - 1 >= sa_info.i2 + needleRightPos - 1 && sa_info.i2 + needleRightPos - 1 >= length(needle) + 1))
-                    continue;
-                //calculate correct starting position of the needle  on the forward index
-                sa_info.i2 = chromlength - sa_info.i2 - needleRightPos + 1;
+        if(std::is_same<TDir, Rev>::value){
+            //modify blockstart in case we are still inside a block
+            if(needleRightPos - 1 > blockStarts[0] && needleRightPos - 1 < blockEnds[0])
+                blockStarts[0] = needleRightPos - 1;
 
-                //search remaining blocks
-                genomeSearch(delegateDirect, needle, errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds);
+            for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
+                if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
+                    // mappability information is in reverse index order if we use the forward index
+                    Pair<uint16_t, uint32_t> sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + i];
+                    uint32_t const chromlength = length(genome[sa_info.i1]);
+                    //Info make sure we dont DS search something going over the chromosom edge
+                    //check left chromosom boundry && check right chromosom boundry
+                    if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + length(needle) - 1))
+                        continue;
+
+                    sa_info.i2 = sa_info.i2 - needleLeftPos;
+
+                    //search remaining blocks
+                    genomeSearch(delegateDirect, needle, errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds);
+                }
+            }
+        }
+        else
+        {
+            //modify blockend in case we are still inside a block
+            if(needleLeftPos > blockStarts[0] && needleLeftPos < blockEnds[0])
+                blockEnds[0] = needleLeftPos;
+
+            for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
+                if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
+                    Pair<uint16_t, uint32_t> sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + i];
+                    uint32_t const chromlength = length(genome[sa_info.i1]);
+                    //check left chromosom boundry && check right chromosom boundry
+                    if(!(chromlength - 1 >= sa_info.i2 + needleRightPos - 1 && sa_info.i2 + needleRightPos - 1 >= length(needle) + 1))
+                        continue;
+                    //calculate correct starting position of the needle  on the forward index
+                    sa_info.i2 = chromlength - sa_info.i2 - needleRightPos + 1;
+
+                    //search remaining blocks
+                    genomeSearch(delegateDirect, needle, errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds);
+                }
             }
         }
     }
-
 }
 
 //TODO load bitvectors inside a struct to make accessing the correct bitvector easier
@@ -316,8 +456,8 @@ inline ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
     if(params.normal.nomappability && ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
 
-//     if(params.normal.directsearch && ivalOne < (s.pi.size() - blockIndex - 1 + params.normal.directsearchblockoffset) * params.normal.directsearch_th)
-//         return ReturnCode::DIRECTSEARCH;
+    if(params.normal.directsearch && ivalOne < (s.pi.size() - blockIndex - 1 + params.normal.directsearchblockoffset) * params.normal.directsearch_th)
+        return ReturnCode::DIRECTSEARCH;
 
 //     if(params.normal.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
 //         return ReturnCode::COMPMAPPABLE;
