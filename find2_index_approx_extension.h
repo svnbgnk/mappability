@@ -492,8 +492,8 @@ inline ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
     if(params.normal.directsearch && ivalOne < (s.pi.size() - blockIndex - 1 + params.normal.directsearchblockoffset) * params.normal.directsearch_th)
         return ReturnCode::DIRECTSEARCH;
 
-//     if(params.normal.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
-//         return ReturnCode::COMPMAPPABLE;
+    if(params.normal.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
+        return ReturnCode::COMPMAPPABLE;
 
     //equal or more than half zeroes
 //     if(params.normal.suspectunidirectional && s.startUniDir <= blockIndex && ivalOne/ ivalSize <= params.normal.filter_th)
@@ -597,7 +597,6 @@ inline ReturnCode checkMappability(TContex & ossContext,
         case ReturnCode::COMPMAPPABLE:
         {
             vector<pair<TVector, TVSupport>> emtpy_bitvectors;
-            cout << "Size:B " << emtpy_bitvectors.size() << "\n";
             _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, emtpy_bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, lastEdit, TDir(), TDistanceTag());
             return ReturnCode::FINISHED;
         }
@@ -859,13 +858,14 @@ inline void _optimalSearchScheme(TContex & ossContext,
     uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
     bool const done = minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1;
     bool const atBlockEnd = needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex];
+    bool const checkMappa = bitvectors.size() != 0;
 
     // Done. (Last step)
     if (done)
     {
         //last input only matters for unidirectional searches (has to be false in this case)
         if(!lastEdit){
-            if(true /*!speed up*/ ){
+            if(checkMappa){
                 filteredDelegate(delegate, iter, needle, needleId, bitvectors, errors);
             }
             else
@@ -885,7 +885,7 @@ inline void _optimalSearchScheme(TContex & ossContext,
     else
     {
         //check Mappability
-        if(atBlockEnd && bitvectors.size() != 0){
+        if(atBlockEnd && checkMappa){
             ReturnCode rcode = checkMappability(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, lastEdit, TDir(), TDistanceTag());
             if(rcode == ReturnCode::FINISHED)
                 return;
@@ -923,7 +923,7 @@ inline void _optimalSearchScheme(TContex & ossContext,
         //checkCurrentMappability
         uint32_t pblocklength = (blockIndex > 0) ? s.blocklength[blockIndex - 1] : 0;
         uint32_t step = (needleRightPos - needleLeftPos - 1);
-        if(bitvectors.size() != 0 && ((step & (params.normal.step - 1)) == 0) &&
+        if(checkMappa && ((step & (params.normal.step - 1)) == 0) &&
             needleRightPos - needleLeftPos - 1 + params.normal.distancetoblockend < s.blocklength[blockIndex] &&
             static_cast<int>(needleRightPos - needleLeftPos - 1) - params.normal.distancetoblockend > pblocklength)
         {

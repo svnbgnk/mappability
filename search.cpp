@@ -247,7 +247,6 @@ int main(int argc, char *argv[])
 
     // load bitvectors
     vector<pair<TBitvector, TSupport>> bitvectors;
-    cout << "Short test remove afterwardsssssssssssssssssssssssss bitvector size before loading: " << bitvectors.size() << "\n";
     if(!notmy){
         cout << "Loading bitvectors" << endl;
         bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
