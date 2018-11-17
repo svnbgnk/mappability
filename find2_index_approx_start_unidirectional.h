@@ -108,143 +108,6 @@ inline bool testFilter(Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDow
     return false;
 }
 
-template <typename TVector, typename TVSupport>
-inline ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
-                          Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
-                          uint8_t const blockSize,
-                          bool const done,
-                          bool const nofilter,
-                          uint8_t const blockIndex)
-{
-    if(!nofilter){
-        TVector & b = bitvectors[brange.i1].first;
-        TVSupport & rb = bitvectors[brange.i1].second;
-        rb.set_vector(&b);
-
-        uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
-        if(params.startuni.nomappability && ivalOne == 0)
-            return ReturnCode::NOMAPPABILITY;
-
-        if(!done){
-            if(params.startuni.directsearch && ivalOne < (blockSize - blockIndex - 1 + params.startuni.directsearchblockoffset) * params.startuni.directsearch_th){ //<4
-                return ReturnCode::DIRECTSEARCH;
-            }
-            if(params.startuni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
-                return ReturnCode::COMPMAPPABLE;
-
-            //equal or more than half zeroes
-            float ivalSize = brange.i2.i2 - brange.i2.i1;
-            if(params.startuni.suspectunidirectional && ivalOne/ ivalSize <= params.startuni.filter_th){
-                return ReturnCode::FILTER;
-            }
-        }
-        return ReturnCode::MAPPABLE;
-    }
-    else
-    {
-        TVector & b = bitvectors[brange.i1].first;
-        TVSupport & rb = bitvectors[brange.i1].second;
-        rb.set_vector(&b);
-
-        uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
-        if(params.uni.nomappability && ivalOne == 0)
-            return ReturnCode::NOMAPPABILITY;
-
-        if(!done){
-            if(params.uni.directsearch && ivalOne < (blockSize - blockIndex - 1 + params.uni.directsearchblockoffset) * params.uni.directsearch_th){
-                return ReturnCode::DIRECTSEARCH;
-            }
-            if(params.uni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
-                return ReturnCode::COMPMAPPABLE;
-        }
-        return ReturnCode::MAPPABLE;
-    }
-    return ReturnCode::MAPPABLE;
-}
-
-
-template <typename TDelegate, typename TDelegateD,
-          typename TText, typename TConfig, typename TIndexSpec,
-          typename TNeedle,
-          typename TVector, typename TVSupport,
-          size_t nbrBlocks,
-          typename TDir,
-          typename TDistanceTag>
-inline ReturnCode uniCheckMappability(TDelegate & delegate,
-                                 TDelegateD & delegateDirect,
-                                 Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
-                                 TNeedle const & needle,
-                                 vector<pair<TVector, TVSupport>> & bitvectors,
-                                 uint32_t const needleLeftPos,
-                                 uint32_t const needleRightPos,
-                                 uint8_t const errors,
-                                 OptimalSearch<nbrBlocks> const & s,
-                                 uint8_t const blockIndex,
-                                 bool const done,
-                                 bool const nofilter,
-                                 TDir const & ,
-                                 TDistanceTag const &)
-{
-    Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
-    get_bitvector_interval_inside(iter, bitvectors, s, blockIndex + done, bit_interval, TDir());
-    ReturnCode rcode = checkInterval(bitvectors, bit_interval, s.pi.size(), done, nofilter, blockIndex);
-
-    if(rcode == ReturnCode::NOMAPPABILITY)
-        return ReturnCode::FINISHED;
-    // Done. (Last step)
-    if (done)
-    {
-        bool rev = std::is_same<TDir, Rev>::value;
-        //NOTE we only need to check mappability here to not allow occurences with a frequency higher than allowed
-        //if the only concern is speed than reporting all occurrences would be faster
-        if(rcode != ReturnCode::COMPMAPPABLE /* add option for speed up here*/)
-        {
-            uint32_t rangeStart = iter.vDesc.range.i1;
-            uint32_t rangeEnd = iter.vDesc.range.i2;
-            uint32_t lastStart = 0;
-            for(uint32_t i = 0; i < rangeEnd - rangeStart; ++i)
-            {
-                if(bitvectors[bit_interval.i1].first[bit_interval.i2.i1 + i] == 0 )
-                {
-                    if(i != lastStart){
-                        iter.vDesc.range.i1 = rangeStart + lastStart;
-                        iter.vDesc.range.i2 = rangeStart + i - 1;
-//                         cout << iter.vDesc.range.i1 << " - " << iter.vDesc.range.i2;
-                        delegate(iter, needle, errors, rev);
-                    }
-                    lastStart = i + 1;
-                }
-            }
-            if(lastStart < rangeEnd - rangeStart){
-                iter.vDesc.range.i1 = rangeStart + lastStart;
-                iter.vDesc.range.i2 = rangeStart + rangeEnd - rangeStart;
-                delegate(iter, needle, errors, rev);
-            }
-        }
-        else
-        {
-            delegate(iter, needle, errors, rev);
-        }
-        return ReturnCode::FINISHED;
-    }
-
-    if(rcode == ReturnCode::DIRECTSEARCH){
-        uniDirectSearch(delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir(), TDistanceTag());
-        return ReturnCode::FINISHED;
-    }
-
-    if(rcode == ReturnCode::FILTER){
-        //test filter also modfied iter range if true;
-        if(testFilter(iter, bitvectors, bit_interval, s, blockIndex, TDir())){
-            //bool successful prevents loop here
-            bool successful;
-            filter_interval(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir(), TDistanceTag(), successful);
-            if(successful)
-                return(ReturnCode::FINISHED);
-        }
-    }
-    return ReturnCode::MAPPABLE;
-}
 
 template <typename TDelegate, typename TDelegateD,
           typename TText, typename TConfig, typename TIndexSpec,
@@ -369,17 +232,16 @@ template <typename TDelegate, typename TDelegateD,
           typename TDir,
           typename TDistanceTag>
 inline void _uniOptimalSearchScheme(TDelegate & delegate,
-                                 TDelegateD & delegateDirect,
-                                 Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
-                                 TNeedle const & needle,
-                                 vector<pair<TVector, TVSupport>> & bitvectors,
-                                 uint32_t const needleLeftPos,
-                                 uint32_t const needleRightPos,
-                                 uint8_t const errors,
-                                 OptimalSearch<nbrBlocks> const & s,
-                                 uint8_t const blockIndex,
-                                 TDir const & /**/,
-                                 TDistanceTag const &)
+                                    TDelegateD & delegateDirect,
+                                    Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,                                 TNeedle const & needle,
+                                    vector<pair<TVector, TVSupport>> & bitvectors,
+                                    uint32_t const needleLeftPos,
+                                    uint32_t const needleRightPos,
+                                    uint8_t const errors,
+                                    OptimalSearch<nbrBlocks> const & s,
+                                    uint8_t const blockIndex,
+                                    TDir const & /**/,
+                                    TDistanceTag const &)
 {
     uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
     uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;

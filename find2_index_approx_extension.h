@@ -8,7 +8,7 @@
 #include "common_auxiliary.h"
 #include "find2_index_approx_unidirectional.h"
 // #include "find2_index_approx_compmappable.h"
-#include "find2_index_approx_start_unidirectional.h"
+// #include "find2_index_approx_start_unidirectional.h"
 
 // class OSSContext
 
@@ -72,13 +72,13 @@ inline void filter_interval(TContex & ossContext,
         if (std::is_same<TDir, Rev>::value){
             iter.revIter.vDesc.range.i1 = consOnes[i].first + noi;
             iter.revIter.vDesc.range.i2 = consOnes[i].second + noi;
-//             _optimalSearchScheme(ossContext, delegate, delegateDirect, iter.revIter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Rev(), TDistanceTag());
+            _optimalSearchScheme(/*ossContext, */delegate, delegateDirect, iter.revIter, needle/*, needleId*/, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Rev(), TDistanceTag());
         }
         else
         {
             iter.fwdIter.vDesc.range.i1 = consOnes[i].first + noi;
             iter.fwdIter.vDesc.range.i2 = consOnes[i].second + noi;
-//             _optimalSearchScheme(ossContext, delegate, delegateDirect, iter.fwdIter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Fwd(), TDistanceTag());
+            _optimalSearchScheme(/*ossContext,*/ delegate, delegateDirect, iter.fwdIter, needle/*, needleId*/, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Fwd(), TDistanceTag());
         }
     }
 }

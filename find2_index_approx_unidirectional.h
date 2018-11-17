@@ -65,9 +65,109 @@ inline void genomeSearch(TDelegateD & delegateDirect,
         }
     }
     sa_info.i2 = seqan::length(rgenome[sa_info.i1]) - sa_info.i2 - needleL;
-    delegateDirect(sa_info, needle, errors);
+    uint32_t needleId = 0;
+    delegateDirect(sa_info, needle, needleId, errors);
 }
 
+template <typename TDelegateD,
+          typename TString,
+          typename TNeedle>
+inline void alignmentMyersBitvector(TDelegateD & delegateDirect,
+                                    TNeedle const & needle,
+                                    TString const & n_infix,
+                                    TString const & ex_infix,
+                                    auto const & genome,
+                                    Pair<uint16_t, uint32_t> const & sa_info,
+                                    uint8_t max_e,
+                                    uint8_t overlap_l,
+                                    uint8_t overlap_r)
+{
+    uint16_t needleL = length(needle);
+    uint16_t ex_infixL = needleL + overlap_l + overlap_r;
+
+
+    int initialScore = globalAlignmentScore(ex_infix, needle, MyersBitVector());
+
+ //assume more Insertions (in the read) than deletions
+    int ins_initialScore = globalAlignmentScore(n_infix, needle, MyersBitVector());
+
+    if(ins_initialScore >= 0 - 2 * max_e || initialScore >= 0 - overlap_l - overlap_r - max_e /*+ intDel*/) //MM creates one error D creates one error since now it also align to overlap
+    {
+//         cout << ex_infix << "        ex_infix " << (int)overlap_l << "  " << (int)overlap_r << "\n";
+//         cout << needle << "        needle" << "\n";
+        //No Insertions or Deletions
+        TString const & tmp0 = infix(ex_infix, overlap_l, ex_infixL - overlap_r);
+        int errors2 = 0 - globalAlignmentScore(tmp0, needle, MyersBitVector()); //
+        if(errors2 <= max_e && compareStartAndEnd(needle, tmp0, errors2)){
+//                     std::cout << "c1 " << sa_info << "  " << (int) errors2 << "\n";
+//                     std::cout << tmp0 << "\n";
+            uint32_t needleId = 0;
+            delegateDirect(sa_info , needle, needleId, errors2);
+        }
+
+        for(uint8_t e = 1; e <= max_e /*overlap*/; ++e){
+//                  cout << "E: " << (int)e << endl;
+            for(uint8_t del = 0; del <= e; ++del){
+                //del is number of deletions
+                uint8_t ins = e - del; //number of insertions
+                auto sa_info_tmp = sa_info;
+
+                if(del > 1 && ins == 0 || ins > 1 && del == 0){
+                //only insertion or deletions
+                    int16_t pos = (ins > del) ? 1 : (-1);
+                    int16_t m = std::max(del,ins);
+                    for(int16_t k = 0; k <= m; ++k)
+                    {
+//                                 cout << (int)k << ":" << (int)m-k << "\t" << (int)pos << "\n";
+//                                 cout << (int)overlap_l << ":" << (int)(pos * k) << " :: " << (int)overlap_r << ":" << (int)(pos * (m - k))  << endl;
+                        if(!(0 < overlap_l + (pos * k) && overlap_r > 0 - (pos * (m - k))))
+                            continue;
+                        sa_info_tmp = sa_info;
+                        sa_info_tmp.i2 = sa_info_tmp.i2 + (pos * k);
+                        TString const & tmp2 = infix(ex_infix, overlap_l + (pos * k), ex_infixL - overlap_r - (pos * (m - k)));
+                        errors2 = 0 - globalAlignmentScore(tmp2, needle, MyersBitVector());
+                        if(errors2 <= max_e && compareStartAndEnd(needle, tmp2, errors2)){
+//                                   std::cout << "c2 " << sa_info_tmp << "  " << (int) errors2 << "\n";
+//                                   std::cout << tmp2 << "\n";
+                            uint32_t needleId = 0;
+                            delegateDirect(sa_info_tmp , needle, needleId, errors2);
+                        }
+                    }
+                }
+                else
+                {
+                    //insertions left and deletion right
+                    if(overlap_l >= del){
+                        TString const & tmp = infix(ex_infix, overlap_l - del, ex_infixL - overlap_r - ins);
+                        sa_info_tmp.i2 = sa_info_tmp.i2 - del;
+                        errors2 = 0 - globalAlignmentScore(tmp, needle, MyersBitVector());
+                        if(errors2 <= max_e && compareStartAndEnd(needle, tmp, errors2)){
+//                                  std::cout << "c3 " << sa_info_tmp << "  " << (int) errors2 << "\n";
+//                                  std::cout << tmp << "\n";
+                            uint32_t needleId = 0;
+                            delegateDirect(sa_info_tmp , needle, needleId, errors2);
+                        }
+                    }
+
+                    //insertions right and deletion left
+                    if(overlap_r >= del){
+                        sa_info_tmp = sa_info; //just include del from before into the calculation and delete this
+                        TString const & tmp1 = infix(ex_infix, overlap_l + ins, ex_infixL - overlap_r + del);
+                        errors2 = 0 - globalAlignmentScore(tmp1, needle, MyersBitVector());
+                        sa_info_tmp.i2 = sa_info_tmp.i2 + ins;
+                        if(errors2 <= max_e && compareStartAndEnd(needle, tmp1, errors2)){
+//                                   std::cout << "c4 " << sa_info_tmp << "  " << (int) errors2 << "\n";
+//                                   std::cout << tmp1 << "\n";
+                            uint32_t needleId = 0;
+                            delegateDirect(sa_info_tmp , needle, needleId, errors2);
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 template <typename TDelegateD,
           typename TText, typename TConfig, typename TIndexSpec,
@@ -93,52 +193,294 @@ inline void uniDirectSearch(TDelegateD & delegateDirect,
     //this can also be the reverse genome
     auto const & genome = indexText(*iter.index);
     uint32_t needleL = length(needle);
-    uint32_t blocks = s.pi.size();
 
-    if(std::is_same<TDir, Rev>::value){
+    if(std::is_same<TDistanceTag, EditDistance>::value){
+        uint16_t needleL = length(needle);
+        uint8_t max_e = s.u[s.u.size() - 1];
+        int intIns = 0;
+        int intDel = 0;
+        //calculate net sum of internal Insertions - Deletions
+        if(repLength(iter) < needleRightPos - needleLeftPos - 1)
+            intIns = needleRightPos - needleLeftPos - 1 - repLength(iter);
+        else
+            intDel = repLength(iter) - (needleRightPos - needleLeftPos - 1);
+        uint8_t overlap_l = max_e;
+        uint8_t overlap_r = max_e;
+        if(needleLeftPos == 0)
+            overlap_l = intIns;
+        if(needleRightPos == needleL + 1)
+            overlap_r = intIns;
+        uint16_t ex_infixL = needleL + overlap_l + overlap_r;
 
-        std::array<uint32_t, nbrBlocks> blockStarts;
-        std::array<uint32_t, nbrBlocks> blockEnds;
-        std::copy(std::begin(s.revblockStarts) + blockIndex, std::end(s.revblockStarts), std::begin(blockStarts));
-        std::copy(std::begin(s.revblockEnds) + blockIndex, std::end(s.revblockEnds), std::begin(blockEnds));
+        if(std::is_same<TDir, Rev>::value){
+            for(uint32_t r = 0; r < brange.i2.i2 - brange.i2.i1; ++r){
+                if(bitvectors[brange.i1].first[brange.i2.i1 + r] == 1){
+                    Pair<uint16_t, uint32_t> sa_info = iter.index->sa[r];
+                    uint32_t const chromlength = length(genome[sa_info.i1]);
+                    if(!(sa_info.i2 >= needleL - needleRightPos + 1 + overlap_l && chromlength - 1 >= sa_info.i2 + needleRightPos - 2 + overlap_r))
+                        continue;
+                    sa_info.i2 = sa_info.i2 - needleL + needleRightPos - 1;
+                    //TODO fix this mess
+                    TString /*const &*/ n_infix = infix(genome[sa_info.i1], sa_info.i2, sa_info.i2 + needleL);
+                    TString /*const &*/ ex_infix = infix(genome[sa_info.i1], sa_info.i2 - overlap_l, sa_info.i2 + needleL + overlap_r);
+                    DnaStringReverse n_infix_rev(n_infix);
+                    DnaStringReverse ex_infix_rev(ex_infix);
+                    TString n_infix_rev_copy = n_infix_rev;
+                    TString ex_infix_rev_copy = ex_infix_rev;
 
-        for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
-            //this time i use the mappability from "inside" the needle since i can garantue i am at a blockend
-            if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
-                Pair<uint16_t, uint32_t> sa_info = iter.index->sa[iter.vDesc.range.i1 + i];
-                uint32_t chromlength = length(genome[sa_info.i1]);
-                // mappability information is this time in reverse index order even if we use reverse index (we get_bitvector_interval_inside)
-                //check left chromosom boundry && check right chromosom boundry
-                if(!(sa_info.i2 >= needleL - needleRightPos + 1 && chromlength - 1 >= sa_info.i2 + needleRightPos - 2))
-                    continue;
-                sa_info.i2 = sa_info.i2 - needleL + needleRightPos - 1;
-                //use modified genomeSearch in case of reverse index
-                genomeSearch(delegateDirect, needle, errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds, true);
+                    alignmentMyersBitvector(delegateDirect, needle, n_infix_rev_copy, ex_infix_rev_copy, genome, sa_info, max_e, overlap_l, overlap_r);
+                }
+            }
+        }else{
+            for(uint32_t r = 0; r < brange.i2.i2 - brange.i2.i1; ++r){
+
+                if(bitvectors[brange.i1].first[brange.i2.i1 + r] == 1){
+                    Pair<uint16_t, uint32_t> sa_info = iter.index->sa[r];
+                    uint32_t const chromlength = length(genome[sa_info.i1]);
+                    if(!(needleLeftPos + overlap_l <= sa_info.i2  && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1 + overlap_r))
+                        continue;
+                     sa_info.i2 = sa_info.i2 - needleLeftPos;
+                    TString const & ex_infix = infix(genome[sa_info.i1], sa_info.i2 - overlap_l, sa_info.i2 + needleL + overlap_r);
+                    TString const & n_infix = infix(genome[sa_info.i1], sa_info.i2, sa_info.i2 + needleL);
+                    alignmentMyersBitvector(delegateDirect, needle, n_infix, ex_infix, genome, sa_info, max_e, overlap_l, overlap_r);
+
+                }
             }
         }
+
     }
     else
     {
-        std::array<uint32_t, nbrBlocks> blockStarts;
-        std::array<uint32_t, nbrBlocks> blockEnds;
-        std::copy(std::begin(s.blockStarts) + blockIndex, std::end(s.blockStarts), std::begin(blockStarts));
-        std::copy(std::begin(s.blockEnds) + blockIndex, std::end(s.blockEnds), std::begin(blockEnds));
+        if(std::is_same<TDir, Rev>::value){
 
-        //this time i use the mappability from "inside" the needle since i can garantue i am at a blockend
-        for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
-            if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
-                Pair<uint16_t, uint32_t> sa_info = iter.index->sa[iter.vDesc.range.i1 + i];
-                uint32_t chromlength = length(genome[sa_info.i1]);
-                // mappability information is this time in reverse index order even if we use reverse index (we get_bitvector_interval_inside)
-                //check left chromosom boundry && check right chromosom boundry
-                if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1))
-                    continue;
-                //calculate correct starting position of the needle  on the forward index
-                sa_info.i2 = sa_info.i2 - needleLeftPos;
-                //use modified genomeSearch in case of forward index
-                genomeSearch(delegateDirect, needle, errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds);
+            std::array<uint32_t, nbrBlocks> blockStarts;
+            std::array<uint32_t, nbrBlocks> blockEnds;
+            std::copy(std::begin(s.revblockStarts) + blockIndex, std::end(s.revblockStarts), std::begin(blockStarts));
+            std::copy(std::begin(s.revblockEnds) + blockIndex, std::end(s.revblockEnds), std::begin(blockEnds));
+
+            for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
+                //this time i use the mappability from "inside" the needle since i can garantue i am at a blockend
+                if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
+                    Pair<uint16_t, uint32_t> sa_info = iter.index->sa[iter.vDesc.range.i1 + i];
+                    uint32_t chromlength = length(genome[sa_info.i1]);
+                    // mappability information is this time in reverse index order even if we use reverse index (we get_bitvector_interval_inside)
+                    //check left chromosom boundry && check right chromosom boundry
+                    if(!(sa_info.i2 >= needleL - needleRightPos + 1 && chromlength - 1 >= sa_info.i2 + needleRightPos - 2))
+                        continue;
+                    sa_info.i2 = sa_info.i2 - needleL + needleRightPos - 1;
+                    //use modified genomeSearch in case of reverse index
+                    genomeSearch(delegateDirect, needle, errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds, true);
+                }
             }
         }
+        else
+        {
+            std::array<uint32_t, nbrBlocks> blockStarts;
+            std::array<uint32_t, nbrBlocks> blockEnds;
+            std::copy(std::begin(s.blockStarts) + blockIndex, std::end(s.blockStarts), std::begin(blockStarts));
+            std::copy(std::begin(s.blockEnds) + blockIndex, std::end(s.blockEnds), std::begin(blockEnds));
+
+            //this time i use the mappability from "inside" the needle since i can garantue i am at a blockend
+            for(uint32_t i = 0; i < brange.i2.i2 - brange.i2.i1; ++i){
+                if(bitvectors[brange.i1].first[brange.i2.i1 + i] == 1){
+                    Pair<uint16_t, uint32_t> sa_info = iter.index->sa[iter.vDesc.range.i1 + i];
+                    uint32_t chromlength = length(genome[sa_info.i1]);
+                    // mappability information is this time in reverse index order even if we use reverse index (we get_bitvector_interval_inside)
+                    //check left chromosom boundry && check right chromosom boundry
+                    if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1))
+                        continue;
+                    //calculate correct starting position of the needle  on the forward index
+                    sa_info.i2 = sa_info.i2 - needleLeftPos;
+                    //use modified genomeSearch in case of forward index
+                    genomeSearch(delegateDirect, needle, errors, s, blockIndex, genome, sa_info, blockStarts, blockEnds);
+                }
+            }
+        }
+    }
+}
+
+template <typename TVector, typename TVSupport>
+inline ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
+                          Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
+                          uint8_t const blockSize,
+                          bool const done,
+                          bool const nofilter,
+                          uint8_t const blockIndex)
+{
+    if(!nofilter){
+        TVector & b = bitvectors[brange.i1].first;
+        TVSupport & rb = bitvectors[brange.i1].second;
+        rb.set_vector(&b);
+
+        uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
+        if(params.startuni.nomappability && ivalOne == 0)
+            return ReturnCode::NOMAPPABILITY;
+
+        if(!done){
+            if(params.startuni.directsearch && ivalOne < (blockSize - blockIndex - 1 + params.startuni.directsearchblockoffset) * params.startuni.directsearch_th){ //<4
+                return ReturnCode::DIRECTSEARCH;
+            }
+            if(params.startuni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
+                return ReturnCode::COMPMAPPABLE;
+
+            //equal or more than half zeroes
+            float ivalSize = brange.i2.i2 - brange.i2.i1;
+            if(params.startuni.suspectunidirectional && ivalOne/ ivalSize <= params.startuni.filter_th){
+                return ReturnCode::FILTER;
+            }
+        }
+        return ReturnCode::MAPPABLE;
+    }
+    else
+    {
+        TVector & b = bitvectors[brange.i1].first;
+        TVSupport & rb = bitvectors[brange.i1].second;
+        rb.set_vector(&b);
+
+        uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
+        if(params.uni.nomappability && ivalOne == 0)
+            return ReturnCode::NOMAPPABILITY;
+
+        if(!done){
+            if(params.uni.directsearch && ivalOne < (blockSize - blockIndex - 1 + params.uni.directsearchblockoffset) * params.uni.directsearch_th){
+                return ReturnCode::DIRECTSEARCH;
+            }
+            if(params.uni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
+                return ReturnCode::COMPMAPPABLE;
+        }
+        return ReturnCode::MAPPABLE;
+    }
+    return ReturnCode::MAPPABLE;
+}
+
+
+template <typename TDelegate, typename TDelegateD,
+          typename TText, typename TConfig, typename TIndexSpec,
+          typename TNeedle,
+          typename TVector, typename TVSupport,
+          size_t nbrBlocks,
+          typename TDir,
+          typename TDistanceTag>
+inline ReturnCode uniCheckMappability(TDelegate & delegate,
+                                 TDelegateD & delegateDirect,
+                                 Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
+                                 TNeedle const & needle,
+                                 vector<pair<TVector, TVSupport>> & bitvectors,
+                                 uint32_t const needleLeftPos,
+                                 uint32_t const needleRightPos,
+                                 uint8_t const errors,
+                                 OptimalSearch<nbrBlocks> const & s,
+                                 uint8_t const blockIndex,
+                                 bool const done,
+                                 bool const nofilter,
+                                 TDir const & ,
+                                 TDistanceTag const &)
+{
+    Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
+    get_bitvector_interval_inside(iter, bitvectors, s, blockIndex + done, bit_interval, TDir());
+    ReturnCode rcode = checkInterval(bitvectors, bit_interval, s.pi.size(), done, nofilter, blockIndex);
+
+    if(rcode == ReturnCode::NOMAPPABILITY)
+        return ReturnCode::FINISHED;
+    // Done. (Last step)
+    if (done)
+    {
+        bool rev = std::is_same<TDir, Rev>::value;
+        //NOTE we only need to check mappability here to not allow occurences with a frequency higher than allowed
+        //if the only concern is speed than reporting all occurrences would be faster
+        if(rcode != ReturnCode::COMPMAPPABLE /* add option for speed up here*/)
+        {
+            uint32_t rangeStart = iter.vDesc.range.i1;
+            uint32_t rangeEnd = iter.vDesc.range.i2;
+            uint32_t lastStart = 0;
+            for(uint32_t i = 0; i < rangeEnd - rangeStart; ++i)
+            {
+                if(bitvectors[bit_interval.i1].first[bit_interval.i2.i1 + i] == 0 )
+                {
+                    if(i != lastStart){
+                        iter.vDesc.range.i1 = rangeStart + lastStart;
+                        iter.vDesc.range.i2 = rangeStart + i - 1;
+//                         cout << iter.vDesc.range.i1 << " - " << iter.vDesc.range.i2;
+                        uint32_t needleId = 0;
+                        delegate(iter, needle, needleId, errors, rev);
+                    }
+                    lastStart = i + 1;
+                }
+            }
+            if(lastStart < rangeEnd - rangeStart){
+                iter.vDesc.range.i1 = rangeStart + lastStart;
+                iter.vDesc.range.i2 = rangeStart + rangeEnd - rangeStart;
+                uint32_t needleId = 0;
+                delegate(iter, needle, needleId, errors, rev);
+            }
+        }
+        else
+        {
+            uint32_t needleId = 0;
+            delegate(iter, needle, needleId, errors, rev);
+        }
+        return ReturnCode::FINISHED;
+    }
+
+    if(rcode == ReturnCode::DIRECTSEARCH){
+        uniDirectSearch(delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir(), TDistanceTag());
+        return ReturnCode::FINISHED;
+    }
+
+    if(rcode == ReturnCode::FILTER){
+        //test filter also modfied iter range if true;
+        if(testFilter(iter, bitvectors, bit_interval, s, blockIndex, TDir())){
+            //bool successful prevents loop here
+            bool successful;
+            filter_interval(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir(), TDistanceTag(), successful);
+            if(successful)
+                return(ReturnCode::FINISHED);
+        }
+    }
+    return ReturnCode::MAPPABLE;
+}
+
+template <typename TDelegate,
+          typename TDelegateDirect,
+          typename TText, typename TConfig, typename TIndexSpec,
+          typename TNeedle,
+          typename TVector, typename TVSupport,
+          size_t nbrBlocks,
+          typename TDir>
+inline void _optimalSearchSchemeDeletion(TDelegate & delegate,
+                                         TDelegateDirect & delegateDirect,
+                                         Iter<Index<TText, FMIndex<void, TConfig> >, VSTree<TopDown<TIndexSpec> > > iter,
+                                         TNeedle const & needle,
+                                         vector<pair<TVector, TVSupport>> & bitvectors,
+                                         uint32_t const needleLeftPos,
+                                         uint32_t const needleRightPos,
+                                         uint8_t const errors,
+                                         OptimalSearch<nbrBlocks> const & s,
+                                         uint8_t const blockIndex,
+                                         TDir const & /**/)
+{
+    uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
+    uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
+
+    if (minErrorsLeftInBlock == 0)
+    {
+
+        uint8_t const blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
+        bool const goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
+
+        if (goToRight2)
+            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, Rev(), EditDistance());
+        else
+            _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, Fwd(), EditDistance());
+
+    }
+
+    if (maxErrorsLeftInBlock > 0 && goDown(iter))
+    {
+        do
+        {
+            _optimalSearchSchemeDeletion(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors + 1, s, blockIndex, TDir());
+        } while (goRight(iter));
     }
 }
 
@@ -171,7 +513,7 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
         {
             bool delta = !ordEqual(parentEdgeLabel(iter),
                                    needle[goToRight ? needleRightPos - 1 : needleLeftPos - 1]);
-            if (minErrorsLeftInBlock > 0 && charsLeft + delta < minErrorsLeftInBlock + 1u) // charsLeft - 1 < minErrorsLeftInBlock - delta
+            if (!std::is_same<TDistanceTag, EditDistance>::value && minErrorsLeftInBlock > 0 && charsLeft + delta < minErrorsLeftInBlock + 1u) // charsLeft - 1 < minErrorsLeftInBlock - delta
             {
                 continue;
             }
@@ -180,13 +522,20 @@ inline void _optimalSearchSchemeChildren(TDelegate & delegate,
 
             if (needleRightPos - needleLeftPos == s.blocklength[blockIndex])
             {
-                uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
-                bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
-
-                if (goToRight2)
-                    _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, Rev(), TDistanceTag());
+                if (std::is_same<TDistanceTag, EditDistance>::value)
+                {
+                    _optimalSearchSchemeDeletion(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex, TDir());
+                }
                 else
-                    _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, Fwd(), TDistanceTag());
+                {
+                    uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
+                    bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
+
+                    if (goToRight2)
+                        _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, Rev(), TDistanceTag());
+                    else
+                        _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, Fwd(), TDistanceTag());
+                }
             }
             else
             {
@@ -303,8 +652,8 @@ inline void _optimalSearchScheme(TDelegate & delegate,
 {
     uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
     uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
-
     bool done = minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1;
+
     if(blockIndex > 0 && done || needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex - 1]){
         ReturnCode rcode = uniCheckMappability(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, done, true, TDir(), TDistanceTag());
         if(rcode == ReturnCode::FINISHED)
@@ -319,9 +668,40 @@ inline void _optimalSearchScheme(TDelegate & delegate,
     // Approximate search in current block.
     else
     {
-    _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), TDistanceTag());
+        // Insertion
+        if (std::is_same<TDistanceTag, EditDistance>::value)
+        {
+            bool const goToRight = std::is_same<TDir, Rev>::value;
+            int32_t const needleLeftPos2 = needleLeftPos - !goToRight;
+            uint32_t const needleRightPos2 = needleRightPos + goToRight;
+
+            //if we are at the end of block we need to add possible deletions because _optimalSearchScheme does not check it
+            if (needleRightPos - needleLeftPos == s.blocklength[blockIndex])
+            {
+                uint8_t const minErrorsLeftInBlock2 = (s.l[blockIndex] > (errors + 1)) ? (s.l[blockIndex] - (errors + 1)) : 0;
+                if (minErrorsLeftInBlock2 == 0)
+                {
+                    uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
+                    bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
+
+                    if (goToRight2)
+                        _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, Rev(), TDistanceTag());
+                    else
+                        _optimalSearchScheme(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, Fwd(), TDistanceTag());
+                }
+            }
+            else
+            {
+                _optimalSearchSchemeChildren(delegate, delegateDirect, iter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), TDistanceTag());
+            }
+        }
     }
 }
 
 }
 #endif
+
+
+
+
+
