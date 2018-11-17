@@ -6,7 +6,7 @@
 #include "global.h"
 #include "auxiliary.h"
 #include "common_auxiliary.h"
-// #include "find2_index_approx_unidirectional.h"
+#include "find2_index_approx_unidirectional.h"
 // #include "find2_index_approx_compmappable.h"
 #include "find2_index_approx_start_unidirectional.h"
 
@@ -40,26 +40,29 @@ inline void getConsOnes(std::vector<std::pair<TVector, TVSupport>> & bitvectors,
     consOnesOutput.push_back(make_pair(startOneInterval, k));
 }
 
-template <typename TDelegate, typename TDelegateD,
+template <typename TContex,
+          typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
           typename TDir,
           typename TDistanceTag>
-inline void filter_interval(TDelegate & delegate,
-                     TDelegateD & delegateDirect,
-                     Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-                     TNeedle const & needle,
-                     vector<pair<TVector, TVSupport>> & bitvectors,
-                     uint32_t const needleLeftPos,
-                     uint32_t const needleRightPos,
-                     uint8_t const errors,
-                     OptimalSearch<nbrBlocks> const & s,
-                     uint8_t const blockIndex,
-                     Pair<uint8_t, Pair<uint32_t, uint32_t>> & inside_bit_interval,
-                     TDir const & ,
-                     TDistanceTag const &)
+inline void filter_interval(TContex & ossContext,
+                            TDelegate & delegate,
+                            TDelegateD & delegateDirect,
+                            Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+                            TNeedle const & needle,
+                            uint32_t needleId,
+                            vector<pair<TVector, TVSupport>> & bitvectors,
+                            uint32_t const needleLeftPos,
+                            uint32_t const needleRightPos,
+                            uint8_t const errors,
+                            OptimalSearch<nbrBlocks> const & s,
+                            uint8_t const blockIndex,
+                            Pair<uint8_t, Pair<uint32_t, uint32_t>> & inside_bit_interval,
+                            TDir const & ,
+                            TDistanceTag const &)
 {
     vector<pair<uint32_t, uint32_t>> consOnes;
     getConsOnes(bitvectors, inside_bit_interval, params.normal.intervalsize, consOnes);
@@ -69,13 +72,13 @@ inline void filter_interval(TDelegate & delegate,
         if (std::is_same<TDir, Rev>::value){
             iter.revIter.vDesc.range.i1 = consOnes[i].first + noi;
             iter.revIter.vDesc.range.i2 = consOnes[i].second + noi;
-//             _optimalSearchScheme(delegate, delegateDirect, iter.revIter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Rev(), TDistanceTag());
+//             _optimalSearchScheme(ossContext, delegate, delegateDirect, iter.revIter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Rev(), TDistanceTag());
         }
         else
         {
             iter.fwdIter.vDesc.range.i1 = consOnes[i].first + noi;
             iter.fwdIter.vDesc.range.i2 = consOnes[i].second + noi;
-//             _optimalSearchScheme(delegate, delegateDirect, iter.fwdIter, needle, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Fwd(), TDistanceTag());
+//             _optimalSearchScheme(ossContext, delegate, delegateDirect, iter.fwdIter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Fwd(), TDistanceTag());
         }
     }
 }
@@ -608,7 +611,7 @@ inline ReturnCode checkMappability(TContex & ossContext,
             bool goToRight2 = std::is_same<TDir, Rev>::value;
             if(testUnidirectionalFilter(iter, bitvectors, bit_interval, s, blockIndex, goToRight2)){
                 //range on iter was changed in function before
-                filter_interval(delegate, delegateDirect, iter, needle, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, Rev(), TDistanceTag());
+                filter_interval(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, Rev(), TDistanceTag());
                 return ReturnCode::FINISHED;
             }
         }
