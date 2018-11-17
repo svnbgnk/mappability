@@ -893,7 +893,6 @@ inline void _optimalSearchScheme(TContex & ossContext,
     }
 
     // Exact search in current block.
-    //do not check if at block end ??
     if (maxErrorsLeftInBlock == 0)
     {
         _optimalSearchSchemeExact(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), TDistanceTag());

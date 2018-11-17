@@ -303,54 +303,22 @@ inline ReturnCode uniCheckInterval(vector<pair<TVector, TVSupport>> & bitvectors
                           bool const done,
                           bool const nofilter,
                           uint8_t const blockIndex)
-{/*
-    if(!nofilter){
-        TVector & b = bitvectors[brange.i1].first;
-        TVSupport & rb = bitvectors[brange.i1].second;
-        rb.set_vector(&b);
+{
+    TVector & b = bitvectors[brange.i1].first;
+    TVSupport & rb = bitvectors[brange.i1].second;
+    rb.set_vector(&b);
 
-        uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
-        if(params.startuni.nomappability && ivalOne == 0)
-            return ReturnCode::NOMAPPABILITY;
+    uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
+    if(params.uni.nomappability && ivalOne == 0)
+        return ReturnCode::NOMAPPABILITY;
 
-        if(!done){
-            if(params.startuni.directsearch && ivalOne < (blockSize - blockIndex - 1 + params.startuni.directsearchblockoffset) * params.startuni.directsearch_th){ //<4
-                return ReturnCode::DIRECTSEARCH;
-            }
-            //TODO check comp even if we are done
-            if(params.startuni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
-                return ReturnCode::COMPMAPPABLE;
-
-            //equal or more than half zeroes
-            float ivalSize = brange.i2.i2 - brange.i2.i1;
-            if(params.startuni.suspectunidirectional && ivalOne/ ivalSize <= params.startuni.filter_th){
-                return ReturnCode::FILTER;
-            }
-        }
-        return ReturnCode::MAPPABLE;
+    if(!done){
+        if(params.uni.directsearch && ivalOne < (blockSize - blockIndex - 1 + params.uni.directsearchblockoffset) * params.uni.directsearch_th)
+            return ReturnCode::DIRECTSEARCH;
     }
-    else
-    {*/
+    if(params.uni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
+        return ReturnCode::COMPMAPPABLE;
 
-
-
-        TVector & b = bitvectors[brange.i1].first;
-        TVSupport & rb = bitvectors[brange.i1].second;
-        rb.set_vector(&b);
-
-        uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
-        if(params.uni.nomappability && ivalOne == 0)
-            return ReturnCode::NOMAPPABILITY;
-
-        if(!done){
-            if(params.uni.directsearch && ivalOne < (blockSize - blockIndex - 1 + params.uni.directsearchblockoffset) * params.uni.directsearch_th)
-                return ReturnCode::DIRECTSEARCH;
-        }
-        if(params.uni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
-            return ReturnCode::COMPMAPPABLE;
-
-
-//     }
     return ReturnCode::MAPPABLE;
 }
 
@@ -427,17 +395,6 @@ inline ReturnCode uniCheckMappability(TContex & ossContext,
         uniDirectSearch(ossContext, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir(), TDistanceTag());
         return ReturnCode::FINISHED;
     }
-/*
-    if(rcode == ReturnCode::FILTER){
-        //test filter also modfied iter range if true;
-        if(testFilter(iter, bitvectors, bit_interval, s, blockIndex, TDir())){
-            //bool successful prevents loop here
-            bool successful;
-            filter_interval(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, bit_interval, TDir(), TDistanceTag(), successful);
-            if(successful)
-                return(ReturnCode::FINISHED);
-        }
-    }*/
     return ReturnCode::MAPPABLE;
 }
 
@@ -618,34 +575,6 @@ inline void _optimalSearchSchemeExact(TContex & ossContext,
             _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, infixPosLeft, needleRightPos, errors, s, blockIndex2, false, Fwd(), TDistanceTag());
     }
 }
-
-/*
-inline ReturnCode checkInterval(vector<pair<sdsl::bit_vector, sdsl::rank_support_v<>>> & bitvectors,
-                          Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
-                          uint8_t const blockSize,
-                          bool const done,
-                          bool const true,
-                          uint8_t const blockIndex)
-{
-    cout << "unicheckInterval no start uni" << endl;
-        TVector & b = bitvectors[brange.i1].first;
-        TVSupport & rb = bitvectors[brange.i1].second;
-        rb.set_vector(&b);
-
-        uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
-        if(params.uni.nomappability && ivalOne == 0)
-            return ReturnCode::NOMAPPABILITY;
-
-        if(!done){
-            if(params.uni.directsearch && ivalOne < (blockSize - blockIndex - 1 + params.uni.directsearchblockoffset) * params.uni.directsearch_th){ //<4
-                return ReturnCode::DIRECTSEARCH;
-            }
-            if(params.uni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
-                return ReturnCode::COMPMAPPABLE;
-        }
-        return ReturnCode::MAPPABLE;
-}
-*/
 
 template <typename TContex,
           typename TDelegate, typename TDelegateD,
