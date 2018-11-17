@@ -73,15 +73,19 @@ inline void filter_interval(TContex & ossContext,
         if (std::is_same<TDir, Rev>::value){
             iter.revIter.vDesc.range.i1 = consOnes[i].first + noi;
             iter.revIter.vDesc.range.i2 = consOnes[i].second + noi;
-            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter.revIter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Rev(), TDistanceTag());
+            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter.revIter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, false, Rev(), TDistanceTag());
         }
         else
         {
             iter.fwdIter.vDesc.range.i1 = consOnes[i].first + noi;
             iter.fwdIter.vDesc.range.i2 = consOnes[i].second + noi;
-            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter.fwdIter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, Fwd(), TDistanceTag());
+            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter.fwdIter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, false, Fwd(), TDistanceTag());
         }
     }
+
+//     _optimalSearchScheme(ossContext, delegate, delegateDirect, iter.revIter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), TDistanceTag());
+
+
 }
 
 template <typename TContex,
@@ -498,10 +502,10 @@ inline ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
 
     if(params.normal.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
         return ReturnCode::COMPMAPPABLE;
-/*
+
     //equal or more than half zeroes
     if(params.normal.suspectunidirectional && s.startUniDir <= blockIndex && ivalOne/ ivalSize <= params.normal.filter_th)
-        return ReturnCode::SUSPECTUNIDIRECTIONAL;*/
+        return ReturnCode::SUSPECTUNIDIRECTIONAL;
 
     return ReturnCode::MAPPABLE;
 }
@@ -881,6 +885,7 @@ inline void _optimalSearchScheme(TContex & ossContext,
         return;
     }
 
+    //TODO add minErrorsLeftInBlock == 0 so only we check once after an insertion
     if(atBlockEnd && checkMappa){
         ReturnCode rcode = checkMappability(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, lastEdit, TDir(), TDistanceTag());
         if(rcode == ReturnCode::FINISHED)
@@ -888,7 +893,8 @@ inline void _optimalSearchScheme(TContex & ossContext,
     }
 
     // Exact search in current block.
-    if (maxErrorsLeftInBlock == 0 /*&& !atBlockEnd*/)
+    //do not check if at block end ??
+    if (maxErrorsLeftInBlock == 0)
     {
         _optimalSearchSchemeExact(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), TDistanceTag());
     }
@@ -896,7 +902,6 @@ inline void _optimalSearchScheme(TContex & ossContext,
     // Approximate search in current block.
     else
     {
-        //check Mappability
         bool not_at_end = std::is_same<TDir, Rev>::value && needleRightPos != length(needle) || !std::is_same<TDir, Rev>::value && needleLeftPos != 1/* || true*/;
         // Insertion
         if (std::is_same<TDistanceTag, EditDistance>::value && not_at_end)

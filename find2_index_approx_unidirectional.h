@@ -392,7 +392,7 @@ inline ReturnCode uniCheckMappability(TContex & ossContext,
         bool rev = std::is_same<TDir, Rev>::value;
         //NOTE we only need to check mappability here to not allow occurences with a frequency higher than allowed
         //if the only concern is speed than reporting all occurrences would be faster
-        if(false/*rcode != ReturnCode::COMPMAPPABLE*/ /* add option for speed up here*/)
+        if(rcode != ReturnCode::COMPMAPPABLE /* add option for speed up here*/)
         {
             uint32_t rangeStart = iter.vDesc.range.i1;
             uint32_t rangeEnd = iter.vDesc.range.i2;
@@ -461,6 +461,7 @@ inline void _optimalSearchSchemeDeletion(TContex & ossContext,
                                          uint8_t const errors,
                                          OptimalSearch<nbrBlocks> const & s,
                                          uint8_t const blockIndex,
+                                         bool const lastEdit,
                                          TDir const & /**/)
 {
     uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
@@ -473,17 +474,18 @@ inline void _optimalSearchSchemeDeletion(TContex & ossContext,
         bool const goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
 
         if (goToRight2)
-            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, Rev(), EditDistance());
+            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, lastEdit, Rev(), EditDistance());
         else
-            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, Fwd(), EditDistance());
-
+            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, lastEdit, Fwd(), EditDistance());
     }
 
-    if (maxErrorsLeftInBlock > 0 && goDown(iter))
+    bool not_at_end = std::is_same<TDir, Rev>::value && needleRightPos != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos != 0/* || true*/;
+
+    if (not_at_end && maxErrorsLeftInBlock > 0 && goDown(iter))
     {
         do
         {
-            _optimalSearchSchemeDeletion(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors + 1, s, blockIndex, TDir());
+            _optimalSearchSchemeDeletion(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors + 1, s, blockIndex, true, TDir());
         } while (goRight(iter));
     }
 }
@@ -518,36 +520,41 @@ inline void _optimalSearchSchemeChildren(TContex & ossContext,
         uint32_t charsLeft = s.blocklength[blockIndex] - (needleRightPos - needleLeftPos - 1);
         do
         {
-            bool delta = !ordEqual(parentEdgeLabel(iter),
-                                   needle[goToRight ? needleRightPos - 1 : needleLeftPos - 1]);
-            if (!std::is_same<TDistanceTag, EditDistance>::value && minErrorsLeftInBlock > 0 && charsLeft + delta < minErrorsLeftInBlock + 1u) // charsLeft - 1 < minErrorsLeftInBlock - delta
+            bool delta = !ordEqual(parentEdgeLabel(iter), needle[goToRight ? needleRightPos - 1 : needleLeftPos - 1]);
+            if (!std::is_same<TDistanceTag, EditDistance>::value && minErrorsLeftInBlock > 0 && charsLeft + delta < minErrorsLeftInBlock + 1u)
             {
                 continue;
             }
             int32_t needleLeftPos2 = needleLeftPos - !goToRight;
             uint32_t needleRightPos2 = needleRightPos + goToRight;
-
+            //finished Block
             if (needleRightPos - needleLeftPos == s.blocklength[blockIndex])
             {
                 if (std::is_same<TDistanceTag, EditDistance>::value)
                 {
-                    _optimalSearchSchemeDeletion(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex, TDir());
+                    //use delta instead of false if no mismatches are allowed
+                    _optimalSearchSchemeDeletion(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex, false, TDir());
                 }
                 else
                 {
                     uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
                     bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
-
                     if (goToRight2)
-                        _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, Rev(), TDistanceTag());
+                        _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, false, Rev(), TDistanceTag());
                     else
-                        _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, Fwd(), TDistanceTag());
+                        _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex2, false, Fwd(), TDistanceTag());
                 }
             }
             else
             {
-                _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex, TDir(), TDistanceTag());
+                //if want to disable mismatches at the start and end (!delta || not_at_end) && use delta instead of false
+                _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + delta, s, blockIndex, false, TDir(), TDistanceTag());
             }
+
+            //Deletion
+            bool not_at_end = std::is_same<TDir, Rev>::value && needleRightPos2 != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos2 != 0/* || true*/;
+            if (std::is_same<TDistanceTag, EditDistance>::value && not_at_end)
+                _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors + 1, s, blockIndex, true, TDir(), TDistanceTag());
         } while (goRight(iter));
     }
 }
@@ -580,7 +587,7 @@ inline void _optimalSearchSchemeExact(TContex & ossContext,
     uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
     if (std::is_same<TDir, Rev>::value)
     {
-        //search take rest of the block and search it forward
+        //search take rest of the block and search it reverse
         uint32_t infixPosLeft = needleRightPos - 1;
         uint32_t infixPosRight = needleLeftPos + s.blocklength[blockIndex] - 1;
 
@@ -588,9 +595,9 @@ inline void _optimalSearchSchemeExact(TContex & ossContext,
             return;
 
         if (goToRight2)
-            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, blockIndex2, Rev(), TDistanceTag());
+            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, blockIndex2, false, Rev(), TDistanceTag());
         else
-            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, blockIndex2, Fwd(), TDistanceTag());
+            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, infixPosRight + 2, errors, s, blockIndex2, false, Fwd(), TDistanceTag());
     }
     else
     {
@@ -606,9 +613,9 @@ inline void _optimalSearchSchemeExact(TContex & ossContext,
         }
 
         if (goToRight2)
-            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, infixPosLeft, needleRightPos, errors, s, blockIndex2, Rev(), TDistanceTag());
+            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, infixPosLeft, needleRightPos, errors, s, blockIndex2, false, Rev(), TDistanceTag());
         else
-            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, infixPosLeft, needleRightPos, errors, s, blockIndex2, Fwd(), TDistanceTag());
+            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, infixPosLeft, needleRightPos, errors, s, blockIndex2, false, Fwd(), TDistanceTag());
     }
 }
 
@@ -660,18 +667,22 @@ inline void _optimalSearchScheme(TContex & ossContext,
                                  uint8_t const errors,
                                  OptimalSearch<nbrBlocks> const & s,
                                  uint8_t const blockIndex,
+                                 bool const lastEdit,
                                  TDir const & /**/,
                                  TDistanceTag const &)
 {
     uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
     uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
     bool done = minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1;
-/*
+    bool const atBlockEnd = needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex - 1];
+
     bool rev = std::is_same<TDir, Rev>::value;
     if(done){
-        delegate(iter, needle, needleId, errors, rev);
+        if(!lastEdit){
+            delegate(iter, needle, needleId, errors, rev);
+        }
         return;
-    }*/
+    }
 
     if(blockIndex > 0 && done || needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex - 1]){
         ReturnCode rcode = uniCheckMappability(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, done, true, TDir(), TDistanceTag());
@@ -680,15 +691,16 @@ inline void _optimalSearchScheme(TContex & ossContext,
     }
 
     // Exact search in current block.
-    if (maxErrorsLeftInBlock == 0 && needleRightPos - needleLeftPos - 1 != s.blocklength[blockIndex])
+    if (maxErrorsLeftInBlock == 0)
     {
         _optimalSearchSchemeExact(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), TDistanceTag());
     }
     // Approximate search in current block.
     else
     {
+        bool not_at_end = std::is_same<TDir, Rev>::value && needleRightPos != length(needle) || !std::is_same<TDir, Rev>::value && needleLeftPos != 1/* || true*/;
         // Insertion
-        if (std::is_same<TDistanceTag, EditDistance>::value)
+        if (std::is_same<TDistanceTag, EditDistance>::value && not_at_end)
         {
             bool const goToRight = std::is_same<TDir, Rev>::value;
             int32_t const needleLeftPos2 = needleLeftPos - !goToRight;
@@ -704,16 +716,18 @@ inline void _optimalSearchScheme(TContex & ossContext,
                     bool goToRight2 = s.pi[blockIndex2] > s.pi[blockIndex2 - 1];
 
                     if (goToRight2)
-                        _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, Rev(), TDistanceTag());
+                        _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, true, Rev(), TDistanceTag());
                     else
-                        _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, Fwd(), TDistanceTag());
+                        _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex2, true, Fwd(), TDistanceTag());
                 }
             }
             else
             {
-                _optimalSearchSchemeChildren(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), TDistanceTag());
+                _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos2, needleRightPos2, errors + 1, s, blockIndex, true, TDir(), TDistanceTag());
             }
         }
+
+        _optimalSearchSchemeChildren(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), TDistanceTag());
     }
 }
 
