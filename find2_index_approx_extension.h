@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <sdsl/bit_vectors.hpp>
-#include "global.h"
+// #include "global.h"
 #include "auxiliary.h"
 #include "common_auxiliary.h"
 #include "find2_index_approx_unidirectional.h"
@@ -65,7 +65,7 @@ inline void filter_interval(TContex & ossContext,
                             TDistanceTag const &)
 {
     vector<pair<uint32_t, uint32_t>> consOnes;
-    getConsOnes(bitvectors, inside_bit_interval, params.normal.intervalsize, consOnes);
+    getConsOnes(bitvectors, inside_bit_interval, ossContext.normal.intervalsize, consOnes);
     uint32_t noi = countSequences(*iter.fwdIter.index);
 
     //TODO shorten this
@@ -82,10 +82,6 @@ inline void filter_interval(TContex & ossContext,
             _optimalSearchScheme(ossContext, delegate, delegateDirect, iter.fwdIter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, false, Fwd(), TDistanceTag());
         }
     }
-
-//     _optimalSearchScheme(ossContext, delegate, delegateDirect, iter.revIter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), TDistanceTag());
-
-
 }
 
 template <typename TContex,
@@ -417,15 +413,17 @@ inline void get_bitvector_interval(Iter<Index<TText, BidirectionalIndex<TIndex> 
     request_bitvector_interval(iter, needed_bitvector, brangeOutput, TDir());
 }
 
-template<typename TText, typename TIndex, typename TIndexSpec,
+template<typename TContex,
+         typename TText, typename TIndex, typename TIndexSpec,
          typename TVector, typename TVSupport,
          size_t nbrBlocks>
-inline bool testUnidirectionalFilter(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-                          vector<pair<TVector, TVSupport>> & bitvectors,
-                          Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
-                          OptimalSearch<nbrBlocks> const & s,
-                          uint8_t const blockIndex,
-                          bool const goToRight2)
+inline bool testUnidirectionalFilter(TContex & ossContext,
+                                     Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+                                     vector<pair<TVector, TVSupport>> & bitvectors,
+                                     Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
+                                     OptimalSearch<nbrBlocks> const & s,
+                                     uint8_t const blockIndex,
+                                     bool const goToRight2)
 {
     // need bitinterval from inside the pattern to filter according to the mappability form
     //therefore i also need to acces the block before because of that block i got mappability of both sides
@@ -452,7 +450,7 @@ inline bool testUnidirectionalFilter(Iter<Index<TText, BidirectionalIndex<TIndex
     float ivalSize = brange.i2.i2 - brange.i2.i1;
     uint32_t count = 0;
 
-    if(params.normal.testflipdensity){
+    if(ossContext.normal.testflipdensity){
         // order of bits
         bool last = b2[startPos];
         uint32_t pos = startPos;
@@ -465,13 +463,11 @@ inline bool testUnidirectionalFilter(Iter<Index<TText, BidirectionalIndex<TIndex
         }
     }
     // if next condition is true then brange will be modified!!!!
-    // it will contain mappability of the bitvector from the other side of already searched needle
+    // it will contain mappability of the bitvector anchored at the other side of already searched needle
 
     // only interested in changes inside the supinterval (startPos - endPos)
-    // if 0 got Cutoff that means more changes but is also good at the same time
-    // therefore ignore them
-    // allowd flips per intervalSize
-    if(!params.normal.testflipdensity || ivalSize * params.normal.invflipdensity - 1 > static_cast<float>(count)){
+    // allowed flips per intervalSize
+    if(!ossContext.normal.testflipdensity || ivalSize * ossContext.normal.invflipdensity - 1 > static_cast<float>(count)){
         brange.i1 = bit_interval.i1;
         brange.i2.i1 = startPos;
         brange.i2.i2 = endPos;
@@ -480,31 +476,34 @@ inline bool testUnidirectionalFilter(Iter<Index<TText, BidirectionalIndex<TIndex
     return false;
 }
 
-template<typename TVector, typename TVSupport,
+template<typename TContex,
+         typename TVector, typename TVSupport,
          size_t nbrBlocks>
-inline ReturnCode checkInterval(vector<pair<TVector, TVSupport>> & bitvectors,
-                          Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
-                          OptimalSearch<nbrBlocks> const & s,
-                          uint8_t const blockIndex)
+inline ReturnCode checkInterval(TContex & ossContext,
+                                vector<pair<TVector, TVSupport>> & bitvectors,
+                                Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
+                                OptimalSearch<nbrBlocks> const & s,
+                                uint8_t const blockIndex)
 {
     TVector & b = bitvectors[brange.i1].first;
     TVSupport & rb = bitvectors[brange.i1].second;
     rb.set_vector(&b);
 
     uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
-    float ivalSize = brange.i2.i2 - brange.i2.i1;
+    uint32_t ivalSize = brange.i2.i2 - brange.i2.i1;
 
-    if(params.normal.nomappability && ivalOne == 0)
+    if(ossContext.normal.nomappability && ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
 
-    if(params.normal.directsearch && ivalOne < (s.pi.size() - blockIndex - 1 + params.normal.directsearchblockoffset) * params.normal.directsearch_th)
+//     ivalOne < (s.pi.size() - blockIndex - 1 + ossContext.normal.directsearchblockoffset) * ossContext.normal.directsearch_th
+    if(ossContext.normal.directsearch && ossContext.itvCondition(s, blockIndex, ivalOne))
         return ReturnCode::DIRECTSEARCH;
 
-    if(params.normal.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
+    if(ossContext.normal.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
         return ReturnCode::COMPMAPPABLE;
 
     //equal or more than half zeroes
-    if(params.normal.suspectunidirectional && s.startUniDir <= blockIndex && ivalOne/ ivalSize <= params.normal.filter_th)
+    if(ossContext.normal.suspectunidirectional && s.startUniDir <= blockIndex && static_cast<float>(ivalOne) / static_cast<float>(ivalSize) <= ossContext.normal.filter_th)
         return ReturnCode::SUSPECTUNIDIRECTIONAL;
 
     return ReturnCode::MAPPABLE;
@@ -537,7 +536,7 @@ inline ReturnCode checkCurrentMappability(TContex & ossContext,
     Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
     get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, TDir());
 
-    ReturnCode rcode = checkInterval(bitvectors, bit_interval, s, blockIndex);
+    ReturnCode rcode = checkInterval(ossContext, bitvectors, bit_interval, s, blockIndex);
 
     switch(rcode){
         case ReturnCode::NOMAPPABILITY:
@@ -589,7 +588,7 @@ inline ReturnCode checkMappability(TContex & ossContext,
     Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
     get_bitvector_interval(iter, bitvectors, s, blockIndex, bit_interval, TDir());
 
-    ReturnCode rcode = checkInterval(bitvectors, bit_interval, s, blockIndex);
+    ReturnCode rcode = checkInterval(ossContext, bitvectors, bit_interval, s, blockIndex);
     switch(rcode)
     {
         case ReturnCode::NOMAPPABILITY:
@@ -614,7 +613,7 @@ inline ReturnCode checkMappability(TContex & ossContext,
             //test unidirectional changes iter range if true
             //TODO modfy functions for TDIR
             bool goToRight2 = std::is_same<TDir, Rev>::value;
-            if(testUnidirectionalFilter(iter, bitvectors, bit_interval, s, blockIndex, goToRight2)){
+            if(testUnidirectionalFilter(ossContext, iter, bitvectors, bit_interval, s, blockIndex, goToRight2)){
                 //range on iter was changed in function before
                 filter_interval(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, bit_interval, TDir(), TDistanceTag());
                 return ReturnCode::FINISHED;
@@ -897,6 +896,12 @@ inline void _optimalSearchScheme(TContex & ossContext,
     {
         _optimalSearchSchemeExact(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), TDistanceTag());
     }
+    else if(!checkMappa && ossContext.itvConditionComp(iter, needleLeftPos, needleRightPos, errors, s, blockIndex))
+    {
+        //give emtpy bitvector and bitvector range sine we will not check mappability
+        Pair<uint8_t, Pair<uint32_t, uint32_t>> dummy_bit_interval;
+         directSearch(ossContext, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, dummy_bit_interval, TDir(), TDistanceTag());
+    }
 
     // Approximate search in current block.
     else
@@ -932,9 +937,7 @@ inline void _optimalSearchScheme(TContex & ossContext,
         //checkCurrentMappability
         uint32_t pblocklength = (blockIndex > 0) ? s.blocklength[blockIndex - 1] : 0;
         uint32_t step = (needleRightPos - needleLeftPos - 1);
-        if(!atBlockEnd && checkMappa && ((step & (params.normal.step - 1)) == 0) &&
-            needleRightPos - needleLeftPos - 1 + params.normal.distancetoblockend < s.blocklength[blockIndex] &&
-            static_cast<int>(needleRightPos - needleLeftPos - 1) - params.normal.distancetoblockend > pblocklength)
+        if(!atBlockEnd && checkMappa && ossContext.inBlockCheckMappabilityCondition(needleLeftPos, needleRightPos, s, blockIndex))
         {
             ReturnCode rcode = checkCurrentMappability(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), TDistanceTag());
             if(rcode == ReturnCode::FINISHED)
@@ -1108,19 +1111,21 @@ find(TContex & ossContext,
 {
     auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
     calcConstParameters(scheme);
-    checkTime time;
+//     checkTime time;
     int k = 0;
     uint32_t lastcount = 0;
     while(k < length(needles))
     {
+        find(ossContext, delegate, delegateDirect, index, needles[k], k, bitvectors, scheme, TDistanceTag());
+        /*
         if(!(params.clocking && time.stopnow(params.terminateDuration))){
             find(ossContext, delegate, delegateDirect, index, needles[k], k, bitvectors, scheme, TDistanceTag());
         }else{
             params.wasStopped = true;
-        }
+        }*/
         ++k;
 
-        uint32_t currentcount = hits.size() + dhits.size() - lastcount;
+        uint32_t currentcount = ossContext.hits.size() + ossContext.dhits.size() - lastcount;
         ossContext.readOccCount.push_back(currentcount);
         lastcount += currentcount;
     }
@@ -1146,7 +1151,7 @@ find(TContex & ossContext,
     {
         find<minErrors, maxErrors>(ossContext, delegate, delegateDirect, index, needles[k], k, TDistanceTag());
         ++k;
-        uint32_t currentcount = hitsDe.size() + dhitsDe.size() - lastcount;
+        uint32_t currentcount = ossContext.hits.size() + ossContext.dhits.size() - lastcount;
         ossContext.readOccCount.push_back(currentcount);
         lastcount += currentcount;
 

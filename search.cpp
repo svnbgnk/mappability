@@ -3,9 +3,9 @@
 #include <seqan/arg_parse.h>
 #include "auxiliary.h"
 #include "common_auxiliary.h"
-#include "newStats.h"
+// #include "newStats.h"
 #include "find2_index_approx_extension.h"
-#include "global.h"
+// #include "global.h"
 #include <thread>         // std::this_thread::sleep_for
 
 #include <iostream>
@@ -15,52 +15,71 @@
 using namespace std;
 using namespace seqan;
 
-myGlobalParameters params;
-std::vector<hit> hits;
-std::vector<hit> dhits;
-std::vector<hit> hitsDe;
-std::vector<hit> dhitsDe;
-std::vector<uint32_t> readOccCount;
-std::vector<uint32_t> readOccCountDeT;
-
-/*
-struct DisOptions : public Options
-{
+struct modusParameters{
 public:
-    uint32_t                currentBinNo = 0;
-    uint64_t                filteredReads = 0;
-    std::vector<uint32_t>   contigOffsets;
+    bool nomappability;
+    bool directsearch;
+    bool compmappable;
+    bool suspectunidirectional;
 
-    std::vector<std::vector<uint32_t>>          origReadIdMap;
-    std::map<uint32_t, String<CigarElement<>>>  collectedCigars;
+    bool testflipdensity;
+    uint32_t step;
+    uint32_t distancetoblockend;
+    uint32_t directsearch_th;
+    uint32_t directsearchblockoffset;
+    float filter_th;
+    float invflipdensity;
+    uint32_t intervalsize;
 
-    FilterType      filterType = BLOOM;
-
-    std::vector<std::string> filterTypeList = {"bloom", "kmer_direct", "none"};
-
-    uint32_t getContigOffsets()
-    {
-        return contigOffsets[currentBinNo];
+    modusParameters(){
+        setdefault();
     }
 
-    uint16_t getThreshold(uint16_t readLen)
-    {
-        uint16_t maxError = errorRate * readLen;
+    void setdefault(){
+        nomappability = true;
+        directsearch = true;
+        compmappable = true;
+        suspectunidirectional = true;
 
-        // same as readLen - kmerSize + 1 - (maxError * kmerSize);
-        if (kmerSize * (1 + maxError) > readLen)
-            return 0;
+        testflipdensity = true;
+        //binaryNumber //has to be 2^x - 1 for fast modulo calculation
+        step = 0b11;
+        distancetoblockend = 2;
 
-        return readLen - kmerSize * (1 + maxError) + 1;
+        directsearchblockoffset = 0;
+        directsearch_th = 2;
+        filter_th = 0.5;
+
+        invflipdensity = 0.5;
+
+        intervalsize = 3;
     }
 
-};*/
+    void print(){
+        std::cout << "Cases Enabled: " << "\n";
+        std::cout << nomappability << " " << directsearch << " " << compmappable << " " << suspectunidirectional << "\n";
+        std::cout << "Params: " << "\n";
 
+        std::cout << "step: " << step << "\n";
+        std::cout << "distancetoblockend: " << distancetoblockend << "\n";
+        std::cout << "directsearchblockoffset: " << directsearchblockoffset << "\n";
+        std::cout << "directsearch_th: " << directsearch_th << "\n";
+        std::cout << "filter_th: " << filter_th << "\n";
+        std::cout << "invflipdensity: " << invflipdensity << "\n";
+        std::cout << "intervalsize: " << intervalsize << "\n";
+    }
+};
 
 // template <typename TTraits>
 class OSSContext
 {
 public:
+
+    //Parameters
+    modusParameters normal;
+    modusParameters comp;
+    modusParameters uni;
+
     // Shared-memory read-write data.
     std::vector<hit> & hits;
     std::vector<hit> & dhits;
@@ -81,9 +100,33 @@ public:
         ;
     }
 
+    void setdefault(){
+        normal.setdefault();
+        comp.setdefault();
+        uni.setdefault();
+    }
+
+    void print(){
+        std::cout << "Normal: ";
+        normal.print();
+        std::cout << "Comp: ";
+        comp.print();
+        std::cout << "Uni: ";
+        uni.print();
+    }
+
+    template <size_t nbrBlocks>
+    bool itvCondition(OptimalSearch<nbrBlocks> const & s,
+                      uint8_t const blockIndex,
+                      uint32_t ivalOne)
+    {
+        return(ivalOne < (static_cast<int>(s.pi.size()) - blockIndex - 1 + normal.directsearchblockoffset) * normal.directsearch_th);
+    }
+
+
     template <typename TText, typename TIndex, typename TIndexSpec,
               size_t nbrBlocks>
-    bool itvCondition(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
+    bool itvConditionComp(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                       uint32_t const needleLeftPos,
                       uint32_t const needleRightPos,
                       uint8_t const errors,
@@ -91,6 +134,21 @@ public:
                       uint8_t const blockIndex)
     {
         return(iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1) * 5);
+    }
+
+    template<size_t nbrBlocks>
+    bool inBlockCheckMappabilityCondition(uint32_t needleLeftPos,
+                                          uint32_t needleRightPos,
+                                           OptimalSearch<nbrBlocks> const & s,
+                                          uint8_t blockIndex)
+    {
+        uint32_t prevBlocklength = (blockIndex > 0) ? s.blocklength[blockIndex - 1] : 0;
+        uint32_t nextBlocklength = s.blocklength[blockIndex];
+        uint32_t step = (needleRightPos - needleLeftPos - 1);
+
+
+        bool enoughDistanceToBlockEnds = step + normal.distancetoblockend < nextBlocklength && step - normal.distancetoblockend > prevBlocklength;
+        return(((step & normal.step) == 0) && enoughDistanceToBlockEnds);
     }
 
 
@@ -163,7 +221,6 @@ int main(int argc, char *argv[])
 
     addOption(parser, ArgParseOption("su", "startuni",
         "Start Unidirectional"));
-
 
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
     if (res != ArgumentParser::PARSE_OK)
@@ -285,6 +342,8 @@ int main(int argc, char *argv[])
 
 //     std::this_thread::sleep_for (std::chrono::seconds(60));
 
+    //TODO tranlate this for ossContext
+    /*
     if(startuni){
         params.startUnidirectional = true;
     }
@@ -325,7 +384,7 @@ int main(int argc, char *argv[])
             break;
         }
     }
-
+*/
 
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -427,12 +486,12 @@ int main(int argc, char *argv[])
         cout << "default DS Hits: " << hitsDe.size() + dhitsDe.size() << endl;
     }
 */
-
-
 /*
     if(!notmy){
         readOccurrences(reads, ids, outputpath, fr, rc, stats, notmy);
     }*/
+
+
 
     if(ecompare){
         hitsDefault = print_readocc_sorted(hitsDefault, genome, true);

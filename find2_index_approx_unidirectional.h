@@ -296,27 +296,30 @@ inline void uniDirectSearch(TContex & ossContext,
     }
 }
 
-template <typename TVector, typename TVSupport>
-inline ReturnCode uniCheckInterval(vector<pair<TVector, TVSupport>> & bitvectors,
-                          Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
-                          uint8_t const blockSize,
-                          bool const done,
-                          bool const nofilter,
-                          uint8_t const blockIndex)
+template <typename TContex,
+          typename TVector, typename TVSupport>
+inline ReturnCode uniCheckInterval(TContex & ossContext,
+                                   vector<pair<TVector, TVSupport>> & bitvectors,
+                                   Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
+                                   uint8_t const blockSize,
+                                   bool const done,
+                                   bool const nofilter,
+                                   uint8_t const blockIndex)
 {
     TVector & b = bitvectors[brange.i1].first;
     TVSupport & rb = bitvectors[brange.i1].second;
     rb.set_vector(&b);
 
     uint32_t ivalOne = rb(brange.i2.i2) - rb(brange.i2.i1);
-    if(params.uni.nomappability && ivalOne == 0)
+    if(ossContext.uni.nomappability && ivalOne == 0)
         return ReturnCode::NOMAPPABILITY;
 
     if(!done){
-        if(params.uni.directsearch && ivalOne < (blockSize - blockIndex - 1 + params.uni.directsearchblockoffset) * params.uni.directsearch_th)
+        if(ossContext.uni.directsearch && ivalOne < (blockSize - blockIndex - 1 + ossContext.uni.directsearchblockoffset) * ossContext.uni.directsearch_th)
             return ReturnCode::DIRECTSEARCH;
     }
-    if(params.uni.compmappable && ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
+    //this is in the moment used to determine if we have to filter the delegate Call
+    if(/*ossContext.uni.compmappable && */ivalOne == (brange.i2.i2 - brange.i2.i1)) //TODO maybe allow some zeroes
         return ReturnCode::COMPMAPPABLE;
 
     return ReturnCode::MAPPABLE;
@@ -350,7 +353,7 @@ inline ReturnCode uniCheckMappability(TContex & ossContext,
 {
     Pair<uint8_t, Pair<uint32_t, uint32_t>> bit_interval;
     get_bitvector_interval_inside(iter, bitvectors, s, blockIndex + done, bit_interval, TDir());
-    ReturnCode rcode = uniCheckInterval(bitvectors, bit_interval, s.pi.size(), done, nofilter, blockIndex);
+    ReturnCode rcode = uniCheckInterval(ossContext, bitvectors, bit_interval, s.pi.size(), done, nofilter, blockIndex);
 
     if(rcode == ReturnCode::NOMAPPABILITY)
         return ReturnCode::FINISHED;
