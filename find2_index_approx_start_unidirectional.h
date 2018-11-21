@@ -47,7 +47,6 @@ inline void filter_interval(TDelegate & delegate,
 }
 
 
-//TODO merge with old funtion (test unidirectional) diff: iter and paramenter filpDensity
 template<typename TText, typename TConfig, typename TIndexSpec,
          typename TVector, typename TVSupport,
          size_t nbrBlocks,

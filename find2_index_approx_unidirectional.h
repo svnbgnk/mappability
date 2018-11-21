@@ -66,105 +66,6 @@ inline void genomeSearchRev(TContex & ossContext,
 
 template <typename TContex,
           typename TDelegateD,
-          typename TString,
-          typename TNeedle>
-inline void alignmentMyersBitvector(TContex & ossContext,
-                                    TDelegateD & delegateDirect,
-                                    TNeedle const & needle,
-                                    uint32_t needleId,
-                                    TString const & n_infix,
-                                    TString const & ex_infix,
-                                    auto const & genome,
-                                    Pair<uint16_t, uint32_t> const & sa_info,
-                                    uint8_t max_e,
-                                    uint8_t overlap_l,
-                                    uint8_t overlap_r)
-{
-    uint16_t needleL = length(needle);
-    uint16_t ex_infixL = needleL + overlap_l + overlap_r;
-
-
-    int initialScore = globalAlignmentScore(ex_infix, needle, MyersBitVector());
-
- //assume more Insertions (in the read) than deletions
-    int ins_initialScore = globalAlignmentScore(n_infix, needle, MyersBitVector());
-
-    if(ins_initialScore >= 0 - 2 * max_e || initialScore >= 0 - overlap_l - overlap_r - max_e /*+ intDel*/) //MM creates one error D creates one error since now it also align to overlap
-    {
-//         cout << ex_infix << "        ex_infix " << (int)overlap_l << "  " << (int)overlap_r << "\n";
-//         cout << needle << "        needle" << "\n";
-        //No Insertions or Deletions
-        TString const & tmp0 = infix(ex_infix, overlap_l, ex_infixL - overlap_r);
-        int errors2 = 0 - globalAlignmentScore(tmp0, needle, MyersBitVector()); //
-        if(errors2 <= max_e && compareStartAndEnd(needle, tmp0, errors2)){
-//                     std::cout << "c1 " << sa_info << "  " << (int) errors2 << "\n";
-//                     std::cout << tmp0 << "\n";
-            delegateDirect(sa_info , needle, needleId, errors2);
-        }
-
-        for(uint8_t e = 1; e <= max_e /*overlap*/; ++e){
-//                  cout << "E: " << (int)e << endl;
-            for(uint8_t del = 0; del <= e; ++del){
-                //del is number of deletions
-                uint8_t ins = e - del; //number of insertions
-                auto sa_info_tmp = sa_info;
-
-                if(del > 1 && ins == 0 || ins > 1 && del == 0){
-                //only insertion or deletions
-                    int16_t pos = (ins > del) ? 1 : (-1);
-                    int16_t m = std::max(del,ins);
-                    for(int16_t k = 0; k <= m; ++k)
-                    {
-//                                 cout << (int)k << ":" << (int)m-k << "\t" << (int)pos << "\n";
-//                                 cout << (int)overlap_l << ":" << (int)(pos * k) << " :: " << (int)overlap_r << ":" << (int)(pos * (m - k))  << endl;
-                        if(!(0 < overlap_l + (pos * k) && overlap_r > 0 - (pos * (m - k))))
-                            continue;
-                        sa_info_tmp = sa_info;
-                        sa_info_tmp.i2 = sa_info_tmp.i2 + (pos * k);
-                        TString const & tmp2 = infix(ex_infix, overlap_l + (pos * k), ex_infixL - overlap_r - (pos * (m - k)));
-                        errors2 = 0 - globalAlignmentScore(tmp2, needle, MyersBitVector());
-                        if(errors2 <= max_e && compareStartAndEnd(needle, tmp2, errors2)){
-//                                   std::cout << "c2 " << sa_info_tmp << "  " << (int) errors2 << "\n";
-//                                   std::cout << tmp2 << "\n";
-                            delegateDirect(sa_info_tmp , needle, needleId, errors2);
-                        }
-                    }
-                }
-                else
-                {
-                    //insertions left and deletion right
-                    if(overlap_l >= del){
-                        TString const & tmp = infix(ex_infix, overlap_l - del, ex_infixL - overlap_r - ins);
-                        sa_info_tmp.i2 = sa_info_tmp.i2 - del;
-                        errors2 = 0 - globalAlignmentScore(tmp, needle, MyersBitVector());
-                        if(errors2 <= max_e && compareStartAndEnd(needle, tmp, errors2)){
-//                                  std::cout << "c3 " << sa_info_tmp << "  " << (int) errors2 << "\n";
-//                                  std::cout << tmp << "\n";
-                            delegateDirect(sa_info_tmp , needle, needleId, errors2);
-                        }
-                    }
-
-                    //insertions right and deletion left
-                    if(overlap_r >= del){
-                        sa_info_tmp = sa_info; //just include del from before into the calculation and delete this
-                        TString const & tmp1 = infix(ex_infix, overlap_l + ins, ex_infixL - overlap_r + del);
-                        errors2 = 0 - globalAlignmentScore(tmp1, needle, MyersBitVector());
-                        sa_info_tmp.i2 = sa_info_tmp.i2 + ins;
-                        if(errors2 <= max_e && compareStartAndEnd(needle, tmp1, errors2)){
-//                                   std::cout << "c4 " << sa_info_tmp << "  " << (int) errors2 << "\n";
-//                                   std::cout << tmp1 << "\n";
-                            delegateDirect(sa_info_tmp , needle, needleId, errors2);
-
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-template <typename TContex,
-          typename TDelegateD,
           typename TText, typename TConfig, typename TIndexSpec,
           typename TNeedle,
           typename TVector, typename TVSupport,
@@ -211,7 +112,7 @@ inline void uniDirectSearch(TContex & ossContext,
 
         if(std::is_same<TDir, Rev>::value){
             for(uint32_t r = 0; r < brange.i2.i2 - brange.i2.i1; ++r){
-                if(bitvectors[brange.i1].first[brange.i2.i1 + r] == 1){
+                if(checkSinglePos(bitvectors, brange, r)){
                     Pair<uint16_t, uint32_t> sa_info = iter.index->sa[r];
                     uint32_t const chromlength = length(genome[sa_info.i1]);
                     if(!(sa_info.i2 >= needleL - needleRightPos + 1 + overlap_l && chromlength - 1 >= sa_info.i2 + needleRightPos - 2 + overlap_r))
@@ -225,13 +126,12 @@ inline void uniDirectSearch(TContex & ossContext,
                     TString n_infix_rev_copy = n_infix_rev;
                     TString ex_infix_rev_copy = ex_infix_rev;
 
-                    alignmentMyersBitvector(ossContext, delegateDirect, needle, needleId, n_infix_rev_copy, ex_infix_rev_copy, genome, sa_info, max_e, overlap_l, overlap_r);
+                    alignmentMyersBitvector(ossContext, delegateDirect, needle, needleId, n_infix_rev_copy, ex_infix_rev_copy, genome, sa_info, max_e, overlap_l, overlap_r, intDel);
                 }
             }
         }else{
             for(uint32_t r = 0; r < brange.i2.i2 - brange.i2.i1; ++r){
-
-                if(bitvectors[brange.i1].first[brange.i2.i1 + r] == 1){
+                if(checkSinglePos(bitvectors, brange, r)){
                     Pair<uint16_t, uint32_t> sa_info = iter.index->sa[r];
                     uint32_t const chromlength = length(genome[sa_info.i1]);
                     if(!(needleLeftPos + overlap_l <= sa_info.i2  && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1 + overlap_r))
@@ -239,7 +139,7 @@ inline void uniDirectSearch(TContex & ossContext,
                      sa_info.i2 = sa_info.i2 - needleLeftPos;
                     TString const & ex_infix = infix(genome[sa_info.i1], sa_info.i2 - overlap_l, sa_info.i2 + needleL + overlap_r);
                     TString const & n_infix = infix(genome[sa_info.i1], sa_info.i2, sa_info.i2 + needleL);
-                    alignmentMyersBitvector(ossContext, delegateDirect, needle, needleId, n_infix, ex_infix, genome, sa_info, max_e, overlap_l, overlap_r);
+                    alignmentMyersBitvector(ossContext, delegateDirect, needle, needleId, n_infix, ex_infix, genome, sa_info, max_e, overlap_l, overlap_r, intDel);
 
                 }
             }
@@ -627,6 +527,7 @@ inline void _optimalSearchScheme(TContex & ossContext,
     {
         _optimalSearchSchemeExact(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, TDir(), TDistanceTag());
     }
+    //TODO do ITV search here if we are COMPMAPPABLE (check mappability only very few times so ...)
     // Approximate search in current block.
     else
     {
