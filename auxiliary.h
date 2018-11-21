@@ -5,13 +5,13 @@
 #include "common_auxiliary.h"
 
 using namespace seqan;
-
+/*
 struct readOcc
 {
     public:
     Pair<DnaString, Pair <unsigned, unsigned>> hit;
     uint8_t errors;
-};
+};*/
 
 template <typename TIter>
 struct isBidirectionalIter
@@ -209,33 +209,82 @@ void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIn
     }
 }
 
-bool occ_smaller(const hit & x, const hit & y)
+bool occ_same(const hit & x, const hit & y)
 {
-    if(x.occ.i1 == y.occ.i1)
-        return x.occ.i2 < y.occ.i2;
-    else
-        return x.occ.i1 < y.occ.i1;
+//     bool same = x.readId == y.readId && x.occ.i1 == y.occ.i1 && x.occ.i2 == y.occ.i2 && x.errors == y.errors;
+//     std::cout << x.readId << "\t" << y.readId << ":\t" << same << "\n";
+//
+//     return same;
+    return(x.readId == y.readId && x.occ.i1 == y.occ.i1 && x.occ.i2 == y.occ.i2 && x.errors == y.errors);
 }
 
-std::vector<hit> print_readocc_sorted(std::vector<hit> hits, auto const & genome, bool const occEnabled)
+
+template<int disT>
+bool read_occ_similar(const hit & x, const hit & y)
 {
-    std::sort(hits.begin(), hits.end(), occ_smaller);
+    return(x.readId == y.readId && x.occ.i1 == y.occ.i1 && x.occ.i2 + disT >= y.occ.i2 && x.occ.i2 <= y.occ.i2 + disT);
+}
+
+template<int disT>
+bool occ_similar(const hit & x, const hit & y)
+{
+    return(x.occ.i1 == y.occ.i1 && x.occ.i2 + disT >= y.occ.i2 && x.occ.i2 <= y.occ.i2 + disT);
+}
+
+bool read_occ_smaller(const hit & x, const hit & y)
+{
+    if(x.readId == y.readId)
+    {
+        if(x.occ.i1 == y.occ.i1){
+            if(x.occ.i2 == y.occ.i2)
+                return x.errors < y.errors;
+            else
+                return x.occ.i2 < y.occ.i2;
+        }else{
+            return x.occ.i1 < y.occ.i1;
+        }
+
+    }else{
+        return(x.readId < y.readId);
+    }
+}
+
+bool occ_smaller(const hit & x, const hit & y)
+{
+    if(x.occ.i1 == y.occ.i1){
+        if(x.occ.i2 == y.occ.i2){
+             return x.errors < y.errors;
+        }else{
+            return x.occ.i2 < y.occ.i2;
+        }
+    }else{
+        return x.occ.i1 < y.occ.i1;
+    }
+}
+
+std::vector<hit> print_readocc_sorted(std::vector<hit> hits, auto const & genome, bool editD, uint8_t nerrors, bool const occEnabled)
+{
+    std::sort(hits.begin(), hits.end(), read_occ_smaller);
+    hits.erase(std::unique(hits.begin(), hits.end(), occ_same), hits.end());
     for(uint32_t i = 0; i < hits.size(); ++i){
         std::cout << "Errors: "<< (uint32_t)hits[i].errors;
-        std::cout << "   " << hits[i].occ << " " << hits[i].read << "\n";
-        if(occEnabled)
-            std::cout << infix(genome[hits[i].occ.i1], hits[i].occ.i2, hits[i].occ.i2 + seqan::length(hits[i].read)) << "\n";
-
+        std::cout << "   " << hits[i].occ << " " << hits[i].read << " (" << hits[i].readId << ")" << "\n";
+        if(occEnabled){
+            if(!editD){
+                std::cout << infix(genome[hits[i].occ.i1], hits[i].occ.i2, hits[i].occ.i2 + seqan::length(hits[i].read)) << "\n";
+            }else{
+                std::cout << infix(genome[hits[i].occ.i1], hits[i].occ.i2 - nerrors, hits[i].occ.i2 + seqan::length(hits[i].read) + nerrors) << "\n";
+            }
+        }
     }
     return(hits);
 }
 
-
-
 template <size_t minErrors, size_t maxErrors,
           typename TText, typename TIndexSpec>
 uint32_t testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
-              hit testhit)
+              hit testhit,
+              bool editD)
 {
     auto const & genome = indexText(index);
     std::vector<hit> hits;
@@ -252,27 +301,41 @@ uint32_t testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
     };
 
     StringSet<DnaString> testocc;
-    DnaString part = infix(genome[testhit.occ.i1], testhit.occ.i2, testhit.occ.i2 + seqan::length(testhit.read));
-    appendValue(testocc, part);
+    if(!editD){
+        DnaString part = infix(genome[testhit.occ.i1], testhit.occ.i2, testhit.occ.i2 + seqan::length(testhit.read));
+        appendValue(testocc, part);
+    }else{
+        bool lim = testhit.occ.i2 + seqan::length(testhit.read) + maxErrors < length(genome[testhit.occ.i1]);
+        if(!lim)
+            return(666);
+        DnaString part = infix(genome[testhit.occ.i1], testhit.occ.i2, testhit.occ.i2 + seqan::length(testhit.read) + maxErrors);
+        appendValue(testocc, part);
+    }
     std::cout << "Search occ: " << (uint32_t)testhit.occ.i2 << " which has seq: " << "\n";
-    std::cout << part << "\n"; //TODO revert this
+    std::cout << testocc[0] << "\n";
 
-    find<minErrors, maxErrors>(delegate, index, testocc, HammingDistance());
+    if(!editD){
+        find<minErrors, maxErrors>(delegate, index, testocc, HammingDistance());
+    }else{
+        find<minErrors, maxErrors>(delegate, index, testocc, EditDistance());
+        std::sort(hits.begin(), hits.end(), occ_smaller);
+        hits.erase(std::unique(hits.begin(), hits.end(), occ_similar<10>), hits.end());
+    }
     std::cout << hits.size() << " hits!!!!!!!!!!" << "\n";
     return(hits.size());
 }
 
 template <typename TText, typename TIndexSpec>
-uint32_t testread(int minErrors, int maxErrors, Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+uint32_t testread(int minErrors, int maxErrors, bool editD, Index<TText, BidirectionalIndex<TIndexSpec> > & index,
               hit testhit){
     int nhits;
     switch (maxErrors)
     {
-        case 1: nhits = testread<0, 1>(index, testhit);
+        case 1: nhits = testread<0, 1>(index, testhit, editD);
                 break;
-        case 2: nhits = testread<0, 2>(index, testhit);
+        case 2: nhits = testread<0, 2>(index, testhit, editD);
                 break;
-        case 3: nhits = testread<0, 3>(index, testhit);
+        case 3: nhits = testread<0, 3>(index, testhit, editD);
                 break;
         default: std::cerr << "E = " << maxErrors << " not yet supported.\n";
                 std::exit(1);
@@ -288,14 +351,13 @@ template <typename TText, typename TIndexSpec>
 std::vector<uint32_t> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
                     int errors,
                     uint32_t threshold,
+                    bool const editD,
                     std::vector<hit> x,
                     std::vector<hit> y)
 {
     std::vector<uint32_t> wrongHitCount;
-    bool same2 = true;
     bool same = true;
     if(!(x.size() == y.size())){
-        same2 = false;
         std::cout << "MyVersion has: " << x.size() << "hits while default version has: " << y.size() << " hits" << "\n";
     }
     int offset = 0;
@@ -308,7 +370,7 @@ std::vector<uint32_t> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & in
             if(i < x.size())
                 std::cout << "MyVersion has: " << x[i].occ.i2 << " while " ;
             std::cout << "default version has: " << y[i + offset].occ.i2 << "\n";
-            uint32_t nhits = testread(0, errors, index, y[i + offset]);
+            uint32_t nhits = testread(0, errors, editD, index, y[i + offset]);
             if(nhits < threshold){
                 std::cout << "To few hits should have found this part!!!!" << "\n";
                 wrongHitCount.push_back(nhits);

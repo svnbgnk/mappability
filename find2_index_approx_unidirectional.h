@@ -98,17 +98,18 @@ inline void uniDirectSearch(TContex & ossContext,
         int intIns = 0;
         int intDel = 0;
         //calculate net sum of internal Insertions - Deletions
+
         if(repLength(iter) < needleRightPos - needleLeftPos - 1)
             intIns = needleRightPos - needleLeftPos - 1 - repLength(iter);
         else
             intDel = repLength(iter) - (needleRightPos - needleLeftPos - 1);
         uint8_t overlap_l = max_e;
-        uint8_t overlap_r = max_e;
+        uint8_t overlap_r = max_e;/*
         if(needleLeftPos == 0)
             overlap_l = intIns;
         if(needleRightPos == needleL + 1)
             overlap_r = intIns;
-        uint16_t ex_infixL = needleL + overlap_l + overlap_r;
+        uint16_t ex_infixL = needleL + overlap_l + overlap_r;*/
 
         if(std::is_same<TDir, Rev>::value){
             for(uint32_t r = 0; r < brange.i2.i2 - brange.i2.i1; ++r){
@@ -339,9 +340,9 @@ inline void _optimalSearchSchemeDeletion(TContex & ossContext,
             _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, lastEdit, Fwd(), EditDistance());
     }
 
-    bool not_at_end = std::is_same<TDir, Rev>::value && needleRightPos != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos != 0/* || true*/;
+//     bool not_at_end = std::is_same<TDir, Rev>::value && needleRightPos != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos != 0/* || true*/;
 
-    if (not_at_end && maxErrorsLeftInBlock > 0 && goDown(iter))
+    if (/*not_at_end && */maxErrorsLeftInBlock > 0 && goDown(iter))
     {
         do
         {
@@ -412,8 +413,8 @@ inline void _optimalSearchSchemeChildren(TContex & ossContext,
             }
 
             //Deletion
-            bool not_at_end = std::is_same<TDir, Rev>::value && needleRightPos2 != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos2 != 0/* || true*/;
-            if (std::is_same<TDistanceTag, EditDistance>::value && not_at_end)
+//             bool not_at_end = std::is_same<TDir, Rev>::value && needleRightPos2 != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos2 != 0/* || true*/;
+            if (std::is_same<TDistanceTag, EditDistance>::value/* && not_at_end*/)
                 _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors + 1, s, blockIndex, true, TDir(), TDistanceTag());
         } while (goRight(iter));
     }
@@ -506,17 +507,17 @@ inline void _optimalSearchScheme(TContex & ossContext,
     uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
     uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
     bool done = minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1;
-    bool const atBlockEnd = needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex - 1];
+    bool const atBlockEnd = (blockIndex > 0) ? needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex - 1] : false;
 
     bool rev = std::is_same<TDir, Rev>::value;
     if(done){
-        if(!lastEdit){
+        if(true /*!lastEdit*/){
             delegate(iter, needle, needleId, errors, rev);
         }
         return;
     }
 
-    if(blockIndex > 0 && done || needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex - 1]){
+    if(done || !atBlockEnd){
         ReturnCode rcode = uniCheckMappability(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, done, true, TDir(), TDistanceTag());
         if(rcode == ReturnCode::FINISHED)
             return;
@@ -531,9 +532,9 @@ inline void _optimalSearchScheme(TContex & ossContext,
     // Approximate search in current block.
     else
     {
-        bool not_at_end = std::is_same<TDir, Rev>::value && needleRightPos != length(needle) || !std::is_same<TDir, Rev>::value && needleLeftPos != 1/* || true*/;
+//         bool not_at_end = std::is_same<TDir, Rev>::value && needleRightPos != length(needle) || !std::is_same<TDir, Rev>::value && needleLeftPos != 1/* || true*/;
         // Insertion
-        if (std::is_same<TDistanceTag, EditDistance>::value && not_at_end)
+        if (std::is_same<TDistanceTag, EditDistance>::value/* && not_at_end*/)
         {
             bool const goToRight = std::is_same<TDir, Rev>::value;
             int32_t const needleLeftPos2 = needleLeftPos - !goToRight;

@@ -90,6 +90,8 @@ public:
 //     TContigSeqs const & contigSeqs;
     bool filterDelegate = true;
     bool trackReadCount = false;
+    bool itv = true;
+
 
     OSSContext(std::vector<hit> & inhits,
                std::vector<hit> & indhits/*,
@@ -121,7 +123,7 @@ public:
                       uint8_t const blockIndex,
                       uint32_t ivalOne)
     {
-        return(ivalOne < (static_cast<int>(s.pi.size()) - blockIndex - 1 + normal.directsearchblockoffset) * normal.directsearch_th);
+        return(itv && ivalOne < (static_cast<int>(s.pi.size()) - blockIndex - 1 + normal.directsearchblockoffset) * normal.directsearch_th);
     }
 
 
@@ -134,7 +136,7 @@ public:
                       OptimalSearch<nbrBlocks> const & s,
                       uint8_t const blockIndex)
     {
-        return(iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1 + comp.directsearchblockoffset) * comp.directsearch_th);
+        return(itv && iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1 + comp.directsearchblockoffset) * comp.directsearch_th);
     }
 
     template<size_t nbrBlocks>
@@ -192,6 +194,8 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("E", "errors", "Max errors allowed during mapping", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "errors");
 
+    addOption(parser, ArgParseOption("e", "edit", "Search Edit Distance, correct bitvectors have to be selected"));
+
     addOption(parser, ArgParseOption("r", "r", "number of reads to test ", ArgParseArgument::INTEGER, "INT"));
 
     addOption(parser, ArgParseOption("d", "default",
@@ -240,6 +244,7 @@ int main(int argc, char *argv[])
     getOptionValue(r, parser, "r");
     getOptionValue(threshold, parser, "threshold");
     getOptionValue(benchparams, parser, "benchparams");
+    bool editD = isSet(parser, "edit");
     bool mdefault = isSet(parser, "default");
     bool defaultT = isSet(parser, "defaultT");
     bool rc = isSet(parser, "rc");
@@ -395,7 +400,10 @@ int main(int argc, char *argv[])
     if(!notmy){
         cout << "Start My Search!" << endl;
         start = std::chrono::high_resolution_clock::now();
-        find(0, nerrors, myOSSContext, delegate, delegateDirect, index, reads, bitvectors, HammingDistance());
+        if(!editD)
+            find(0, nerrors, myOSSContext, delegate, delegateDirect, index, reads, bitvectors, HammingDistance());
+        else
+            find(0, nerrors, myOSSContext, delegate, delegateDirect, index, reads, bitvectors, EditDistance());
         finish = std::chrono::high_resolution_clock::now();
         elapsed = finish - start;
         cout << "Finished My Search" << endl;
@@ -429,7 +437,11 @@ int main(int argc, char *argv[])
     // Test default
     //TODO change vector name of lambda function
     std::vector<hit> hitsDefault;
+    std::vector<hit> dummy;
+    OSSContext ossContextDefault(hitsDefault, dummy);
+    ossContextDefault.itv = false;
     if(mdefault){
+/*
         auto delegateDefault = [&hitsDefault](auto & iter, DnaString const & needle, uint8_t const errors)
         {
             for (auto occ : getOccurrences(iter)){
@@ -440,12 +452,45 @@ int main(int argc, char *argv[])
                 me.rev = false;
                 hitsDefault.push_back(me);
             }
+        };*/
+
+        auto delegateDefault = [&hitsDefault](auto & iter, DnaString const & needle, uint32_t const needleId, uint8_t const errors, bool const rev)
+        {
+            for (auto occ : getOccurrences(iter)){
+                hit me;
+                me.occ = occ;
+                me.read = needle;
+                me.readId = needleId;
+                me.errors = errors;
+                me.rev = false;
+                hitsDefault.push_back(me);
+            }
         };
+
+        auto delegateDummy = [&dummy](Pair<uint16_t, uint32_t> const & pos, DnaString const & needle, uint32_t const needleId, uint8_t const errors)
+        {
+            hit me;
+            me.occ = pos;
+            me.read = needle;
+            me.readId = needleId;
+            me.errors = errors;
+            me.rev = false;
+            dummy.push_back(me);
+        };
+
+
         cout << "Test default" << endl;
         start = std::chrono::high_resolution_clock::now();
-        find(0, nerrors, delegateDefault, index, reads, HammingDistance());
+        if(!editD)
+            find(0, nerrors, ossContextDefault, delegateDefault, delegateDummy, index, reads, HammingDistance());
+        else
+            find(0, nerrors, ossContextDefault, delegateDefault, delegateDummy, index, reads, EditDistance());
         finish = std::chrono::high_resolution_clock::now();
 
+        if(dummy.size() != 0){
+            cout << "Something went horribly wrong" << "\n";
+            exit(0);
+        }
         elapsed = finish - start;
         cout << "Default Version elapsed: " << elapsed.count() << "s" << endl;
         cout << "default Hits: " << hitsDefault.size() << endl;
@@ -456,6 +501,7 @@ int main(int argc, char *argv[])
     std::vector<hit> dhitsDe;
 //     std::vector<uint32_t> myreadOccCountDe;
     OSSContext ossContextDefaultT(hitsDe, dhitsDe); //, myreadOccCountDe
+//     ossContextDefaultT.itv = false;
 
     // default with in text search
     if(defaultT){
@@ -467,6 +513,7 @@ int main(int argc, char *argv[])
                 hit me;
                 me.occ = occ;
                 me.read = needle;
+                me.readId = needleId;
                 me.errors = errors;
                 me.rev = false;
                 hitsDe.push_back(me);
@@ -477,12 +524,16 @@ int main(int argc, char *argv[])
             hit me;
             me.occ = pos;
             me.read = needle;
+            me.readId = needleId;
             me.errors = errors;
             me.rev = false;
             dhitsDe.push_back(me);
         };
         auto start2 = std::chrono::high_resolution_clock::now();
-        find(0, nerrors, ossContextDefaultT, delegate2, delegateDirect2, index, reads, HammingDistance());
+        if(!editD)
+            find(0, nerrors, ossContextDefaultT, delegate2, delegateDirect2, index, reads, HammingDistance());
+        else
+            find(0, nerrors, ossContextDefaultT, delegate2, delegateDirect2, index, reads, EditDistance());
         auto finish2 = std::chrono::high_resolution_clock::now();
         elapsed = finish2 - start2;
         cout << "Default Version with DS: " << elapsed.count() << "s" << endl;
@@ -495,12 +546,44 @@ int main(int argc, char *argv[])
     }*/
 
 
+    if(ecompare && defaultT && mdefault){
+        cout << "Hits with InTextSearch: " << endl;
+        hitsDe.insert(hitsDe.end(), dhitsDe.begin(), dhitsDe.end());
+        std::sort(hitsDe.begin(), hitsDe.end(), read_occ_smaller);
+        hitsDe.erase(std::unique(hitsDe.begin(), hitsDe.end(), occ_same), hitsDe.end());
 
-    if(ecompare){
-        hitsDefault = print_readocc_sorted(hitsDefault, genome, true);
+        cout << "unique number: "  << hitsDe.size()  << endl;
+        for(uint32_t i = 0; i < hitsDe.size(); ++i){
+            cout << "Errors: "<< (int)hitsDe[i].errors;
+            cout << "   "  << hitsDe[i].occ << " " << hitsDe[i].read << " (" << hitsDe[i].readId << ")" << endl;
+            cout << infix(genome[hitsDe[i].occ.i1], hitsDe[i].occ.i2 - nerrors, hitsDe[i].occ.i2 + seqan::length(hitsDe[i].read) + nerrors)  << endl;
+        }
+
+        cout << endl;
+        cout << "Hits without InTextSearch: " << endl;
+
+        hitsDefault = print_readocc_sorted(hitsDefault, genome, editD, nerrors, true);
+        cout << "Test if default in Text and default are the same: " << endl;
+
+        if(hitsDe.size() != hitsDefault.size())
+            cout << "My: " << hitsDe.size() << "default: " << hitsDefault.size() << "\n";
+
+        for(int i = 0; i < hitsDe.size(); ++i){
+            if(!occ_same(hitsDe[i], hitsDefault[i])){
+                cout << "Something went wrong at: " << "i: " << i << hitsDefault[i].occ << endl;
+                exit(0);
+            }
+        }
+        if(hitsDe.size() == hitsDefault.size())
+            cout << "Same, finished" << endl;
+    }
+
+
+    if(ecompare && !notmy){
+        hitsDefault = print_readocc_sorted(hitsDefault, genome, editD, nerrors, true);
         cout << "Test if default and my version are the same: " << endl;
         cout.setstate(std::ios_base::failbit);
-        vector<uint32_t> whitcount = compare(index, nerrors, threshold + 1, myhits, hitsDefault);
+        vector<uint32_t> whitcount = compare(index, nerrors, threshold + 1, editD, myhits, hitsDefault);
         std::cout.clear();
 
         if(whitcount.size() == 0){

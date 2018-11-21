@@ -122,18 +122,33 @@ inline bool compareStartAndEnd(TNeedle const & needle,
                               TString const & infix,
                               uint8_t const alignment_errors)
 {
+    // It is impossible without additional alignments to check for Insertion and deletions at the beginning and end therefore they will be allowed
+    // In the future just the first best hit will be reported
+//     std::cout << "compare start and end" << "\n";
     uint8_t errors = 0;
+    auto lastBase = needle[0];
     for(int i = 0; i <= alignment_errors; ++i){
+//         std::cout << (char)infix[i] << "\t" << (char)needle[i] << "\n";
         if(infix[i] == needle[i]){
-            errors = i;
             break;
+        }else{
+            ++errors;
         }
     }
+    if(errors > alignment_errors){
+//         std::cout << "Denied" << "\n";
+        return false;
+    }
+//     std::cout << "Errors: " << (int)errors << "\n";
     for(int i = 0; i <= alignment_errors - errors; ++i){
+//         std::cout << (char)infix[length(infix) - 1 - i] << "\t" << (char)needle[length(needle) - 1 - i] << "\n";
         if(infix[length(infix) - 1 - i] == needle[length(needle) - 1 - i]){
+//             std::cout << "i: " << i << "\n";
+//             std::cout << "Accepted" << "\n";
             return true;
         }
     }
+//     std::cout << "Denied" << "\n";
     return false;
 
     //allow also no mismatches at the start and end
@@ -183,16 +198,17 @@ inline void alignmentMyersBitvector(TContex & ossContext,
 //         cout << ex_infix << "        ex_infix " << (int)overlap_l << "  " << (int)overlap_r << "\n";
 //         cout << needle << "        needle" << "\n";
         //No Insertions or Deletions
+//         cout << "E: " << (int)0 << endl;
         TString const & tmp0 = infix(ex_infix, overlap_l, ex_infixL - overlap_r);
         int errors2 = 0 - globalAlignmentScore(tmp0, needle, MyersBitVector()); //
-        if(errors2 <= max_e && compareStartAndEnd(needle, tmp0, errors2)){
-//                     std::cout << "c1 " << sa_info << "  " << (int) errors2 << "\n";
-//                     std::cout << tmp0 << "\n";
+        if(errors2 <= max_e /*&& compareStartAndEnd(needle, tmp0, errors2)*/){
+//             std::cout << "c1 " << sa_info << "  " << (int) errors2 << "\n";
+//             std::cout << tmp0 << "\n";
             delegateDirect(sa_info , needle, needleId, errors2);
         }
 
         for(uint8_t e = 1; e <= max_e; ++e){
-//                  cout << "E: " << (int)e << endl;
+//             cout << "E: " << (int)e << endl;
             for(uint8_t del = 0; del <= e; ++del){
                 //del is number of deletions
                 uint8_t ins = e - del; //number of insertions
@@ -204,17 +220,17 @@ inline void alignmentMyersBitvector(TContex & ossContext,
                     int16_t m = std::max(del,ins);
                     for(int16_t k = 0; k <= m; ++k)
                     {
-//                                 cout << (int)k << ":" << (int)m-k << "\t" << (int)pos << "\n";
-//                                 cout << (int)overlap_l << ":" << (int)(pos * k) << " :: " << (int)overlap_r << ":" << (int)(pos * (m - k))  << endl;
-                        if(!(0 < overlap_l + (pos * k) && overlap_r > 0 - (pos * (m - k))))
+//                         std::cout << (int)k << ":" << (int)m-k << "\t" << (int)pos << "\n";
+//                         std::cout << (int)overlap_l << ":" << (int)(pos * k) << " :: " << (int)overlap_r << ":" << (int)(pos * (m - k))  << endl;
+                        if(!(0 <= overlap_l + (pos * k) && overlap_r >= 0 - (pos * (m - k))))
                             continue;
                         sa_info_tmp = sa_info;
                         sa_info_tmp.i2 = sa_info_tmp.i2 + (pos * k);
                         TString const & tmp2 = infix(ex_infix, overlap_l + (pos * k), ex_infixL - overlap_r - (pos * (m - k)));
                         errors2 = 0 - globalAlignmentScore(tmp2, needle, MyersBitVector());
-                        if(errors2 <= max_e && compareStartAndEnd(needle, tmp2, errors2)){
-//                                   std::cout << "c2 " << sa_info_tmp << "  " << (int) errors2 << "\n";
-//                                   std::cout << tmp2 << "\n";
+                        if(errors2 <= max_e /*&& compareStartAndEnd(needle, tmp2, errors2)*/){
+//                             std::cout << "c2 " << sa_info_tmp << "  " << (int) errors2 << "\n";
+//                             std::cout << tmp2 << "\n";
                             delegateDirect(sa_info_tmp , needle, needleId, errors2);
                         }
                     }
@@ -226,9 +242,9 @@ inline void alignmentMyersBitvector(TContex & ossContext,
                         TString const & tmp = infix(ex_infix, overlap_l - del, ex_infixL - overlap_r - ins);
                         sa_info_tmp.i2 = sa_info_tmp.i2 - del;
                         errors2 = 0 - globalAlignmentScore(tmp, needle, MyersBitVector());
-                        if(errors2 <= max_e && compareStartAndEnd(needle, tmp, errors2)){
-//                                  std::cout << "c3 " << sa_info_tmp << "  " << (int) errors2 << "\n";
-//                                  std::cout << tmp << "\n";
+                        if(errors2 <= max_e /*&& compareStartAndEnd(needle, tmp, errors2)*/){
+//                             std::cout << "c3 " << sa_info_tmp << "  " << (int) errors2 << "\n";
+//                             std::cout << tmp << "\n";
                             delegateDirect(sa_info_tmp , needle, needleId, errors2);
                         }
                     }
@@ -239,9 +255,9 @@ inline void alignmentMyersBitvector(TContex & ossContext,
                         TString const & tmp1 = infix(ex_infix, overlap_l + ins, ex_infixL - overlap_r + del);
                         errors2 = 0 - globalAlignmentScore(tmp1, needle, MyersBitVector());
                         sa_info_tmp.i2 = sa_info_tmp.i2 + ins;
-                        if(errors2 <= max_e && compareStartAndEnd(needle, tmp1, errors2)){
-//                                   std::cout << "c4 " << sa_info_tmp << "  " << (int) errors2 << "\n";
-//                                   std::cout << tmp1 << "\n";
+                        if(errors2 <= max_e/* && compareStartAndEnd(needle, tmp1, errors2)*/){
+//                             std::cout << "c4 " << sa_info_tmp << "  " << (int) errors2 << "\n";
+//                             std::cout << tmp1 << "\n";
                             delegateDirect(sa_info_tmp , needle, needleId, errors2);
 
                         }
@@ -285,16 +301,17 @@ inline void directSearch(TContex & ossContext,
         int intIns = 0;
         int intDel = 0;
         //calculate net sum of internal Insertions - Deletions
+
         if(repLength(iter) < needleRightPos - needleLeftPos - 1)
             intIns = needleRightPos - needleLeftPos - 1 - repLength(iter);
         else
             intDel = repLength(iter) - (needleRightPos - needleLeftPos - 1);
         uint8_t overlap_l = max_e;
         uint8_t overlap_r = max_e;
-        if(needleLeftPos == 0)
-            overlap_l = intIns;
-        if(needleRightPos == needleL + 1)
-            overlap_r = intIns;
+//         if(needleLeftPos == 0)
+//             overlap_l = intIns;
+//         if(needleRightPos == needleL + 1)
+//             overlap_r = intIns;
         uint16_t ex_infixL = needleL + overlap_l + overlap_r;
         for(uint32_t r = 0; r < iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1; ++r)
         {
@@ -310,11 +327,11 @@ inline void directSearch(TContex & ossContext,
                 TString const & n_infix = infix(genome[sa_info.i1], sa_info.i2, sa_info.i2 + needleL);
 
                 alignmentMyersBitvector(ossContext, delegateDirect, needle, needleId, n_infix, ex_infix, genome, sa_info, max_e, overlap_l, overlap_r, intDel);
-
+/*
                 //Unfortunately, since for example (E = 2) 2 Insertions lead to a score of -4 we cannot conclude the number of errors the read will have at the end. (O Errors would also have a score -4 2 Deletion in the beginning to Insertions at the end)
                 //for E = 2 we allow a score -6 since 2 MM + 2 D + 2 I.
                 //To Insertion on the otherhand lead to 2D + 2I + 4D -> 8 errors
-/*
+
                 int initialScore = globalAlignmentScore(ex_infix, needle, MyersBitVector());
 
                 //assume more Insertions (in the read) than deletions
@@ -764,9 +781,9 @@ inline void _optimalSearchSchemeDeletion(TContex & ossContext,
             _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex2, lastEdit, Fwd(), EditDistance());
     }
 
-    bool not_at_end = std::is_same<TDir, Rev>::value && needleRightPos != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos != 0/* || true*/;
+//     bool not_at_end = std::is_same<TDir, Rev>::value && needleRightPos != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos != 0/* || true*/;
 
-    if (not_at_end && maxErrorsLeftInBlock > 0 && goDown(iter, TDir()))
+    if (/*not_at_end && */maxErrorsLeftInBlock > 0 && goDown(iter, TDir()))
     {
         do
         {
@@ -837,8 +854,8 @@ inline void _optimalSearchSchemeChildren(TContex & ossContext,
             }
 
             //Deletion
-            bool not_at_end = std::is_same<TDir, Rev>::value && needleRightPos2 != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos2 != 0/* || true*/;
-            if (std::is_same<TDistanceTag, EditDistance>::value && not_at_end)
+//             bool not_at_end = std::is_same<TDir, Rev>::value && needleRightPos2 != length(needle) + 1 || !std::is_same<TDir, Rev>::value && needleLeftPos2 != 0/* || true*/;
+            if (std::is_same<TDistanceTag, EditDistance>::value/* && not_at_end*/)
                 _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors + 1, s, blockIndex, true, TDir(), TDistanceTag());
         } while (goRight(iter, TDir()));
     }
@@ -967,14 +984,14 @@ inline void _optimalSearchScheme(TContex & ossContext,
     uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
     uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
     bool const done = minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1;
-    bool const atBlockEnd = needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex - 1];        //is not true if we finished needle
+    bool const atBlockEnd = (blockIndex > 0) ? needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex - 1] : false;        //is not true if we finished needle
     bool const checkMappa = bitvectors.size() != 0;
 
     // Done. (Last step)
     if (done)
     {
         //last input only matters for unidirectional searches (has to be false in this case)
-        if(!lastEdit){
+        if(/*!lastEdit*/true){
             if(checkMappa){
                 filteredDelegate(delegate, iter, needle, needleId, bitvectors, errors);
             }
@@ -1008,9 +1025,9 @@ inline void _optimalSearchScheme(TContex & ossContext,
     // Approximate search in current block.
     else
     {
-        bool not_at_end = std::is_same<TDir, Rev>::value && needleRightPos != length(needle) || !std::is_same<TDir, Rev>::value && needleLeftPos != 1/* || true*/;
+//         bool not_at_end = std::is_same<TDir, Rev>::value && needleRightPos != length(needle) || !std::is_same<TDir, Rev>::value && needleLeftPos != 1/* || true*/;
         // Insertion
-        if (std::is_same<TDistanceTag, EditDistance>::value && not_at_end)
+        if (std::is_same<TDistanceTag, EditDistance>::value/* && not_at_end*/)
         {
             bool const goToRight = std::is_same<TDir, Rev>::value;
             int32_t const needleLeftPos2 = needleLeftPos - !goToRight;
@@ -1074,9 +1091,9 @@ inline void _optimalSearchScheme(TContex & ossContext,
             _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, false, Fwd(), TDistanceTag());
 //     }else{
 //         if(initialDirection)
-//             _uniOptimalSearchScheme(delegate, delegateDirect, it.revIter, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Rev(), HammingDistance());
+//             _uniOptimalSearchScheme(delegate, delegateDirect, it.revIter, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Rev(), TDistanceTag());
 //         else
-//             _uniOptimalSearchScheme(delegate, delegateDirect, it.fwdIter, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Fwd(), HammingDistance());
+//             _uniOptimalSearchScheme(delegate, delegateDirect, it.fwdIter, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Fwd(), TDistanceTag());
 //     }
 }
 
