@@ -1099,9 +1099,9 @@ inline void _optimalSearchScheme(TContex & ossContext,
     vector<pair<TBitvector, TSupport>> emtpy_bitvectors;
     bool initialDirection = s.pi[1] > s.pi[0];
     if(initialDirection)
-        _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, emtpy_bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Rev(), TDistanceTag());
+        _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, emtpy_bitvectors, s.startPos, s.startPos + 1, 0, s, 0, false, Rev(), TDistanceTag());
     else
-        _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, emtpy_bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Fwd(), TDistanceTag());
+        _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, emtpy_bitvectors, s.startPos, s.startPos + 1, 0, s, 0, false, Fwd(), TDistanceTag());
 }
 
 
@@ -1172,8 +1172,8 @@ find(TContex & ossContext,
     _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, bitvectors, scheme, TDistanceTag());
 }
 
-template <typename TContex,
-          size_t minErrors, size_t maxErrors,
+template <size_t minErrors, size_t maxErrors,
+          typename TContex,
           typename TDelegate, typename TDelegateD,
           typename TText, typename TIndexSpec,
           typename TChar, typename TStringSpec,
@@ -1227,9 +1227,11 @@ find(TContex & ossContext,
         }*/
         ++k;
 
-        uint32_t currentcount = ossContext.hits.size() + ossContext.dhits.size() - lastcount;
-        ossContext.readOccCount.push_back(currentcount);
-        lastcount += currentcount;
+        if(ossContext.trackReadCount){
+            uint32_t currentcount = ossContext.hits.size() + ossContext.dhits.size() - lastcount;
+            ossContext.readOccCount.push_back(currentcount);
+            lastcount += currentcount;
+        }
     }
 }
 
@@ -1253,9 +1255,11 @@ find(TContex & ossContext,
     {
         find<minErrors, maxErrors>(ossContext, delegate, delegateDirect, index, needles[k], k, TDistanceTag());
         ++k;
-        uint32_t currentcount = ossContext.hits.size() + ossContext.dhits.size() - lastcount;
-        ossContext.readOccCount.push_back(currentcount);
-        lastcount += currentcount;
+        if(ossContext.trackReadCount){
+            uint32_t currentcount = ossContext.hits.size() + ossContext.dhits.size() - lastcount;
+            ossContext.readOccCount.push_back(currentcount);
+            lastcount += currentcount;
+        }
 
     }
 }

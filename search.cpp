@@ -83,19 +83,20 @@ public:
     // Shared-memory read-write data.
     std::vector<hit> & hits;
     std::vector<hit> & dhits;
-    std::vector<uint32_t> & readOccCount;
+    std::vector<uint32_t> /*&*/ readOccCount;
 //     TMatches &          matches;
 
     // Shared-memory read-only data.
 //     TContigSeqs const & contigSeqs;
     bool filterDelegate = true;
+    bool trackReadCount = false;
 
     OSSContext(std::vector<hit> & inhits,
-               std::vector<hit> & indhits,
-               std::vector<uint32_t> & inreadOccCount) :
+               std::vector<hit> & indhits/*,
+               std::vector<uint32_t> & inreadOccCount*/) :
         hits(inhits),
-        dhits(indhits),
-        readOccCount(inreadOccCount)
+        dhits(indhits)
+//         readOccCount(inreadOccCount)
     {
         ;
     }
@@ -133,7 +134,7 @@ public:
                       OptimalSearch<nbrBlocks> const & s,
                       uint8_t const blockIndex)
     {
-        return(iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1) * 5);
+        return(iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1 + comp.directsearchblockoffset) * comp.directsearch_th);
     }
 
     template<size_t nbrBlocks>
@@ -314,7 +315,7 @@ int main(int argc, char *argv[])
     std::vector<hit> myhits;
     std::vector<hit> mydhits;
     std::vector<uint32_t> myreadOccCount;
-    OSSContext myOSSContext(myhits, mydhits, myreadOccCount);
+    OSSContext myOSSContext(myhits, mydhits/*, myreadOccCount*/);
 
     auto delegate = [&myhits](auto const & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
     {
@@ -427,7 +428,6 @@ int main(int argc, char *argv[])
 
     // Test default
     //TODO change vector name of lambda function
-
     std::vector<hit> hitsDefault;
     if(mdefault){
         auto delegateDefault = [&hitsDefault](auto & iter, DnaString const & needle, uint8_t const errors)
@@ -451,14 +451,17 @@ int main(int argc, char *argv[])
         cout << "default Hits: " << hitsDefault.size() << endl;
     }
 
-/*
+
+    std::vector<hit> hitsDe;
+    std::vector<hit> dhitsDe;
+//     std::vector<uint32_t> myreadOccCountDe;
+    OSSContext ossContextDefaultT(hitsDe, dhitsDe); //, myreadOccCountDe
+
     // default with in text search
     if(defaultT){
-        params.comp.directsearch_th = 5;
-        params.comp.directsearchblockoffset = 0;
-//         std::vector<hit> hitsDe;
-//         std::vector<hit> dhitsDe;
-        auto delegate2 = [](auto & iter, DnaString const & needle, uint8_t errors, bool const rev)
+        ossContextDefaultT.comp.directsearch_th = 5;
+        ossContextDefaultT.comp.directsearchblockoffset = 0;
+        auto delegate2 = [&hitsDe](auto & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
         {
             for (auto occ : getOccurrences(iter)){
                 hit me;
@@ -469,7 +472,7 @@ int main(int argc, char *argv[])
                 hitsDe.push_back(me);
             }
         };
-        auto delegateDirect2 = [](Pair<uint16_t, uint32_t> const & pos, DnaString const & needle, uint8_t const errors)
+        auto delegateDirect2 = [&dhitsDe](Pair<uint16_t, uint32_t> const & pos, DnaString const & needle, uint32_t const needleId, uint8_t const errors)
         {
             hit me;
             me.occ = pos;
@@ -479,13 +482,13 @@ int main(int argc, char *argv[])
             dhitsDe.push_back(me);
         };
         auto start2 = std::chrono::high_resolution_clock::now();
-        find(0, nerrors, delegate2, delegateDirect2, index, reads, HammingDistance());
+        find(0, nerrors, ossContextDefaultT, delegate2, delegateDirect2, index, reads, HammingDistance());
         auto finish2 = std::chrono::high_resolution_clock::now();
         elapsed = finish2 - start2;
         cout << "Default Version with DS: " << elapsed.count() << "s" << endl;
         cout << "default DS Hits: " << hitsDe.size() + dhitsDe.size() << endl;
     }
-*/
+
 /*
     if(!notmy){
         readOccurrences(reads, ids, outputpath, fr, rc, stats, notmy);
