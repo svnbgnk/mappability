@@ -209,13 +209,15 @@ void print_sa(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIn
     }
 }
 
+bool occ_same_read(const hit & x, const hit & y)
+{
+
+    return(x.readId == y.readId && x.occ.i1 == y.occ.i1 && x.occ.i2 == y.occ.i2 && x.errors == y.errors);
+}
+
 bool occ_same(const hit & x, const hit & y)
 {
-//     bool same = x.readId == y.readId && x.occ.i1 == y.occ.i1 && x.occ.i2 == y.occ.i2 && x.errors == y.errors;
-//     std::cout << x.readId << "\t" << y.readId << ":\t" << same << "\n";
-//
-//     return same;
-    return(x.readId == y.readId && x.occ.i1 == y.occ.i1 && x.occ.i2 == y.occ.i2 && x.errors == y.errors);
+    return(x.occ.i1 == y.occ.i1 && x.occ.i2 == y.occ.i2 && x.errors == y.errors);
 }
 
 
@@ -264,7 +266,7 @@ bool occ_smaller(const hit & x, const hit & y)
 
 std::vector<hit> print_readocc_sorted(std::vector<hit> hits, auto const & genome, bool editD, uint8_t nerrors, bool const occEnabled)
 {
-    std::sort(hits.begin(), hits.end(), read_occ_smaller);
+    std::sort(hits.begin(), hits.end(), occ_smaller/*read_occ_smaller*/);
     hits.erase(std::unique(hits.begin(), hits.end(), occ_same), hits.end());
     for(uint32_t i = 0; i < hits.size(); ++i){
         std::cout << "Errors: "<< (uint32_t)hits[i].errors;

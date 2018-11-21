@@ -441,7 +441,7 @@ int main(int argc, char *argv[])
     OSSContext ossContextDefault(hitsDefault, dummy);
     ossContextDefault.itv = false;
     if(mdefault){
-/*
+
         auto delegateDefault = [&hitsDefault](auto & iter, DnaString const & needle, uint8_t const errors)
         {
             for (auto occ : getOccurrences(iter)){
@@ -452,9 +452,9 @@ int main(int argc, char *argv[])
                 me.rev = false;
                 hitsDefault.push_back(me);
             }
-        };*/
-
-        auto delegateDefault = [&hitsDefault](auto & iter, DnaString const & needle, uint32_t const needleId, uint8_t const errors, bool const rev)
+        };
+/*
+        auto delegateDefault2 = [&hitsDefault](auto & iter, DnaString const & needle, uint32_t const needleId, uint8_t const errors, bool const rev)
         {
             for (auto occ : getOccurrences(iter)){
                 hit me;
@@ -465,7 +465,7 @@ int main(int argc, char *argv[])
                 me.rev = false;
                 hitsDefault.push_back(me);
             }
-        };
+        };*/
 
         auto delegateDummy = [&dummy](Pair<uint16_t, uint32_t> const & pos, DnaString const & needle, uint32_t const needleId, uint8_t const errors)
         {
@@ -482,9 +482,9 @@ int main(int argc, char *argv[])
         cout << "Test default" << endl;
         start = std::chrono::high_resolution_clock::now();
         if(!editD)
-            find(0, nerrors, ossContextDefault, delegateDefault, delegateDummy, index, reads, HammingDistance());
+            find(0, nerrors, /*ossContextDefault,*/ delegateDefault, /*delegateDummy,*/ index, reads, HammingDistance());
         else
-            find(0, nerrors, ossContextDefault, delegateDefault, delegateDummy, index, reads, EditDistance());
+            find(0, nerrors, /*ossContextDefault,*/ delegateDefault, /*delegateDummy,*/ index, reads, EditDistance());
         finish = std::chrono::high_resolution_clock::now();
 
         if(dummy.size() != 0){
@@ -549,7 +549,7 @@ int main(int argc, char *argv[])
     if(ecompare && defaultT && mdefault){
         cout << "Hits with InTextSearch: " << endl;
         hitsDe.insert(hitsDe.end(), dhitsDe.begin(), dhitsDe.end());
-        std::sort(hitsDe.begin(), hitsDe.end(), read_occ_smaller);
+        std::sort(hitsDe.begin(), hitsDe.end(), occ_smaller/*read_occ_smaller*/);
         hitsDe.erase(std::unique(hitsDe.begin(), hitsDe.end(), occ_same), hitsDe.end());
 
         cout << "unique number: "  << hitsDe.size()  << endl;
