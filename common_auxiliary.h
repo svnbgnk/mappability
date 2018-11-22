@@ -7,7 +7,8 @@ namespace seqan{
 
 struct hit{
     bool rev;
-    Pair <unsigned, unsigned> occ;
+    Pair <uint32_t, uint32_t> occ;
+    Pair <uint32_t, uint32_t> occEnd;
     uint8_t errors;
     uint32_t readId;
     DnaString read;

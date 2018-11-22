@@ -61,7 +61,7 @@ inline void genomeSearchRev(TContex & ossContext,
         }
     }
     sa_info.i2 = seqan::length(rgenome[sa_info.i1]) - sa_info.i2 - needleL;
-    delegateDirect(sa_info, needle, needleId, errors);
+    delegateDirect(sa_info, posAdd(sa_info, length(needle)), needle, needleId, errors);
 }
 
 template <typename TContex,

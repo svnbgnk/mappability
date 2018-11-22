@@ -325,9 +325,11 @@ int main(int argc, char *argv[])
     auto delegate = [&myhits](auto const & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
     {
         //NOTE have to get Occurrences from the forward iter otherwise filtering does not work properly
+        uint32_t occLength = repLength(iter);
         for (auto occ : getOccurrences(iter)){
             hit me;
             me.occ = occ;
+            me.occEnd = posAdd(occ, occLength);
             me.read = needle;
             me.readId = needleId;
             me.errors = errors;
@@ -335,10 +337,11 @@ int main(int argc, char *argv[])
             myhits.push_back(me);
         }
     };
-    auto delegateDirect = [&mydhits](Pair<uint16_t, uint32_t> const & pos, DnaString const & needle, uint32_t const needleId, uint8_t const errors)
+    auto delegateDirect = [&mydhits](Pair<uint16_t, uint32_t> const & pos, Pair<uint16_t, uint32_t> const & posEnd, DnaString const & needle, uint32_t const needleId, uint8_t const errors)
     {
         hit me;
         me.occ = pos;
+        me.occEnd = posEnd;
         me.read = needle;
         me.readId = needleId;
         me.errors = errors;
@@ -421,11 +424,11 @@ int main(int argc, char *argv[])
         for(uint32_t i = 0; i < mydhits.size(); ++i){
             myhits.push_back(mydhits[i]);
         }
-        std::sort(myhits.begin(), myhits.end(), occ_smaller);
+        std::sort(myhits.begin(), myhits.end(), occ_smaller); //read_occ_smaller
 
         for(uint32_t i = 0; i < myhits.size(); ++i){
             cout << "Errors: "<< (uint32_t)myhits[i].errors;
-            cout << "   "  << myhits[i].occ << " " << myhits[i].read << endl;
+            cout << "   "  << myhits[i].occ << " " << myhits[i].read  << "\t" << myhits[i].occEnd << " (" << myhits[i].readId << ")" << endl;
             cout << infix(genome[myhits[i].occ.i1], myhits[i].occ.i2, myhits[i].occ.i2 + seqan::length(myhits[i].read)) << endl;
         }
     }
@@ -509,9 +512,11 @@ int main(int argc, char *argv[])
         ossContextDefaultT.comp.directsearchblockoffset = 0;
         auto delegate2 = [&hitsDe](auto & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
         {
+            uint32_t occLength = repLength(iter);
             for (auto occ : getOccurrences(iter)){
                 hit me;
                 me.occ = occ;
+                me.occEnd = posAdd(occ, occLength);
                 me.read = needle;
                 me.readId = needleId;
                 me.errors = errors;
@@ -519,10 +524,11 @@ int main(int argc, char *argv[])
                 hitsDe.push_back(me);
             }
         };
-        auto delegateDirect2 = [&dhitsDe](Pair<uint16_t, uint32_t> const & pos, DnaString const & needle, uint32_t const needleId, uint8_t const errors)
+        auto delegateDirect2 = [&dhitsDe](Pair<uint16_t, uint32_t> const & pos, Pair<uint16_t, uint32_t> const & posEnd, DnaString const & needle, uint32_t const needleId, uint8_t const errors)
         {
             hit me;
             me.occ = pos;
+            me.occEnd = posEnd,
             me.read = needle;
             me.readId = needleId;
             me.errors = errors;

@@ -111,7 +111,7 @@ inline void genomeSearch(TContex & ossContext,
             return;
         }
     }
-    delegateDirect(sa_info, needle, needleId, errors);
+    delegateDirect(sa_info, posAdd(sa_info, length(needle)), needle, needleId, errors);
 
 }
 
@@ -204,7 +204,7 @@ inline void alignmentMyersBitvector(TContex & ossContext,
         if(errors2 <= max_e /*&& compareStartAndEnd(needle, tmp0, errors2)*/){
 //             std::cout << "c1 " << sa_info << "  " << (int) errors2 << "\n";
 //             std::cout << tmp0 << "\n";
-            delegateDirect(sa_info , needle, needleId, errors2);
+            delegateDirect(sa_info, posAdd(sa_info, length(needle)) , needle, needleId, errors2);
         }
 
         for(uint8_t e = 1; e <= max_e; ++e){
@@ -231,21 +231,25 @@ inline void alignmentMyersBitvector(TContex & ossContext,
                         if(errors2 <= max_e /*&& compareStartAndEnd(needle, tmp2, errors2)*/){
 //                             std::cout << "c2 " << sa_info_tmp << "  " << (int) errors2 << "\n";
 //                             std::cout << tmp2 << "\n";
-                            delegateDirect(sa_info_tmp , needle, needleId, errors2);
+                            uint32_t occLength = length(needle) - (pos * m);
+                            delegateDirect(sa_info_tmp, posAdd(sa_info_tmp, occLength) , needle, needleId, errors2);
                         }
                     }
                 }
                 else
                 {
+//                     uint32_t occLength = length(needle) - ins + del;
                     //insertions left and deletion right
                     if(overlap_l >= del){
                         TString const & tmp = infix(ex_infix, overlap_l - del, ex_infixL - overlap_r - ins);
+                        sa_info_tmp = sa_info;
                         sa_info_tmp.i2 = sa_info_tmp.i2 - del;
                         errors2 = 0 - globalAlignmentScore(tmp, needle, MyersBitVector());
                         if(errors2 <= max_e /*&& compareStartAndEnd(needle, tmp, errors2)*/){
 //                             std::cout << "c3 " << sa_info_tmp << "  " << (int) errors2 << "\n";
 //                             std::cout << tmp << "\n";
-                            delegateDirect(sa_info_tmp , needle, needleId, errors2);
+                            uint32_t occLength = length(needle) - ins + del;
+                            delegateDirect(sa_info_tmp, posAdd(sa_info_tmp, occLength) , needle, needleId, errors2);
                         }
                     }
 
@@ -258,7 +262,8 @@ inline void alignmentMyersBitvector(TContex & ossContext,
                         if(errors2 <= max_e/* && compareStartAndEnd(needle, tmp1, errors2)*/){
 //                             std::cout << "c4 " << sa_info_tmp << "  " << (int) errors2 << "\n";
 //                             std::cout << tmp1 << "\n";
-                            delegateDirect(sa_info_tmp , needle, needleId, errors2);
+                            uint32_t occLength = length(needle) - ins + del;
+                            delegateDirect(sa_info_tmp, posAdd(sa_info_tmp, occLength) , needle, needleId, errors2);
 
                         }
                     }

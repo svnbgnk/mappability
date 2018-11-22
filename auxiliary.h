@@ -270,7 +270,7 @@ std::vector<hit> print_readocc_sorted(std::vector<hit> hits, auto const & genome
     hits.erase(std::unique(hits.begin(), hits.end(), occ_same), hits.end());
     for(uint32_t i = 0; i < hits.size(); ++i){
         std::cout << "Errors: "<< (uint32_t)hits[i].errors;
-        std::cout << "   " << hits[i].occ << " " << hits[i].read << " (" << hits[i].readId << ")" << "\n";
+        std::cout << "   " << hits[i].occ << " " << hits[i].read << "\t" << hits[i].occEnd << " (" << hits[i].readId << ")" << "\n";
         if(occEnabled){
             if(!editD){
                 std::cout << infix(genome[hits[i].occ.i1], hits[i].occ.i2, hits[i].occ.i2 + seqan::length(hits[i].read)) << "\n";
