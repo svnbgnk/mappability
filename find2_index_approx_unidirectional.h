@@ -517,7 +517,7 @@ inline void _optimalSearchScheme(TContex & ossContext,
         return;
     }
 
-    if(done || !atBlockEnd){
+    if(done || atBlockEnd){
         ReturnCode rcode = uniCheckMappability(ossContext, delegate, delegateDirect, iter, needle, needleId, bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, done, true, TDir(), TDistanceTag());
         if(rcode == ReturnCode::FINISHED)
             return;

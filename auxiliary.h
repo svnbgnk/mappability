@@ -69,9 +69,15 @@ void calcfwdPos(TIndex & index,
 
     for(uint32_t i = 0; i < hitsOutput.size(); ++i){
         if(hitsOutput[i].rev){
+            if(hitsOutput[i].occEnd.i2 - hitsOutput[i].occ.i2 < 0){
+                std::cout << "abc wrong" << "\n";
+                exit(0);
+            }
+            uint32_t occLength = hitsOutput[i].occEnd.i2 - hitsOutput[i].occ.i2;
             if(verbose)
                 std::cout << "before: " << hitsOutput[i].occ << "\n";
-            hitsOutput[i].occ.i2 = sl[hitsOutput[i].occ.i1 + 1] - hitsOutput[i].occ.i2 - length(hitsOutput[i].read);
+            hitsOutput[i].occ.i2 = sl[hitsOutput[i].occ.i1 + 1] - hitsOutput[i].occ.i2 - occLength/*length(hitsOutput[i].read)*/;
+            hitsOutput[i].occEnd.i2 = sl[hitsOutput[i].occEnd.i1 + 1] - hitsOutput[i].occEnd.i2 + occLength/*length(hitsOutput[i].read)*/;
             if(verbose)
                 std::cout << "after: " << hitsOutput[i].occ << "\n";
         }
@@ -286,6 +292,8 @@ template <size_t minErrors, size_t maxErrors,
           typename TText, typename TIndexSpec>
 uint32_t testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
               hit testhit,
+              int threshold,
+              int mErrors,
               bool editD)
 {
     auto const & genome = indexText(index);
@@ -307,37 +315,58 @@ uint32_t testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
         DnaString part = infix(genome[testhit.occ.i1], testhit.occ.i2, testhit.occ.i2 + seqan::length(testhit.read));
         appendValue(testocc, part);
     }else{
-        bool lim = testhit.occ.i2 + seqan::length(testhit.read) + maxErrors < length(genome[testhit.occ.i1]);
+        bool lim = testhit.occ.i2 - mErrors > 0 && testhit.occ.i2 + seqan::length(testhit.read) + 2 * mErrors < length(genome[testhit.occ.i1]);
         if(!lim)
             return(666);
-        DnaString part = infix(genome[testhit.occ.i1], testhit.occ.i2, testhit.occ.i2 + seqan::length(testhit.read) + maxErrors);
-        appendValue(testocc, part);
+        for(int off = -mErrors; off <= mErrors; ++off){
+            DnaString part = infix(genome[testhit.occ.i1], static_cast<int64_t> (testhit.occ.i2) + off, static_cast<int64_t> (testhit.occ.i2) + seqan::length(testhit.read)/* + mErrors*/ + off); //TODO use mErrors when calculation correct EditMappability
+            appendValue(testocc, part);
+        }
     }
     std::cout << "Search occ: " << (uint32_t)testhit.occ.i2 << " which has seq: " << "\n";
-    std::cout << testocc[0] << "\n";
+    if(!editD)
+        std::cout << testocc[0] << "\n";
+    else
+        std::cout << testocc[mErrors] << "\n";
 
     if(!editD){
         find<minErrors, maxErrors>(delegate, index, testocc, HammingDistance());
+        std::cout << hits.size() << " hits!!!!!!!!!!" << "\n";
     }else{
+
+/*
         find<minErrors, maxErrors>(delegate, index, testocc, EditDistance());
         std::sort(hits.begin(), hits.end(), occ_smaller);
-        hits.erase(std::unique(hits.begin(), hits.end(), occ_similar<10>), hits.end());
+        hits.erase(std::unique(hits.begin(), hits.end(), occ_similar<10>), hits.end());*/
+
+        find<minErrors, maxErrors>(delegate, index, testocc[mErrors], HammingDistance()); //Change to EditDistance
+        std::cout << hits.size() << " hits!!!!!!!!!!" << "\n";
+
+        //threshold as input
+        int k = 0;
+        while(hits.size() < threshold && k < length(testocc)){
+            hits.clear();
+            find<minErrors, maxErrors>(delegate, index, testocc[k], HammingDistance()); //Change to EditDistance
+            ++k;
+            //use sort and erase
+            std::cout << hits.size() << " hits!!!!!!!!!!e" << "\n";
+        }
     }
-    std::cout << hits.size() << " hits!!!!!!!!!!" << "\n";
+
     return(hits.size());
 }
 
 template <typename TText, typename TIndexSpec>
-uint32_t testread(int minErrors, int maxErrors, bool editD, Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+uint32_t testread(int minErrors, int maxErrors, int threshold, bool editD, Index<TText, BidirectionalIndex<TIndexSpec> > & index,
               hit testhit){
     int nhits;
     switch (maxErrors)
     {
-        case 1: nhits = testread<0, 1>(index, testhit, editD);
+        case 1: nhits = testread<0, 1>(index, testhit, threshold, maxErrors, editD);
                 break;
-        case 2: nhits = testread<0, 2>(index, testhit, editD);
+        case 2: nhits = testread<0, 2>(index, testhit, threshold, maxErrors, editD);
                 break;
-        case 3: nhits = testread<0, 3>(index, testhit, editD);
+        case 3: nhits = testread<0, 3>(index, testhit, threshold, maxErrors, editD);
                 break;
         default: std::cerr << "E = " << maxErrors << " not yet supported.\n";
                 std::exit(1);
@@ -359,9 +388,8 @@ std::vector<uint32_t> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & in
 {
     std::vector<uint32_t> wrongHitCount;
     bool same = true;
-    if(!(x.size() == y.size())){
-        std::cout << "MyVersion has: " << x.size() << "hits while default version has: " << y.size() << " hits" << "\n";
-    }
+    std::cout << "MyVersion has: " << x.size() << "hits default version has: " << y.size() << " hits" << "\n";
+
     int offset = 0;
     for(uint32_t i = 0; i + offset < y.size(); ++i){
         same = false;
@@ -372,7 +400,7 @@ std::vector<uint32_t> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & in
             if(i < x.size())
                 std::cout << "MyVersion has: " << x[i].occ.i2 << " while " ;
             std::cout << "default version has: " << y[i + offset].occ.i2 << "\n";
-            uint32_t nhits = testread(0, errors, editD, index, y[i + offset]);
+            uint32_t nhits = testread(0, errors, threshold, editD, index, y[i + offset]);
             if(nhits < threshold){
                 std::cout << "To few hits should have found this part!!!!" << "\n";
                 wrongHitCount.push_back(nhits);

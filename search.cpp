@@ -321,6 +321,12 @@ int main(int argc, char *argv[])
     std::vector<hit> mydhits;
     std::vector<uint32_t> myreadOccCount;
     OSSContext myOSSContext(myhits, mydhits/*, myreadOccCount*/);
+    if(editD){
+        myOSSContext.itv = true;
+        myOSSContext.normal.directsearch = false;
+        myOSSContext.comp.directsearch = true;
+    }
+    myOSSContext.normal.suspectunidirectional = false;
 
     auto delegate = [&myhits](auto const & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
     {
@@ -342,58 +348,13 @@ int main(int argc, char *argv[])
         hit me;
         me.occ = pos;
         me.occEnd = posEnd;
+
         me.read = needle;
         me.readId = needleId;
         me.errors = errors;
         me.rev = false;
         mydhits.push_back(me);
     };
-
-//     std::this_thread::sleep_for (std::chrono::seconds(60));
-
-    //TODO tranlate this for ossContext
-    /*
-    if(startuni){
-        params.startUnidirectional = true;
-    }
-    switch(benchparams){
-        case 1:
-        {
-            params.normal.setbestnormal();
-            params.copyDirectsearchParamsfromNormal();
-            break;
-        }
-        case 2:
-        {
-            params.normal.setbestnormalhg();
-            params.copyDirectsearchParamsfromNormal();
-            break;
-        }
-        case 3:
-        {
-            params.normal.setbestnormalhgE2();
-            params.copyDirectsearchParamsfromNormal();
-            break;
-        }
-        case 4:
-        {
-            params.normal.setbestnormalhgE3();
-            params.copyDirectsearchParamsfromNormal();
-            break;
-        }
-        case 5:
-        {
-            params.normal.setbestnormalhgE3();
-            params.copyDirectsearchParamsfromNormal();
-            params.startuni.setbestStartUnihgE3();
-            break;
-        }
-        default:
-        {
-            break;
-        }
-    }
-*/
 
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -412,6 +373,7 @@ int main(int argc, char *argv[])
         cout << "Finished My Search" << endl;
 
         auto scalc = std::chrono::high_resolution_clock::now();
+        cout << "Number of potential calculations: " << myhits.size() << "\n";
         calcfwdPos(index, myhits);
         auto ecalc = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsedcalc = ecalc - scalc;
@@ -430,7 +392,19 @@ int main(int argc, char *argv[])
         for(uint32_t i = 0; i < myhits.size(); ++i){
             cout << "Errors: "<< (uint32_t)myhits[i].errors;
             cout << "   "  << myhits[i].occ << " " << myhits[i].read  << "\t" << myhits[i].occEnd << " (" << myhits[i].readId << ")" << endl;
-            cout << infix(genome[myhits[i].occ.i1], myhits[i].occ.i2, myhits[i].occ.i2 + seqan::length(myhits[i].read)) << endl;
+            if(!editD)
+                cout << infix(genome[myhits[i].occ.i1], myhits[i].occ.i2, myhits[i].occ.i2 + seqan::length(myhits[i].read)) << endl;
+            else
+                cout << infix(genome[myhits[i].occ.i1], myhits[i].occ.i2 - nerrors, myhits[i].occ.i2 + seqan::length(myhits[i].read) + nerrors) << endl;
+//             if(myhits[i].occEnd.i2 - myhits[i].occ.i2 == length(myhits[i].read) - 2 || myhits[i].occEnd.i2 - myhits[i].occ.i2 == length(myhits[i].read) + 2)
+            if(myhits[i].occEnd.i2 - myhits[i].occ.i2 < length(myhits[i].read)){
+                cout << "Insertion was required: " << "\n";
+                cout << infix(genome[myhits[i].occ.i1], myhits[i].occ.i2, myhits[i].occEnd.i2) << endl;
+            }
+            if(myhits[i].occEnd.i2 - myhits[i].occ.i2 > length(myhits[i].read)){
+                cout << "Deletion was required: " << "\n";
+                cout << infix(genome[myhits[i].occ.i1], myhits[i].occ.i2, myhits[i].occEnd.i2) << endl;
+            }
         }
     }
 
@@ -443,7 +417,8 @@ int main(int argc, char *argv[])
     std::vector<hit> hitsDefault;
     std::vector<hit> dummy;
     OSSContext ossContextDefault(hitsDefault, dummy);
-    ossContextDefault.itv = false;
+//     ossContextDefault.itv = false;
+
     if(mdefault){
 
         auto delegateDefault = [&hitsDefault](auto & iter, DnaString const & needle, uint8_t const errors)
@@ -586,7 +561,7 @@ int main(int argc, char *argv[])
     }
 
 
-    if(ecompare && !notmy){
+    if(ecompare && !notmy && mdefault){
         hitsDefault = print_readocc_sorted(hitsDefault, genome, editD, nerrors, true);
         cout << "Test if default and my version are the same: " << endl;
 //         cout.setstate(std::ios_base::failbit);
@@ -595,6 +570,29 @@ int main(int argc, char *argv[])
 
         if(whitcount.size() == 0){
             cout << "MyVersion is still correct!" << endl;
+        }else{
+            cout << "Missed hits mappability" << endl;
+        }
+        cout << endl;
+        cout << "M: " << endl;
+        for(uint32_t i = 0; i < whitcount.size(); ++i)
+            cout << whitcount[i] << endl;
+        cout << endl;
+    }
+
+    if(ecompare && !notmy && editD && defaultT){
+        hitsDe.insert(hitsDe.end(), dhitsDe.begin(), dhitsDe.end());
+        std::sort(hitsDe.begin(), hitsDe.end(), occ_smaller/*read_occ_smaller*/);
+        hitsDe.erase(std::unique(hitsDe.begin(), hitsDe.end(), occ_same), hitsDe.end());
+
+        hitsDe = print_readocc_sorted(hitsDe, genome, editD, nerrors, true);
+        cout << "Test if default with ITV and my version are the same: " << endl;
+//         cout.setstate(std::ios_base::failbit);
+        vector<uint32_t> whitcount = compare(index, nerrors, threshold + 1, editD, myhits, hitsDe);
+//         std::cout.clear();
+
+        if(whitcount.size() == 0){
+            cout << "MyVersion is still correct! (Compared to my version!!)" << endl;
         }else{
             cout << "Missed hits mappability" << endl;
         }
