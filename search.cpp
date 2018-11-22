@@ -425,6 +425,7 @@ int main(int argc, char *argv[])
             myhits.push_back(mydhits[i]);
         }
         std::sort(myhits.begin(), myhits.end(), occ_smaller); //read_occ_smaller
+        myhits.erase(std::unique(myhits.begin(), myhits.end(), occ_same), myhits.end());
 
         for(uint32_t i = 0; i < myhits.size(); ++i){
             cout << "Errors: "<< (uint32_t)myhits[i].errors;
@@ -588,9 +589,9 @@ int main(int argc, char *argv[])
     if(ecompare && !notmy){
         hitsDefault = print_readocc_sorted(hitsDefault, genome, editD, nerrors, true);
         cout << "Test if default and my version are the same: " << endl;
-        cout.setstate(std::ios_base::failbit);
+//         cout.setstate(std::ios_base::failbit);
         vector<uint32_t> whitcount = compare(index, nerrors, threshold + 1, editD, myhits, hitsDefault);
-        std::cout.clear();
+//         std::cout.clear();
 
         if(whitcount.size() == 0){
             cout << "MyVersion is still correct!" << endl;
