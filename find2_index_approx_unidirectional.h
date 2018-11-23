@@ -93,7 +93,6 @@ inline void uniDirectSearch(TContex & ossContext,
     uint32_t needleL = length(needle);
 
     if(std::is_same<TDistanceTag, EditDistance>::value){
-        uint16_t needleL = length(needle);
         uint8_t max_e = s.u[s.u.size() - 1];
         int intIns = 0;
         int intDel = 0;
@@ -112,9 +111,9 @@ inline void uniDirectSearch(TContex & ossContext,
         uint16_t ex_infixL = needleL + overlap_l + overlap_r;*/
 
         if(std::is_same<TDir, Rev>::value){
-            for(uint32_t r = 0; r < brange.i2.i2 - brange.i2.i1; ++r){
+            for(uint32_t r = 0; r < iter.vDesc.range.i2 - iter.vDesc.range.i1; ++r){
                 if(checkSinglePos(bitvectors, brange, r)){
-                    Pair<uint16_t, uint32_t> sa_info = iter.index->sa[r];
+                    Pair<uint16_t, uint32_t> sa_info = iter.index->sa[iter.vDesc.range.i1 + r];
                     uint32_t const chromlength = length(genome[sa_info.i1]);
                     if(!(sa_info.i2 >= needleL - needleRightPos + 1 + overlap_l && chromlength - 1 >= sa_info.i2 + needleRightPos - 2 + overlap_r))
                         continue;
@@ -130,14 +129,16 @@ inline void uniDirectSearch(TContex & ossContext,
                     alignmentMyersBitvector(ossContext, delegateDirect, needle, needleId, n_infix_rev_copy, ex_infix_rev_copy, genome, sa_info, max_e, overlap_l, overlap_r, intDel);
                 }
             }
-        }else{
-            for(uint32_t r = 0; r < brange.i2.i2 - brange.i2.i1; ++r){
+        }
+        else
+        {
+            for(uint32_t r = 0; r < iter.vDesc.range.i2 - iter.vDesc.range.i1; ++r){
                 if(checkSinglePos(bitvectors, brange, r)){
-                    Pair<uint16_t, uint32_t> sa_info = iter.index->sa[r];
+                    Pair<uint16_t, uint32_t> sa_info = iter.index->sa[iter.vDesc.range.i1 + r];
                     uint32_t const chromlength = length(genome[sa_info.i1]);
                     if(!(needleLeftPos + overlap_l <= sa_info.i2  && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1 + overlap_r))
                         continue;
-                     sa_info.i2 = sa_info.i2 - needleLeftPos;
+                    sa_info.i2 = sa_info.i2 - needleLeftPos;
                     TString const & ex_infix = infix(genome[sa_info.i1], sa_info.i2 - overlap_l, sa_info.i2 + needleL + overlap_r);
                     TString const & n_infix = infix(genome[sa_info.i1], sa_info.i2, sa_info.i2 + needleL);
                     alignmentMyersBitvector(ossContext, delegateDirect, needle, needleId, n_infix, ex_infix, genome, sa_info, max_e, overlap_l, overlap_r, intDel);
@@ -145,7 +146,6 @@ inline void uniDirectSearch(TContex & ossContext,
                 }
             }
         }
-
     }
     else
     {

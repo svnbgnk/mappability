@@ -323,7 +323,7 @@ int main(int argc, char *argv[])
     OSSContext myOSSContext(myhits, mydhits/*, myreadOccCount*/);
     if(editD){
         myOSSContext.itv = true;
-        myOSSContext.normal.directsearch = false;
+        myOSSContext.normal.directsearch = true;
         myOSSContext.uni.directsearch = false;
         myOSSContext.comp.directsearch = true;
         myOSSContext.normal.suspectunidirectional = true;
