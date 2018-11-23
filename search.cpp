@@ -324,9 +324,10 @@ int main(int argc, char *argv[])
     if(editD){
         myOSSContext.itv = true;
         myOSSContext.normal.directsearch = false;
+        myOSSContext.uni.directsearch = false;
         myOSSContext.comp.directsearch = true;
+        myOSSContext.normal.suspectunidirectional = true;
     }
-    myOSSContext.normal.suspectunidirectional = false;
 
     auto delegate = [&myhits](auto const & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
     {
