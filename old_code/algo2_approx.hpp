@@ -1,16 +1,17 @@
 using namespace seqan;
 
-template <typename TIter, typename value_type, typename TText>
-inline void extendExact(TIter it, value_type * hits, TText const & text, unsigned const length,
+template <typename TIter>
+inline void extendExact(TIter it, auto hits, auto & text, unsigned const length,
     uint64_t a, uint64_t b, // searched interval
     uint64_t ab, uint64_t bb // entire interval
 )
 {
-    constexpr uint64_t max_val = std::numeric_limits<value_type>::max();
+    constexpr uint64_t max_val = (1 << 8) - 1;
 
     if (b - a + 1 == length)
     {
-        hits[a-ab] = std::min((uint64_t) countOccurrences(it) + hits[a-ab], max_val);
+        for (auto i = it.fwdIter.vDesc.range.i1; i < it.fwdIter.vDesc.range.i2; ++i)
+            hits[a-ab].insert(i);
         return;
     }
     //if (b + 1 <= bb)
@@ -33,7 +34,7 @@ inline void extendExact(TIter it, value_type * hits, TText const & text, unsigne
     if (a - 1 >= ab)
     {
         int64_t alm = b + 1 - length;
-        int64_t a_new = alm + std::max((int64_t) ((a - alm) - 1) >> 1, (int64_t)0);
+        int64_t a_new = alm + std::max((int64_t) ((a - alm) - 1) >> 1, 0l);
         for (int64_t i = a - 1; i >= a_new; --i)
         {
             if(!goDown(it, text[i], Fwd()))
@@ -44,16 +45,15 @@ inline void extendExact(TIter it, value_type * hits, TText const & text, unsigne
 }
 
 // forward
-template <typename TIter, typename value_type, typename TText>
-inline void extend(TIter it, value_type * hits, unsigned errors_left, TText const & text,
-            unsigned const length,
+template <typename TIter>
+inline void extend(TIter it, auto hits, unsigned errors_left, auto & text, unsigned const length,
             uint64_t a, uint64_t b, // searched interval
             uint64_t ab, uint64_t bb // entire interval
 );
 
 // TODO: remove text everywhere: auto & text = indexText(index(it));
-template <typename TIter, typename value_type, typename TText>
-inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, TText const & text, unsigned const length,
+template <typename TIter>
+inline void approxSearch(TIter it, auto hits, unsigned errors_left, auto & text, unsigned const length,
             uint64_t a, uint64_t b, // searched interval
             uint64_t ab, uint64_t bb, // entire interval
             uint64_t b_new,
@@ -85,8 +85,8 @@ inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, TTex
         extendExact(it, hits, text, length, a, b_new, ab, bb);
     }
 }
-template <typename TIter, typename value_type, typename TText>
-inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, TText const & text, unsigned const length,
+template <typename TIter>
+inline void approxSearch(TIter it, auto hits, unsigned errors_left, auto & text, unsigned const length,
                   uint64_t a, uint64_t b, // searched interval
                   uint64_t ab, uint64_t bb, // entire interval
                   int64_t a_new,
@@ -119,13 +119,13 @@ inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, TTex
     }
 }
 
-template <typename TIter, typename value_type, typename TText>
-inline void extend(TIter it, value_type * hits, unsigned errors_left, TText const & text, unsigned const length,
+template <typename TIter>
+inline void extend(TIter it, auto hits, unsigned errors_left, auto & text, unsigned const length,
     uint64_t a, uint64_t b, // searched interval
     uint64_t ab, uint64_t bb // entire interval
 )
 {
-    constexpr uint64_t max_val = std::numeric_limits<value_type>::max();
+    constexpr uint64_t max_val = (1 << 8) - 1;
 
     if (errors_left == 0)
     {
@@ -134,7 +134,8 @@ inline void extend(TIter it, value_type * hits, unsigned errors_left, TText cons
     }
     if (b - a + 1 == length)
     {
-        hits[a-ab] = std::min((uint64_t) countOccurrences(it) + hits[a-ab], max_val);
+        for (auto i = it.fwdIter.vDesc.range.i1; i < it.fwdIter.vDesc.range.i2; ++i)
+            hits[a-ab].insert(i);
         return;
     }
     //if (b + 1 <= bb)
@@ -155,7 +156,7 @@ inline void extend(TIter it, value_type * hits, unsigned errors_left, TText cons
     if (a - 1 >= ab)
     {
         int64_t alm = b + 1 - length;
-        int64_t a_new = alm + std::max((int64_t) ((a - alm) - 1) >> 1, (int64_t)0);
+        int64_t a_new = alm + std::max((int64_t) ((a - alm) - 1) >> 1, 0l);
         approxSearch(it, hits, errors_left, text, length,
                      a, b, // searched interval
                      ab, bb, // entire interval
@@ -165,37 +166,63 @@ inline void extend(TIter it, value_type * hits, unsigned errors_left, TText cons
     }
 }
 
-template <unsigned errors, typename TIndex, typename TText, typename TContainer>
-inline void runAlgo2(TIndex & index, TText const & text, TContainer & c, SearchParams const & params)
+template <unsigned errors, typename TIndex, typename TContainer>
+inline void runAlgo2_approx(TIndex & index, auto const & text, unsigned const length, TContainer & c, unsigned const overlap, unsigned const threads, unsigned const threshold_min_hits)
 {
-    typedef typename TContainer::value_type value_type;
+    constexpr uint64_t max_val = (1 << 8) - 1;
 
     auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
-    _optimalSearchSchemeComputeFixedBlocklength(scheme, params.overlap);
+    _optimalSearchSchemeComputeFixedBlocklength(scheme, overlap);
 
-    uint64_t const textLength = length(text); // lengthSum() forwards to length() for a single string
+    auto const & limits = stringSetLimits(indexText(index)); // don't call this in a parallel section because it might update limits if it hasn't done it before
 
-    const uint64_t max_i = textLength - params.length + 1;
-    const uint64_t step_size = params.length - params.overlap + 1;
-   // #pragma omp parallel for schedule(dynamic, std::max(1ul, max_i/(step_size*params.threads*50))) num_threads(params.threads)
+    uint64_t const textLength = seqan::length(text); // lengthSum() forwards to length() for a single string
+
+    const uint64_t max_i = textLength - length + 1;
+    const uint64_t step_size = length - overlap + 1;
+    #pragma omp parallel for schedule(guided) num_threads(threads)
+    //#pragma omp parallel for schedule(dynamic, 1000000)
+    // TODO: if we choose a multiple of step_size * |cyclic_rotations of int_vector| as chunks (not just chunksize), we dont need to worry about locking
     for (uint64_t i = 0; i < max_i; i += step_size)
     {
-        value_type hits[params.length - params.overlap + 1] = {};
-        auto delegate = [&hits, i, textLength, &params, &text](auto it, auto const & /*read*/, unsigned const errors_spent) {
-            uint64_t const bb = std::min(textLength - 1, i + params.length - 1 + params.length - params.overlap);
-            extend(it, hits, errors - errors_spent, text, params.length,
-                i + params.length - params.overlap, i + params.length - 1, // searched interval
+        std::vector<std::set<uint32_t>> hits(length - overlap + 1);
+        auto delegate = [&hits, i, length, textLength, overlap, &text](auto it, auto const & /*read*/, unsigned const errors_spent) {
+            uint64_t const bb = std::min(textLength - 1, i + length - 1 + length - overlap);
+            extend(it, hits, errors - errors_spent, text, length,
+                i + length - overlap, i + length - 1, // searched interval
                 i, bb // entire interval
             );
         };
 
-        auto const & needle = infix(text, i + params.length - params.overlap, i + params.length);
+        auto const & needle = infix(text, i + length - overlap, i + length);
         Iter<TIndex, VSTree<TopDown<> > > it(index);
         _optimalSearchScheme(delegate, it, needle, scheme, HammingDistance());
-        uint64_t max_pos = std::min(i + params.length - params.overlap, textLength - params.length);
-        for (uint64_t j = i; j <= max_pos; ++j)
-            c[j] = hits[j - i];
-    }
 
-    resetLimits(indexText(index), c, params.length);
+        uint64_t max_pos = std::min(i + length - overlap, textLength - length);
+        for (uint64_t j = i; j <= max_pos; ++j)
+        {
+            auto const & hit_sa_values = hits[j - i];
+
+            auto no_hits = std::min((uint64_t) hit_sa_values.size(), max_val);
+            if (hit_sa_values.size() >= threshold_min_hits /*&& */) // TODO: maybe antoher thread filled other spots? avoid locate
+            {
+                // assert(hit_sa_values.contains(it.fwdIter.index->sa[i]));
+                for(auto h : hit_sa_values)
+                {
+                    // should even work with strings since stringSetLimits will return Nothing and posGlobalize is overloaded for Strings and Nothing
+                    auto const text_pos = it.fwdIter.index->sa[h];
+                    auto const text_global_pos = posGlobalize(text_pos, limits);
+                    c[text_global_pos] = std::max(static_cast<uint32_t>(c[text_global_pos]), static_cast<uint32_t>(no_hits));
+                }
+            }
+            else
+            {
+                c[j] = no_hits;
+            }
+        }
+
+
+
+
+    }
 }
