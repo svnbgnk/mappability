@@ -321,13 +321,6 @@ int main(int argc, char *argv[])
     std::vector<hit> mydhits;
     std::vector<uint32_t> myreadOccCount;
     OSSContext myOSSContext(myhits, mydhits/*, myreadOccCount*/);
-    if(editD){
-        myOSSContext.itv = true;
-        myOSSContext.normal.directsearch = true;
-        myOSSContext.uni.directsearch = false;
-        myOSSContext.comp.directsearch = true;
-        myOSSContext.normal.suspectunidirectional = true;
-    }
 
     auto delegate = [&myhits](auto const & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
     {
