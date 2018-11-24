@@ -2,7 +2,7 @@
 #include <chrono>
 #include <seqan/arg_parse.h>
 #include "auxiliary.h"
-#include "common_auxiliary.h"
+#include "common.h"
 // #include "newStats.h"
 #include "find2_index_approx_extension.h"
 // #include "global.h"

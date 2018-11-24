@@ -26,7 +26,7 @@ struct Options
 #include "algo3.hpp"
 #include "algo4.hpp"
 
-#include "common_auxiliary.h"
+// #include "common_auxiliary.h"
 #include "find2_index_approx_extension.h"
 
 string get_output_path(Options const & opt, SearchParams const & searchParams)

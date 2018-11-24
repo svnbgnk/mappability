@@ -1,5 +1,4 @@
 #include "common.h"
-#include "common_auxiliary.h"
 #include "auxiliary.h"
 #include "find2_index_approx_extension.h"
 #include <chrono>

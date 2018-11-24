@@ -1,17 +1,17 @@
 #ifndef COMMON_H_
 #define COMMON_H_
 
+#include <sdsl/bit_vectors.hpp>
 #include <seqan/arg_parse.h>
 #include <seqan/seq_io.h>
 #include <seqan/index.h>
 
-
-
-
-
 #include "lambda/src/mkindex_saca.hpp"
 #include "lambda/src/mkindex_misc.hpp"
 #include "lambda/src/mkindex_algo.hpp"
+
+
+
 
 // reduce space consumption
 // requires genome not to have more than ~ 4 gigabases
@@ -29,6 +29,7 @@ struct SAValue<String<TChar, TAlloc> >
 {
     typedef uint32_t Type;
 };
+
 template <typename TSpec = void, typename TLengthSum = size_t, unsigned LEVELS = 2, unsigned WORDS_PER_BLOCK = 1>
 struct FastFMIndexConfigS1
 {
@@ -37,6 +38,122 @@ struct FastFMIndexConfigS1
      typedef Levels<void, LevelsRDConfig<LengthSum, Alloc<>, LEVELS, WORDS_PER_BLOCK> >         Sentinels;
      static const unsigned SAMPLING = 1;
 };
+
+using TMyFastConfig = seqan::FastFMIndexConfig<void, uint32_t, 2, 1>;
+using TIndexConfig = seqan::BidirectionalIndex<seqan::FMIndex<void, TMyFastConfig> >;
+//TODO ask about this
+// using TMyFastConfig = seqan::FastFMIndexConfig<void, uint32_t, 2, 1>;
+// using TIndexConfig = seqan::BidirectionalIndex<seqan::FMIndex<RadixSortSACreateTag, TMyFastConfig> >;
+
+template <typename TText>
+using TIndex = seqan::Index<TText, TIndexConfig>;
+
+/*
+using TMyFastConfig = seqan::FastFMIndexConfigS1<void, uint32_t, 2, 1>;
+using TIndexConfig = seqan::BidirectionalIndex<seqan::FMIndex<void, TMyFastConfig> >;*/
+
+/*
+typedef FastFMIndexConfigS1<void, uint32_t, 2, 1> TMyFastConfig;
+typedef BidirectionalIndex<FMIndex<void, TMyFastConfig> > TIndexConfig;*/
+
+typedef String<Dna, Alloc<>> TString;
+typedef StringSet<TString, Owner<ConcatDirect<> > > TText;
+typedef Index<TText, TIndexConfig> MyIndex;
+typedef sdsl::bit_vector TBitvector;
+typedef sdsl::rank_support_v<> TSupport;
+// typedef sdsl::rank_support_v5<> TSupport;
+
+
+
+struct hit{
+    bool rev;
+    Pair <uint32_t, uint32_t> occ;
+    Pair <uint32_t, uint32_t> occEnd;
+    uint8_t errors;
+    uint32_t readId;
+    DnaString read;
+};
+
+
+template <size_t nbrBlocks, size_t N>
+inline void calcConstParameters(std::array<OptimalSearch<nbrBlocks>, N> & ss)
+{
+    for (OptimalSearch<nbrBlocks> & s : ss){
+//         int bsize = s.pi.size();
+        uint8_t min = s.pi[0];
+        uint8_t max = s.pi[0];
+        // maybe < N?
+        for(int i = 0; i < nbrBlocks; ++i){
+            if(min > s.pi[i])
+                min = s.pi[i];
+            if(max < s.pi[i])
+                max = s.pi[i];
+            s.min[i] = min;
+            s.max[i] = max;
+        }
+        uint8_t lastValue = s.pi[nbrBlocks - 1];
+        int k = nbrBlocks - 2;
+        while(k >= 0){
+            if(s.pi[k] == lastValue - 1 || s.pi[k] == lastValue + 1)
+            {
+                lastValue = s.pi[k];
+                --k;
+            }else{
+                s.startUniDir = k + 1;
+                break;
+            }
+        }
+    }
+}
+
+
+
+template <size_t nbrBlocks, size_t N>
+/*constexpr */inline void _optimalSearchSchemeComputeChronBlocklength(std::array<OptimalSearch<nbrBlocks>, N> & ss)
+{
+    for (OptimalSearch<nbrBlocks> & s : ss){
+        s.chronBL[s.pi[0] - 1]  = s.blocklength[0];
+        for(int j = 1; j < nbrBlocks; ++j)
+            s.chronBL[s.pi[j] - 1] = s.blocklength[j] -  s.blocklength[j - 1];
+        for(int j = 1; j < nbrBlocks; ++j)
+            s.chronBL[j] += s.chronBL[j - 1];
+
+        s.revChronBL[s.pi[nbrBlocks - 1] - 1]  = s.blocklength[nbrBlocks - 1] - s.blocklength[nbrBlocks - 2];
+        for(int i = static_cast<int> (nbrBlocks) - 2; i >= 0; --i){
+            s.revChronBL[s.pi[i] - 1] = s.blocklength[i] - ((i > 0) ? s.blocklength[i - 1] : 0);
+        }
+        for(int i = static_cast<int> (nbrBlocks) - 2; i >= 0; --i)
+            s.revChronBL[i] += s.revChronBL[i + 1];
+    }
+    for (OptimalSearch<nbrBlocks> & s : ss){
+        for (uint8_t j = 0; j < s.pi.size(); ++j)
+        {
+            s.blockStarts[j] = (s.pi[j] - 1 == 0) ? 0 : s.chronBL[s.pi[j] - 2];
+            s.blockEnds[j] = s.chronBL[s.pi[j] - 1];
+        }
+
+        for(uint8_t j = 0; j < s.pi.size(); ++j){
+            s.revblockStarts[j] = (s.pi[j] == s.pi.size()) ? 0 : s.revChronBL[s.pi[j]];
+            s.revblockEnds[j] = s.revChronBL[s.pi[j] - 1];
+        }
+    }
+}
+
+
+
+enum class ReturnCode {
+	NOMAPPABILITY, DIRECTSEARCH, COMPMAPPABLE, ONEDIRECTION, MAPPABLE, FINISHED, UNIDIRECTIONAL, SUSPECTUNIDIRECTIONAL, FILTER, ERROR
+};
+
+template <typename TVector, typename TVSupport>
+inline void getConsOnes(std::vector<std::pair<TVector, TVSupport>> & bitvectors,
+                 Pair<uint8_t, Pair<uint32_t, uint32_t>> & inside_bit_interval,
+                 int const intervalsize,
+                 std::vector<std::pair<uint32_t, uint32_t>> & consOnesOutput);
+
+
+
+
 
 /*
 template <typename TText, typename TSpec, typename TConfig>
@@ -128,15 +245,6 @@ std::string mytime()
 
 
 
-using TMyFastConfig = seqan::FastFMIndexConfig<void, uint32_t, 2, 1>;
-using TIndexConfig = seqan::BidirectionalIndex<seqan::FMIndex<void, TMyFastConfig> >;
-/*
-using TMyFastConfig = seqan::FastFMIndexConfigS1<void, uint32_t, 2, 1>;
-using TIndexConfig = seqan::BidirectionalIndex<seqan::FMIndex<void, TMyFastConfig> >;*/
-
-/*
-typedef FastFMIndexConfigS1<void, uint32_t, 2, 1> TMyFastConfig;
-typedef BidirectionalIndex<FMIndex<void, TMyFastConfig> > TIndexConfig;*/
 
 template <typename TChar, typename TConfig, typename TMappVector>
 void resetLimits(seqan::String<TChar, TConfig> const &, TMappVector const &, unsigned const)
@@ -193,12 +301,6 @@ inline void initProgress<true>(uint64_t & progress_count, uint64_t & progress_st
     --progress_step;
 }
 
-//TODO ask about this
-// using TMyFastConfig = seqan::FastFMIndexConfig<void, uint32_t, 2, 1>;
-// using TIndexConfig = seqan::BidirectionalIndex<seqan::FMIndex<RadixSortSACreateTag, TMyFastConfig> >;
-
-template <typename TText>
-using TIndex = seqan::Index<TText, TIndexConfig>;
 
 // template <typename TString, typename TPos, typename TLength>
 // auto extractNeedle(TString const & text, TPos const pos, TLength const len)

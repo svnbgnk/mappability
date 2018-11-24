@@ -2,7 +2,6 @@
 #define AUXILLARY_H_
 
 #include "common.h"
-#include "common_auxiliary.h"
 
 using namespace seqan;
 /*

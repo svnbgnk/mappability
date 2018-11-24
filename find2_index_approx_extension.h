@@ -5,7 +5,7 @@
 #include <sdsl/bit_vectors.hpp>
 // #include "global.h"
 #include "auxiliary.h"
-#include "common_auxiliary.h"
+#include "common.h"
 #include "find2_index_approx_unidirectional.h"
 // #include "find2_index_approx_compmappable.h"
 // #include "find2_index_approx_start_unidirectional.h"

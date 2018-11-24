@@ -1,7 +1,7 @@
 #include <sdsl/bit_vectors.hpp>
 #include <seqan/arg_parse.h>
 #include "auxiliary.h"
-#include "common_auxiliary.h"
+#include "common.h"
 
 using namespace std;
 using namespace seqan;
