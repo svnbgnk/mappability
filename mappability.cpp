@@ -33,7 +33,7 @@ string get_output_path(Options const & opt, SearchParams const & searchParams)
 {
     string output_path = toCString(opt.outputPath);
     output_path += "_" + to_string(opt.errors) + "_" + to_string(searchParams.length) + "_" + to_string(searchParams.overlap);
-//     output_path += ".gmapp" + string(opt.high ? "16" : "8");
+    output_path += ".gmapp" + string(opt.high ? "16" : "8");
     return output_path;
 }
 
@@ -53,7 +53,6 @@ template <typename TDistance, typename value_type, typename TIndex, typename TTe
 inline void run(TIndex & index, TText const & text, Options const & opt, SearchParams const & searchParams)
 {
     vector<value_type> c(length(text) - searchParams.length + 1, 0);
-
     if(opt.indels){
         switch (opt.errors)
         {

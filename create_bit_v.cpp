@@ -112,6 +112,7 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, uint32_t con
     bitvectors b;
     sdsl::bit_vector righti (mappability.size() + len - 1, 0);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
+    //INFO mappability contains zeroes (important when using mappability instead of frequency)
     #pragma omp parallel for schedule(static)
     for(uint32_t i = 0; i < mappability.size(); ++i){
         lefti[i + len - 1] = (mappability[i] <= threshold);

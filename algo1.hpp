@@ -65,9 +65,12 @@ inline void runAlgoTrivial(TIndex & index, TText const & text, TContainer & c, S
         _optimalSearchScheme(delegate, it, needle, scheme, EditDistance());
 
         std::sort(myhits.begin(), myhits.end(), occ_s);
-        myhits.erase(std::unique(myhits.begin(), myhits.end(), occ_sim<20>), myhits.end());
+        myhits.erase(std::unique(myhits.begin(), myhits.end(), occ_sim<15>), myhits.end());
 
-        c[i] = myhits.size();
+        if(myhits.size() < max_val)
+            c[i] = myhits.size();
+        else
+            c[i] = max_val;
 //         c[i] = hits;
     }
 
