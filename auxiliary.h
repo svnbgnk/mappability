@@ -294,7 +294,8 @@ uint32_t testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
               hit testhit,
               int threshold,
               int mErrors,
-              bool editD)
+              bool editD,
+              bool editDMappa)
 {
     auto const & genome = indexText(index);
     std::vector<hit> hits;
@@ -339,14 +340,20 @@ uint32_t testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
         std::sort(hits.begin(), hits.end(), occ_smaller);
         hits.erase(std::unique(hits.begin(), hits.end(), occ_similar<10>), hits.end());*/
 
-        find<minErrors, maxErrors>(delegate, index, testocc[mErrors], HammingDistance()); //Change to EditDistance
+        if(!editDMappa)
+            find<minErrors, maxErrors>(delegate, index, testocc[mErrors], HammingDistance());
+        else
+            find<minErrors, maxErrors>(delegate, index, testocc[mErrors], EditDistance());
         std::cout << hits.size() << " hits!!!!!!!!!!" << "\n";
 
         //threshold as input
         int k = 0;
         while(hits.size() < threshold && k < length(testocc)){
             hits.clear();
-            find<minErrors, maxErrors>(delegate, index, testocc[k], HammingDistance()); //Change to EditDistance
+            if(!editDMappa)
+                find<minErrors, maxErrors>(delegate, index, testocc[k], HammingDistance());
+            else
+                find<minErrors, maxErrors>(delegate, index, testocc[k], EditDistance());
             ++k;
             //use sort and erase
             std::cout << hits.size() << " hits!!!!!!!!!!e" << "\n";
@@ -357,16 +364,16 @@ uint32_t testread(Index<TText, BidirectionalIndex<TIndexSpec> > & index,
 }
 
 template <typename TText, typename TIndexSpec>
-uint32_t testread(int minErrors, int maxErrors, int threshold, bool editD, Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+uint32_t testread(int minErrors, int maxErrors, int threshold, bool editD, bool editDMappa, Index<TText, BidirectionalIndex<TIndexSpec> > & index,
               hit testhit){
     int nhits;
     switch (maxErrors)
     {
-        case 1: nhits = testread<0, 1>(index, testhit, threshold, maxErrors, editD);
+        case 1: nhits = testread<0, 1>(index, testhit, threshold, maxErrors, editD, editDMappa);
                 break;
-        case 2: nhits = testread<0, 2>(index, testhit, threshold, maxErrors, editD);
+        case 2: nhits = testread<0, 2>(index, testhit, threshold, maxErrors, editD, editDMappa);
                 break;
-        case 3: nhits = testread<0, 3>(index, testhit, threshold, maxErrors, editD);
+        case 3: nhits = testread<0, 3>(index, testhit, threshold, maxErrors, editD, editDMappa);
                 break;
         default: std::cerr << "E = " << maxErrors << " not yet supported.\n";
                 std::exit(1);
@@ -383,6 +390,7 @@ std::vector<uint32_t> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & in
                     int errors,
                     uint32_t threshold,
                     bool const editD,
+                    bool const editDMappa,
                     std::vector<hit> x,
                     std::vector<hit> y)
 {
@@ -400,7 +408,7 @@ std::vector<uint32_t> compare(Index<TText, BidirectionalIndex<TIndexSpec> > & in
             if(i < x.size())
                 std::cout << "MyVersion has: " << x[i].occ.i2 << " while " ;
             std::cout << "default version has: " << y[i + offset].occ.i2 << "\n";
-            uint32_t nhits = testread(0, errors, threshold, editD, index, y[i + offset]);
+            uint32_t nhits = testread(0, errors, threshold, editD, editDMappa, index, y[i + offset]);
             if(nhits < threshold){
                 std::cout << "To few hits should have found this part!!!!" << "\n";
                 wrongHitCount.push_back(nhits);

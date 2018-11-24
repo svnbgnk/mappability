@@ -106,23 +106,23 @@ inline void uniDirectSearch(TContex & ossContext,
         uint8_t overlap_r = max_e;
 
         if(std::is_same<TDir, Rev>::value){
+            DnaString needle2 = needle;
+            DnaStringReverse needleRev(needle2);
+            DnaString needleRevCopy = needleRev; //why is this neccesary MyersBitVector() otherwise return error
+
             for(uint32_t r = 0; r < iter.vDesc.range.i2 - iter.vDesc.range.i1; ++r){
                 if(checkSinglePos(bitvectors, brange, r))
                 {
                     Pair<uint16_t, uint32_t> sa_info = iter.index->sa[iter.vDesc.range.i1 + r];
                     uint32_t const chromlength = length(genome[sa_info.i1]);
-                    if(!(sa_info.i2 >= needleL - needleRightPos + 1 && chromlength - 1 >= sa_info.i2 + needleRightPos - 2))
+                    if(!(sa_info.i2 >= needleL - needleRightPos + 1 + overlap_l && chromlength - 1 >= sa_info.i2 + needleRightPos - 2 + overlap_l))
                         continue;
                     sa_info.i2 = sa_info.i2 - needleL + needleRightPos - 1;
-
-                    DnaString ex_infix = infix(genome[sa_info.i1], sa_info.i2 - overlap_l, sa_info.i2 + needleL + overlap_r);
+                    //since we reverse the needle the overlap in infices must also me switched
+                    DnaString ex_infix = infix(genome[sa_info.i1], sa_info.i2 - overlap_r, sa_info.i2 + needleL + overlap_l);
                     DnaString n_infix = infix(genome[sa_info.i1], sa_info.i2, sa_info.i2 + needleL);
 
-                    DnaString needle2 = needle;
-                    DnaStringReverse needleRev(needle2);
-                    DnaString needle3 = needleRev;
-
-                    alignmentMyersBitvector(ossContext, delegateDirect, needle3, needleId, n_infix, ex_infix, chromlength, sa_info, max_e, overlap_l, overlap_r, intDel, true);
+                    alignmentMyersBitvector(ossContext, delegateDirect, needleRevCopy, needleId, n_infix, ex_infix, chromlength, sa_info, max_e, overlap_l, overlap_r, intDel, true);
                 }
             }
         }
@@ -132,7 +132,7 @@ inline void uniDirectSearch(TContex & ossContext,
                 if(checkSinglePos(bitvectors, brange, r)){
                     Pair<uint16_t, uint32_t> sa_info = iter.index->sa[iter.vDesc.range.i1 + r];
                     uint32_t const chromlength = length(genome[sa_info.i1]);
-                    if(!(needleLeftPos <= sa_info.i2 && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1))
+                    if(!(needleLeftPos <= sa_info.i2 - overlap_l  && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1 + overlap_r))
                         continue;
                     //calculate correct starting position of the needle  on the forward index
                     sa_info.i2 = sa_info.i2 - needleLeftPos;

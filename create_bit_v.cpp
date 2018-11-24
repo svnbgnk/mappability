@@ -66,7 +66,7 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, uint32_t
     uint8_t blocks = s.pi.size();
     if(errors != 0){
         for(uint32_t i = 0; i < blocks - 1; ++i){
-            sdsl::bit_vector newright(mappability.size() + len - 1, 0); //TODO think 0 or 1 in edge cases
+            sdsl::bit_vector newright(mappability.size() + len - 1, 0);
             uint32_t shift = s.chronBL[i];
             cout << "r bitvector  name: " << to_string(i + 1) << endl;
             cout << "with shift: " << shift << endl;
@@ -82,7 +82,7 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, uint32_t
         }
 
         for(uint32_t i = 1; i < blocks; ++i){
-            sdsl::bit_vector newleft(mappability.size() + len - 1, 0);//TODO think 0 or 1 in edge cases
+            sdsl::bit_vector newleft(mappability.size() + len - 1, 0);
             uint32_t shift = s.revChronBL[blocks - i];
             cout << "l bitvector  name: " << to_string(i) << endl;
             cout << "with shift: " << shift << endl;
@@ -303,7 +303,7 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("O", "output", "Path to output directory", ArgParseArgument::OUTPUT_FILE, "OUT"));
     setRequired(parser, "output");
 
-    addOption(parser, ArgParseOption("K", "length", "Length of k-mers in the mappability vector", ArgParseArgument::INTEGER, "INT"));
+    addOption(parser, ArgParseOption("K", "length", "Length of reads that will be searched (for Hamming Distance read length == k-mere length)", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "length");
 
     addOption(parser, ArgParseOption("T", "threshold", "Number of times a k-mer can occure and still be accepted as mappable", ArgParseArgument::INTEGER, "INT"));
@@ -311,6 +311,7 @@ int main(int argc, char *argv[])
 
     addOption(parser, ArgParseOption("E", "errors", "Max errors allowed during mapping", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "errors");
+
     addOption(parser, ArgParseOption("d", "debug", "Also create chronical bit_vectors (for debugging)"));
 
     addOption(parser, ArgParseOption("s", "startSa", "Create first 1500 lines from SA array fwd and rev and then quit"));
@@ -374,7 +375,6 @@ int main(int argc, char *argv[])
     cout << mytime() << "Program start." << endl;
     vector<uint8_t> mappability = read(mappability_path);
     cout << mytime() << "Loaded Mappability vector. Size: " << mappability.size() << endl;
-
 
     bitvectors result = create_bit_vectors(mappability, len, threshold, bit3, errors);
 

@@ -566,7 +566,7 @@ int main(int argc, char *argv[])
         hitsDefault = print_readocc_sorted(hitsDefault, genome, editD, nerrors, true);
         cout << "Test if default and my version are the same: " << endl;
 //         cout.setstate(std::ios_base::failbit);
-        vector<uint32_t> whitcount = compare(index, nerrors, threshold + 1, editD, myhits, hitsDefault);
+        vector<uint32_t> whitcount = compare(index, nerrors, threshold + 1, editD, false, myhits, hitsDefault);
 //         std::cout.clear();
 
         if(whitcount.size() == 0){
@@ -589,7 +589,7 @@ int main(int argc, char *argv[])
         hitsDe = print_readocc_sorted(hitsDe, genome, editD, nerrors, true);
         cout << "Test if default with ITV and my version are the same: " << endl;
 //         cout.setstate(std::ios_base::failbit);
-        vector<uint32_t> whitcount = compare(index, nerrors, threshold + 1, editD, myhits, hitsDe);
+        vector<uint32_t> whitcount = compare(index, nerrors, threshold + 1, editD, false, myhits, hitsDe);
 //         std::cout.clear();
 
         if(whitcount.size() == 0){
