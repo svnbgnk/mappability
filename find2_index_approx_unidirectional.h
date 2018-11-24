@@ -106,9 +106,9 @@ inline void uniDirectSearch(TContex & ossContext,
         uint8_t overlap_r = max_e;
 
         if(std::is_same<TDir, Rev>::value){
-            DnaString needle2 = needle;
+            TNeedle needle2 = needle;
             DnaStringReverse needleRev(needle2);
-            DnaString needleRevCopy = needleRev; //why is this neccesary MyersBitVector() otherwise return error
+            TNeedle needleRevCopy = needleRev; //why is this neccesary MyersBitVector() otherwise return error
 
             for(uint32_t r = 0; r < iter.vDesc.range.i2 - iter.vDesc.range.i1; ++r){
                 if(checkSinglePos(bitvectors, brange, r))
@@ -137,8 +137,8 @@ inline void uniDirectSearch(TContex & ossContext,
                     //calculate correct starting position of the needle  on the forward index
                     sa_info.i2 = sa_info.i2 - needleLeftPos;
 
-                    TString const & ex_infix = infix(genome[sa_info.i1], sa_info.i2 - overlap_l, sa_info.i2 + needleL + overlap_r);
-                    TString const & n_infix = infix(genome[sa_info.i1], sa_info.i2, sa_info.i2 + needleL);
+                    DnaString const & ex_infix = infix(genome[sa_info.i1], sa_info.i2 - overlap_l, sa_info.i2 + needleL + overlap_r);
+                    DnaString const & n_infix = infix(genome[sa_info.i1], sa_info.i2, sa_info.i2 + needleL);
 
                     alignmentMyersBitvector(ossContext, delegateDirect, needle, needleId, n_infix, ex_infix, chromlength, sa_info, max_e, overlap_l, overlap_r, intDel, false);
                 }
