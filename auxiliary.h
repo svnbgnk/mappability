@@ -70,7 +70,8 @@ inline bool isMapped(TReadsContext const & ctx, TReadId readId)
 
 inline uint32_t getReadId(uint32_t readId, uint32_t const readCount)
 {
-    return (readId < readCount) ? readId : readId - readCount;
+    uint32_t newreadId = (readId < readCount) ? readId : readId - readCount;
+    return newreadId;
 }
 
 template <typename TReadId>

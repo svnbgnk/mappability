@@ -1060,12 +1060,28 @@ find(TContex & ossContext,
 
     auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
     calcConstParameters(scheme);
-    uint32_t k = 0;
+    uint32_t needleId = 0;
     uint32_t lastcount = 0;
-    while(k < length(needles))
+    while(needleId < length(needles))
     {
-        find<minErrors, maxErrors>(ossContext, delegate, delegateDirect, index, bitvectors, scheme, needles[k], k, TDistanceTag());
-        ++k;
+//         find<minErrors, maxErrors>(ossContext, delegate, delegateDirect, index, bitvectors, scheme, needles[needleId], needleId, TDistanceTag());
+//         ++needleId;
+
+        bool skip = false;
+        if(ossContext.bestXMapper){
+            uint32_t readId = getReadId(needleId, ossContext.readCount);
+            if(isMapped(
+                ossContext.ctx, readId)){
+                if(getMinErrors(ossContext.ctx, readId) + ossContext.strata < minErrors || getMinErrors(ossContext.ctx, readId) == 0){
+                    skip = true;
+                }
+            }
+        }
+        if(!skip){
+            find<minErrors, maxErrors>(ossContext, delegate, delegateDirect, index, bitvectors, scheme, needles[needleId], needleId, TDistanceTag());
+        }
+        needleId++;
+
         /*
         if(ossContext.trackReadCount){
             uint32_t currentcount = ossContext.hits.size() + ossContext.dhits.size() - lastcount;

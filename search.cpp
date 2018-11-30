@@ -87,6 +87,7 @@ public:
 
     // Shared-memory read-write data.
     ReadsContext<void, void>       ctx;
+    StringSet<DnaString> & reads;
     std::vector<hit> & hits;
     std::vector<hit> & dhits;
     std::vector<uint32_t> /*&*/ readOccCount;
@@ -99,12 +100,16 @@ public:
     bool itv = true;
     bool readContext = false;
 
-    uint32_t readCount = 999999999; //if readCount is not set than all reads are assumend to be one normal strand
+    uint32_t readCount = length(reads); //if readCount is not set than all reads are assumend to be on one strand
+    uint8_t maxError = 0;
+    uint8_t strata = 0;
 
 
-    OSSContext(std::vector<hit> & inhits,
+    OSSContext(StringSet<DnaString> inreads,
+               std::vector<hit> & inhits,
                std::vector<hit> & indhits/*,
                std::vector<uint32_t> & inreadOccCount*/) :
+        reads(inreads),
         hits(inhits),
         dhits(indhits)
 //         readOccCount(inreadOccCount)
@@ -127,8 +132,10 @@ public:
         uni.print();
     }
 
-    void setReadContext(uint32_t inreadCount){
+    void setReadContext(uint32_t inreadCount, uint8_t nerrors = 0, uint8_t instrata = 0){
         readCount = inreadCount;
+        maxError = nerrors;
+        strata = instrata;
         readContext = true;
         initReadsContext(ctx, readCount);
     }
@@ -249,7 +256,7 @@ int main(int argc, char *argv[])
 
     CharString indexPath, bitvectorpath, readspath;
     string outputpath;
-    int K, nerrors, benchparams, threshold = 10, r = 0;
+    int K, nerrors, benchparams, threshold = 10, r = 0, strata = 0;
     getOptionValue(indexPath, parser, "index");
     getOptionValue(bitvectorpath, parser, "ibitvector");
     getOptionValue(readspath, parser, "ireads");
@@ -337,8 +344,8 @@ int main(int argc, char *argv[])
     std::vector<hit> myhits;
     std::vector<hit> mydhits;
     std::vector<uint32_t> myreadOccCount;
-    OSSContext myOSSContext(myhits, mydhits/*, myreadOccCount*/);
-    myOSSContext.setReadContext(readCount);
+    OSSContext myOSSContext(reads, myhits, mydhits/*, myreadOccCount*/);
+    myOSSContext.setReadContext(readCount, nerrors, strata);
 
     if(editD){
         myOSSContext.itv = true;
@@ -348,7 +355,7 @@ int main(int argc, char *argv[])
         myOSSContext.normal.suspectunidirectional = true;
     }
 
-    auto delegate = [&myhits](auto ossContext, auto const & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
+    auto delegate = [&myhits](OSSContext & ossContext, auto const & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
     {
         uint32_t readId = getReadId(needleId, ossContext.readCount);
 
@@ -367,7 +374,7 @@ int main(int argc, char *argv[])
             setMinErrors(ossContext.ctx, readId, errors);
         }
     };
-    auto delegateDirect = [&mydhits](auto ossContext, Pair<uint16_t, uint32_t> const & pos, Pair<uint16_t, uint32_t> const & posEnd, DnaString const & needle, uint32_t const needleId, uint8_t const errors)
+    auto delegateDirect = [&mydhits](OSSContext & ossContext, Pair<uint16_t, uint32_t> const & pos, Pair<uint16_t, uint32_t> const & posEnd, DnaString const & needle, uint32_t const needleId, uint8_t const errors)
     {
         hit me;
         me.occ = pos;
@@ -443,7 +450,7 @@ int main(int argc, char *argv[])
     //TODO change vector name of lambda function
     std::vector<hit> hitsDefault;
     std::vector<hit> dummy;
-    OSSContext ossContextDefault(hitsDefault, dummy);
+    OSSContext ossContextDefault(reads, hitsDefault, dummy);
     ossContextDefault.readCount = readCount;
 //     ossContextDefault.itv = false;
 
@@ -507,15 +514,15 @@ int main(int argc, char *argv[])
     std::vector<hit> hitsDe;
     std::vector<hit> dhitsDe;
 //     std::vector<uint32_t> myreadOccCountDe;
-    OSSContext ossContextDefaultT(hitsDe, dhitsDe); //, myreadOccCountDe
-    ossContextDefaultT.setReadContext(readCount);
+    OSSContext ossContextDefaultT(reads, hitsDe, dhitsDe); //, myreadOccCountDe
+    ossContextDefaultT.setReadContext(readCount, nerrors, strata);
 //     ossContextDefaultT.itv = false;
 
     // default with in text search
     if(defaultT){
         ossContextDefaultT.comp.directsearch_th = 5;
         ossContextDefaultT.comp.directsearchblockoffset = 0;
-        auto delegate2 = [&hitsDe](auto ossContext, auto & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
+        auto delegate2 = [&hitsDe](OSSContext & ossContext, auto & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
         {
             uint32_t readId = getReadId(needleId, ossContext.readCount);
             uint32_t occLength = repLength(iter);
@@ -533,7 +540,7 @@ int main(int argc, char *argv[])
                 setMinErrors(ossContext.ctx, readId, errors);
             }
         };
-        auto delegateDirect2 = [&dhitsDe](auto ossContext, Pair<uint16_t, uint32_t> const & pos, Pair<uint16_t, uint32_t> const & posEnd, DnaString const & needle, uint32_t const needleId, uint8_t const errors)
+        auto delegateDirect2 = [&dhitsDe](OSSContext & ossContext, Pair<uint16_t, uint32_t> const & pos, Pair<uint16_t, uint32_t> const & posEnd, DnaString const & needle, uint32_t const needleId, uint8_t const errors)
         {
             hit me;
             setReadId(me, ossContext.readCount, needleId); //this function also saves if read was reversecomplement
@@ -555,6 +562,15 @@ int main(int argc, char *argv[])
             find(0, nerrors, ossContextDefaultT, delegate2, delegateDirect2, index, reads, EditDistance());
         auto finish2 = std::chrono::high_resolution_clock::now();
         elapsed = finish2 - start2;
+
+        cout << "Default Version with DS: " << elapsed.count() << "s" << endl;
+        cout << "default DS Hits: " << hitsDe.size() + dhitsDe.size() << endl;
+
+        start2 = std::chrono::high_resolution_clock::now();
+        find(0, nerrors, ossContextDefaultT, delegate2, delegateDirect2, index, reads, EditDistance());
+        finish2 = std::chrono::high_resolution_clock::now();
+        elapsed = finish2 - start2;
+
         cout << "Default Version with DS: " << elapsed.count() << "s" << endl;
         cout << "default DS Hits: " << hitsDe.size() + dhitsDe.size() << endl;
     }
