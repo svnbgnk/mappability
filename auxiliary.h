@@ -4,13 +4,83 @@
 #include "common.h"
 
 using namespace seqan;
-/*
-struct readOcc
+
+
+
+struct ReadsContext
 {
-    public:
-    Pair<DnaString, Pair <unsigned, unsigned>> hit;
-    uint8_t errors;
-};*/
+    String<unsigned char>       minErrors;
+    String<bool>                mapped;
+
+    ReadsContext(){
+    }
+};
+
+
+inline void clear(ReadsContext & ctx)
+{
+    clear(ctx.minErrors);
+    clear(ctx.mapped);
+    shrinkToFit(ctx.minErrors);
+    shrinkToFit(ctx.mapped);
+}
+
+template <typename TReadSeqs>
+inline void resize(ReadsContext & ctx, uint32_t const readCount)
+{
+    resize(ctx.minErrors, readCount, std::numeric_limits<unsigned char>::max());
+    resize(ctx.mapped, readCount, false);
+}
+
+
+template <typename TReadsContext, typename TReadId>
+inline unsigned char getMinErrors(TReadsContext const & ctx, TReadId readId)
+{
+    return ctx.minErrors[readId];
+}
+
+// ----------------------------------------------------------------------------
+// Function setMinErrors()
+// ----------------------------------------------------------------------------
+
+template <typename TReadsContext, typename TReadId, typename TErrors>
+inline void setMinErrors(TReadsContext & ctx, TReadId readId, TErrors errors)
+{
+    if (errors < getMinErrors(ctx,readId))
+        assignValue(ctx.minErrors, readId, errors);
+}
+
+// ----------------------------------------------------------------------------
+// Function setMapped()
+// ----------------------------------------------------------------------------
+
+template <typename TReadsContext, typename TReadId>
+inline void setMapped(TReadsContext & ctx, TReadId readId)
+{
+    assignValue(ctx.mapped, readId, true);
+}
+
+// ----------------------------------------------------------------------------
+// Function isMapped()
+// ----------------------------------------------------------------------------
+
+template <typename TReadsContext, typename TReadId>
+inline bool isMapped(TReadsContext const & ctx, TReadId readId)
+{
+    return ctx.mapped[readId];
+}
+
+inline uint32_t getReadId(uint32_t const readId, uint32_t const readCount)
+{
+    return (readId < readCount) ? readId : readId - readCount;
+}
+
+template <typename TReadsContext>
+inline void initReadsContext(TReadsContext & ctx, uint32_t & readCount)
+{
+    clear(ctx);
+    resize(ctx, readCount);
+}
 
 template <typename TIter>
 struct isBidirectionalIter

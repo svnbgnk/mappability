@@ -3,12 +3,8 @@
 
 #include <iostream>
 #include <sdsl/bit_vectors.hpp>
-// #include "global.h"
-#include "auxiliary.h"
 #include "common.h"
 #include "find2_index_approx_unidirectional.h"
-// #include "find2_index_approx_compmappable.h"
-// #include "find2_index_approx_start_unidirectional.h"
 
 // class OSSContext
 
@@ -30,14 +26,14 @@ inline void getConsOnes(std::vector<std::pair<TVector, TVSupport>> & bitvectors,
             ++interval;
         }
         if(interval >= intervalsize){
-            consOnesOutput.push_back(make_pair(startOneInterval, k));
+            consOnesOutput.push_back(std::make_pair(startOneInterval, k));
             startOneInterval = k + interval;
         }
         k += interval;
         interval = 0;
         ++k;
     }
-    consOnesOutput.push_back(make_pair(startOneInterval, k));
+    consOnesOutput.push_back(std::make_pair(startOneInterval, k));
 }
 
 template <typename TContex,
@@ -54,7 +50,7 @@ inline void filter_interval(TContex & ossContext,
                             Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                             TNeedle const & needle,
                             uint32_t needleId,
-                            vector<pair<TVector, TVSupport>> & bitvectors,
+                            std::vector<std::pair<TVector, TVSupport>> & bitvectors,
                             uint32_t const needleLeftPos,
                             uint32_t const needleRightPos,
                             uint8_t const errors,
@@ -64,7 +60,7 @@ inline void filter_interval(TContex & ossContext,
                             TDir const & ,
                             TDistanceTag const &)
 {
-    vector<pair<uint32_t, uint32_t>> consOnes;
+    std::vector<std::pair<uint32_t, uint32_t>> consOnes;
     getConsOnes(bitvectors, inside_bit_interval, ossContext.normal.intervalsize, consOnes);
     uint32_t noi = countSequences(*iter.fwdIter.index);
 
@@ -115,48 +111,8 @@ inline void genomeSearch(TContex & ossContext,
 
 }
 
-//find first match without insertion and errors at the beginning and end
-template<typename TNeedle,
-         typename TString>
-inline bool compareStartAndEnd(TNeedle const & needle,
-                              TString const & infix,
-                              uint8_t const alignment_errors)
-{
-    // It is impossible without additional alignments to check for Insertion and deletions at the beginning and end therefore they will be allowed
-    // In the future just the first best hit will be reported
-//     std::cout << "compare start and end" << "\n";
-    uint8_t errors = 0;
-    auto lastBase = needle[0];
-    for(int i = 0; i <= alignment_errors; ++i){
-//         std::cout << (char)infix[i] << "\t" << (char)needle[i] << "\n";
-        if(infix[i] == needle[i]){
-            break;
-        }else{
-            ++errors;
-        }
-    }
-    if(errors > alignment_errors){
-//         std::cout << "Denied" << "\n";
-        return false;
-    }
-//     std::cout << "Errors: " << (int)errors << "\n";
-    for(int i = 0; i <= alignment_errors - errors; ++i){
-//         std::cout << (char)infix[length(infix) - 1 - i] << "\t" << (char)needle[length(needle) - 1 - i] << "\n";
-        if(infix[length(infix) - 1 - i] == needle[length(needle) - 1 - i]){
-//             std::cout << "i: " << i << "\n";
-//             std::cout << "Accepted" << "\n";
-            return true;
-        }
-    }
-//     std::cout << "Denied" << "\n";
-    return false;
-
-    //allow also no mismatches at the start and end
-//     return(infix[0] == needle[0] && infix[length(infix) - 1] == needle[length(needle) - 1]);
-}
-
 template<typename TVector, typename TVSupport>
-inline bool checkSinglePos(vector<pair<TVector, TVSupport>> & bitvectors,
+inline bool checkSinglePos(std::vector<std::pair<TVector, TVSupport>> & bitvectors,
                            Pair<uint8_t, Pair<uint32_t, uint32_t>> const & brange,
                            uint32_t offset)
 {
@@ -296,7 +252,7 @@ inline void directSearch(TContex & ossContext,
                          Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                          TNeedle const & needle,
                          uint32_t needleId,
-                         vector<pair<TVector, TVSupport>> & bitvectors,
+                         std::vector<std::pair<TVector, TVSupport>> & bitvectors,
                          uint32_t const needleLeftPos,
                          uint32_t const needleRightPos,
                          uint8_t const errors,
@@ -433,11 +389,11 @@ template <typename TText, typename TIndex, typename TIndexSpec,
           typename TVector, typename TVSupport,
           size_t nbrBlocks>
 inline void get_bitvector_interval_inside(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-                              vector<pair<TVector, TVSupport>> & bitvectors,
-                              OptimalSearch<nbrBlocks> const & s,
-                              uint8_t const blockIndex,
-                              Pair<uint8_t, Pair<uint32_t, uint32_t>> & brangeOutput,
-                              bool const goToRight2)
+                                          std::vector<std::pair<TVector, TVSupport>> & bitvectors,
+                                          OptimalSearch<nbrBlocks> const & s,
+                                          uint8_t const blockIndex,
+                                          Pair<uint8_t, Pair<uint32_t, uint32_t>> & brangeOutput,
+                                          bool const goToRight2)
 {
     Pair<uint32_t, uint32_t> dirrange = (goToRight2) ? range(iter.revIter) : range(iter.fwdIter);
     uint8_t needed_bitvector;
@@ -462,7 +418,7 @@ template <typename TText, typename TIndex, typename TIndexSpec,
           size_t nbrBlocks,
           typename TDir>
 inline void get_bitvector_interval(Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-                       vector<pair<TVector, TVSupport>> & bitvectors,
+                       std::vector<std::pair<TVector, TVSupport>> & bitvectors,
                        OptimalSearch<nbrBlocks> const & s,
                        uint8_t const blockIndex,
                        Pair<uint8_t, Pair<uint32_t, uint32_t>> & brangeOutput,
@@ -483,7 +439,7 @@ template<typename TContex,
          size_t nbrBlocks>
 inline bool testUnidirectionalFilter(TContex & ossContext,
                                      Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
-                                     vector<pair<TVector, TVSupport>> & bitvectors,
+                                     std::vector<std::pair<TVector, TVSupport>> & bitvectors,
                                      Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
                                      OptimalSearch<nbrBlocks> const & s,
                                      uint8_t const blockIndex,
@@ -507,7 +463,7 @@ inline bool testUnidirectionalFilter(TContex & ossContext,
         --endPos;
 
     if(startPos > endPos){
-        cout << "Error bit vector has only zeroes this should have been checked by checkinterval" << endl;
+        std::cerr << "Error bit vector has only zeroes this should have been checked by checkinterval" << "\n";
         exit(0);
     }
 
@@ -544,7 +500,7 @@ template<typename TContex,
          typename TVector, typename TVSupport,
          size_t nbrBlocks>
 inline ReturnCode checkInterval(TContex & ossContext,
-                                vector<pair<TVector, TVSupport>> & bitvectors,
+                                std::vector<std::pair<TVector, TVSupport>> & bitvectors,
                                 Pair<uint8_t, Pair<uint32_t, uint32_t>> & brange,
                                 OptimalSearch<nbrBlocks> const & s,
                                 uint8_t const blockIndex)
@@ -587,7 +543,7 @@ inline ReturnCode checkCurrentMappability(TContex & ossContext,
                                           Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                           TNeedle const & needle,
                                           uint32_t needleId,
-                                          vector<pair<TVector, TVSupport>> & bitvectors,
+                                          std::vector<std::pair<TVector, TVSupport>> & bitvectors,
                                           uint32_t const needleLeftPos,
                                           uint32_t const needleRightPos,
                                           uint8_t const errors,
@@ -614,7 +570,7 @@ inline ReturnCode checkCurrentMappability(TContex & ossContext,
 
         case ReturnCode::COMPMAPPABLE:
         {
-            vector<pair<TVector, TVSupport>> emtpy_bitvectors;
+            std::vector<std::pair<TVector, TVSupport>> emtpy_bitvectors;
             _optimalSearchSchemeChildren(ossContext, delegate, delegateDirect, iter, needle, needleId, emtpy_bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), TDistanceTag());
             return ReturnCode::FINISHED;
         }
@@ -639,7 +595,7 @@ inline ReturnCode checkMappability(TContex & ossContext,
                                    Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                    TNeedle const & needle,
                                    uint32_t needleId,
-                                   vector<pair<TVector, TVSupport>> & bitvectors,
+                                   std::vector<std::pair<TVector, TVSupport>> & bitvectors,
                                    uint32_t const current_needleLeftPos,
                                    uint32_t const current_needleRightPos,
                                    uint8_t const errors,
@@ -667,7 +623,7 @@ inline ReturnCode checkMappability(TContex & ossContext,
 
         case ReturnCode::COMPMAPPABLE:
         {
-            vector<pair<TVector, TVSupport>> emtpy_bitvectors;
+            std::vector<std::pair<TVector, TVSupport>> emtpy_bitvectors;
             _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, emtpy_bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, lastEdit, TDir(), TDistanceTag());
             return ReturnCode::FINISHED;
         }
@@ -702,7 +658,7 @@ inline void _optimalSearchSchemeDeletion(TContex & ossContext,
                                          Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                          TNeedle const & needle,
                                          uint32_t needleId,
-                                         vector<pair<TVector, TVSupport>> & bitvectors,
+                                         std::vector<std::pair<TVector, TVSupport>> & bitvectors,
                                          uint32_t const needleLeftPos,
                                          uint32_t const needleRightPos,
                                          uint8_t const errors,
@@ -751,7 +707,7 @@ inline void _optimalSearchSchemeChildren(TContex & ossContext,
                                          Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                          TNeedle const & needle,
                                          uint32_t needleId,
-                                         vector<pair<TVector, TVSupport>> & bitvectors,
+                                         std::vector<std::pair<TVector, TVSupport>> & bitvectors,
                                          uint32_t const needleLeftPos,
                                          uint32_t const needleRightPos,
                                          uint8_t const errors,
@@ -820,7 +776,7 @@ inline void _optimalSearchSchemeExact(TContex & ossContext,
                                       Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                       TNeedle const & needle,
                                       uint32_t needleId,
-                                      vector<pair<TVector, TVSupport>> & bitvectors,
+                                      std::vector<std::pair<TVector, TVSupport>> & bitvectors,
                                       uint32_t const needleLeftPos,
                                       uint32_t const needleRightPos,
                                       uint8_t const errors,
@@ -874,7 +830,7 @@ inline void filteredDelegate(TDelegate & delegate,
                              Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                              TNeedle const & needle,
                              uint32_t needleId,
-                             vector<pair<TVector, TVSupport>> & bitvectors,
+                             std::vector<std::pair<TVector, TVSupport>> & bitvectors,
                              uint8_t const errors)
 {
     Pair<uint8_t, Pair<uint32_t, uint32_t>> left_bit_interval;
@@ -916,7 +872,7 @@ inline void _optimalSearchScheme(TContex & ossContext,
                                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                                  TNeedle const & needle,
                                  uint32_t needleId,
-                                 vector<pair<TVector, TVSupport>> & bitvectors,
+                                 std::vector<std::pair<TVector, TVSupport>> & bitvectors,
                                  uint32_t const needleLeftPos,
                                  uint32_t const needleRightPos,
                                  uint8_t const errors,
@@ -1014,35 +970,28 @@ inline void _optimalSearchScheme(TContex & ossContext,
 template <typename TContex,
           typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
-          typename TNeedle,
           typename TVector, typename TVSupport,
           size_t nbrBlocks,
+          typename TNeedle,
           typename TDistanceTag>
 inline void _optimalSearchScheme(TContex & ossContext,
                                  TDelegate & delegate,
                                  TDelegateD & delegateDirect,
                                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it,
+                                 std::vector<std::pair<TVector, TVSupport>> & bitvectors,
+                                 OptimalSearch<nbrBlocks> const & s,
                                  TNeedle const & needle,
                                  uint32_t needleId,
-                                 vector<pair<TVector, TVSupport>> & bitvectors,
-                                 OptimalSearch<nbrBlocks> const & s,
                                  TDistanceTag const &)
 {
     bool initialDirection = s.pi[1] > s.pi[0];
-//     if(!params.startUnidirectional || s.startUniDir > 0){
         if(initialDirection)
             _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, false, Rev(), TDistanceTag());
         else
             _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, false, Fwd(), TDistanceTag());
-//     }else{
-//         if(initialDirection)
-//             _uniOptimalSearchScheme(delegate, delegateDirect, it.revIter, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Rev(), TDistanceTag());
-//         else
-//             _uniOptimalSearchScheme(delegate, delegateDirect, it.fwdIter, needle, bitvectors, s.startPos, s.startPos + 1, 0, s, 0, Fwd(), TDistanceTag());
-//     }
 }
 
-
+/*
 template <typename TContex,
           typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
@@ -1058,36 +1007,36 @@ inline void _optimalSearchScheme(TContex & ossContext,
                                  OptimalSearch<nbrBlocks> const & s,
                                  TDistanceTag const &)
 {
-    vector<pair<TBitvector, TSupport>> emtpy_bitvectors;
+    std::vector<std::pair<TBitvector, TSupport>> emtpy_bitvectors;
     bool initialDirection = s.pi[1] > s.pi[0];
     if(initialDirection)
         _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, emtpy_bitvectors, s.startPos, s.startPos + 1, 0, s, 0, false, Rev(), TDistanceTag());
     else
         _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, emtpy_bitvectors, s.startPos, s.startPos + 1, 0, s, 0, false, Fwd(), TDistanceTag());
-}
+}*/
 
 
 template <typename TContex,
           typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
-          typename TNeedle,
           typename TVector, typename TVSupport,
           size_t nbrBlocks, size_t N,
+          typename TNeedle,
           typename TDistanceTag>
 inline void _optimalSearchScheme(TContex & ossContext,
                                  TDelegate & delegate,
                                  TDelegateD & delegateDirect,
                                  Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > it,
+                                 std::vector<std::pair<TVector, TVSupport>> & bitvectors,
+                                 std::array<OptimalSearch<nbrBlocks>, N> const & ss,
                                  TNeedle const & needle,
                                  uint32_t needleId,
-                                 vector<pair<TVector, TVSupport>> & bitvectors,
-                                 std::array<OptimalSearch<nbrBlocks>, N> const & ss,
                                  TDistanceTag const &)
 {
     for (auto & s : ss)
-        _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, bitvectors, s, TDistanceTag());
+        _optimalSearchScheme(ossContext, delegate, delegateDirect, it, bitvectors, s, needle, needleId, TDistanceTag());
 }
-
+/*
 template <typename TContex,
           typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
@@ -1105,9 +1054,9 @@ inline void _optimalSearchScheme(TContex & ossContext,
 {
     for (auto & s : ss)
         _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, s, TDistanceTag());
-}
+}*/
 
-
+/*
 template <typename TContex,
           typename TDelegate, typename TDelegateD,
           typename TText, typename TIndexSpec,
@@ -1122,22 +1071,24 @@ find(TContex & ossContext,
      Index<TText, BidirectionalIndex<TIndexSpec> > & index,
      String<TChar, TStringSpec> const & needle,
      uint32_t needleId,
-     vector<pair<TVector, TVSupport>> & bitvectors,
+     std::vector<std::pair<TVector, TVSupport>> & bitvectors,
      std::array<OptimalSearch<nbrBlocks>, N> const & ss,
      TDistanceTag const &)
 {
     //TODO there has to be a better way
-    auto scheme = ss;/*OptimalSearchSchemes<minErrors, maxErrors>::VALUE;*/
+    auto scheme = ss; //OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
     _optimalSearchSchemeComputeFixedBlocklength(scheme, length(needle));
     _optimalSearchSchemeComputeChronBlocklength(scheme);
     Iter<Index<TText, BidirectionalIndex<TIndexSpec> >, VSTree<TopDown<> > > it(index);
     _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, bitvectors, scheme, TDistanceTag());
-}
+}*/
 
 template <size_t minErrors, size_t maxErrors,
           typename TContex,
           typename TDelegate, typename TDelegateD,
           typename TText, typename TIndexSpec,
+          typename TVector, typename TVSupport,
+          size_t nbrBlocks, size_t N,
           typename TChar, typename TStringSpec,
           typename TDistanceTag>
 inline void
@@ -1145,18 +1096,21 @@ find(TContex & ossContext,
      TDelegate & delegate,
      TDelegateD & delegateDirect,
      Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+     std::vector<std::pair<TVector, TVSupport>> & bitvectors,
+     std::array<OptimalSearch<nbrBlocks>, N> const & ss,
      String<TChar, TStringSpec> const & needle,
      uint32_t needleId,
      TDistanceTag const & )
 {
-    auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
+//     auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
+    auto scheme = ss;
     _optimalSearchSchemeComputeFixedBlocklength(scheme, length(needle));
     _optimalSearchSchemeComputeChronBlocklength(scheme);
     Iter<Index<TText, BidirectionalIndex<TIndexSpec> >, VSTree<TopDown<> > > it(index);
-    _optimalSearchScheme(ossContext, delegate, delegateDirect, it, needle, needleId, scheme, TDistanceTag());
+    _optimalSearchScheme(ossContext, delegate, delegateDirect, it, bitvectors, scheme, needle, needleId, TDistanceTag());
 }
 
-
+/*
 template <size_t minErrors, size_t maxErrors,
           typename TContex,
           typename TDelegate, typename TDelegateD,
@@ -1170,7 +1124,7 @@ find(TContex & ossContext,
      TDelegateD & delegateDirect,
      Index<TText, BidirectionalIndex<TIndexSpec> > & index,
      StringSet<TNeedle, TStringSetSpec> const & needles,
-     vector<pair<TVector, TVSupport>> & bitvectors,
+     std::vector<std::pair<TVector, TVSupport>> & bitvectors,
      TDistanceTag const & )
 {
     auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
@@ -1181,26 +1135,27 @@ find(TContex & ossContext,
     while(k < length(needles))
     {
         find(ossContext, delegate, delegateDirect, index, needles[k], k, bitvectors, scheme, TDistanceTag());
-        /*
-        if(!(params.clocking && time.stopnow(params.terminateDuration))){
-            find(ossContext, delegate, delegateDirect, index, needles[k], k, bitvectors, scheme, TDistanceTag());
-        }else{
-            params.wasStopped = true;
-        }*/
+
+//         if(!(params.clocking && time.stopnow(params.terminateDuration))){
+//             find(ossContext, delegate, delegateDirect, index, needles[k], k, bitvectors, scheme, TDistanceTag());
+//         }else{
+//             params.wasStopped = true;
+//         }
         ++k;
 
-        if(ossContext.trackReadCount){
-            uint32_t currentcount = ossContext.hits.size() + ossContext.dhits.size() - lastcount;
-            ossContext.readOccCount.push_back(currentcount);
-            lastcount += currentcount;
-        }
+//         if(ossContext.trackReadCount){
+//             uint32_t currentcount = ossContext.hits.size() + ossContext.dhits.size() - lastcount;
+//             ossContext.readOccCount.push_back(currentcount);
+//             lastcount += currentcount;
+//         }
     }
-}
+}*/
 
 template <size_t minErrors, size_t maxErrors,
           typename TContex,
           typename TDelegate, typename TDelegateD,
           typename TText, typename TIndexSpec,
+          typename TVector, typename TVSupport,
           typename TNeedle, typename TStringSetSpec,
           typename TDistanceTag>
 inline void
@@ -1208,20 +1163,25 @@ find(TContex & ossContext,
      TDelegate & delegate,
      TDelegateD & delegateDirect,
      Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+     std::vector<std::pair<TVector, TVSupport>> & bitvectors, // cant be const since TVSupport.set_vector(&TVector)
      StringSet<TNeedle, TStringSetSpec> const & needles,
      TDistanceTag const & )
 {
-    int k = 0;
+
+    auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
+    calcConstParameters(scheme);
+    uint32_t k = 0;
     uint32_t lastcount = 0;
     while(k < length(needles))
     {
-        find<minErrors, maxErrors>(ossContext, delegate, delegateDirect, index, needles[k], k, TDistanceTag());
+        find<minErrors, maxErrors>(ossContext, delegate, delegateDirect, index, bitvectors, scheme, needles[k], k, TDistanceTag());
         ++k;
+        /*
         if(ossContext.trackReadCount){
             uint32_t currentcount = ossContext.hits.size() + ossContext.dhits.size() - lastcount;
             ossContext.readOccCount.push_back(currentcount);
             lastcount += currentcount;
-        }
+        }*/
 
     }
 }
@@ -1239,18 +1199,18 @@ inline void find(const int minErrors,
                  TDelegateD & delegateDirect,
                  Index<TText, BidirectionalIndex<TIndexSpec> > & index,
                  StringSet<TNeedle, TStringSetSpec> const & needles,
-                 vector<pair<TVector, TVSupport>> & bitvectors, // cant be const since TVSupport.set_vector(&TVector)
+                 std::vector<std::pair<TVector, TVSupport>> & bitvectors, // cant be const since TVSupport.set_vector(&TVector)
                  TDistanceTag const & )
 {
     switch (maxErrors)
     {
-        case 1: find<0, 1>(ossContext, delegate, delegateDirect, index, needles, bitvectors, TDistanceTag());
+        case 1: find<0, 1>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
                 break;
-        case 2: find<0, 2>(ossContext, delegate, delegateDirect, index, needles, bitvectors, TDistanceTag());
+        case 2: find<0, 2>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
                 break;
-        case 3: find<0, 3>(ossContext, delegate, delegateDirect, index, needles, bitvectors, TDistanceTag());
+        case 3: find<0, 3>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
                 break;
-        default: cerr << "E = " << maxErrors << " not yet supported.\n";
+        default: std::cerr << "E = " << maxErrors << " not yet supported.\n";
                 exit(1);
     }
 }
@@ -1276,7 +1236,7 @@ inline void find(const int minErrors,
                 break;
         case 4: find<0, 4>(delegate, index, needles, TDistanceTag());
                 break;
-        default: cerr << "E = " << maxErrors << " not yet supported.\n";
+        default: std::cerr << "E = " << maxErrors << " not yet supported.\n";
                 exit(1);
     }
 }
@@ -1295,17 +1255,18 @@ inline void find(const int minErrors,
                  StringSet<TNeedle, TStringSetSpec> const & needles,
                  TDistanceTag const & )
 {
+    std::vector<std::pair<TBitvector, TSupport>> emtpy_bitvectors;
     switch (maxErrors)
     {
-        case 1: find<0, 1>(ossContext, delegate, delegateDirect, index, needles, TDistanceTag());
+        case 1: find<0, 1>(ossContext, delegate, delegateDirect, index, emtpy_bitvectors, needles, TDistanceTag());
                 break;
-        case 2: find<0, 2>(ossContext, delegate, delegateDirect, index, needles, TDistanceTag());
+        case 2: find<0, 2>(ossContext, delegate, delegateDirect, index, emtpy_bitvectors, needles, TDistanceTag());
                 break;
-        case 3: find<0, 3>(ossContext, delegate, delegateDirect, index, needles, TDistanceTag());
+        case 3: find<0, 3>(ossContext, delegate, delegateDirect, index, emtpy_bitvectors, needles, TDistanceTag());
                 break;
-        case 4: find<0, 4>(ossContext, delegate, delegateDirect, index, needles, TDistanceTag());
+        case 4: find<0, 4>(ossContext, delegate, delegateDirect, index, emtpy_bitvectors, needles, TDistanceTag());
                 break;
-        default: cerr << "E = " << maxErrors << " not yet supported.\n";
+        default: std::cerr << "E = " << maxErrors << " not yet supported.\n";
                 exit(1);
     }
 }

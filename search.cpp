@@ -15,6 +15,7 @@
 using namespace std;
 using namespace seqan;
 
+
 struct modusParameters{
 public:
     bool nomappability;
@@ -80,7 +81,12 @@ public:
     modusParameters comp;
     modusParameters uni;
 
+
+    bool bestXMapper = true; //still needed multiple searches
+    bool oneSBestXMapper = false;
+
     // Shared-memory read-write data.
+    ReadsContext       ctx;
     std::vector<hit> & hits;
     std::vector<hit> & dhits;
     std::vector<uint32_t> /*&*/ readOccCount;
@@ -91,7 +97,9 @@ public:
     bool filterDelegate = true;
     bool trackReadCount = false;
     bool itv = true;
+    bool readContext = false;
 
+    uint32_t readCount = 0;
 
     OSSContext(std::vector<hit> & inhits,
                std::vector<hit> & indhits/*,
@@ -116,6 +124,11 @@ public:
         comp.print();
         std::cout << "Uni: ";
         uni.print();
+    }
+
+    void setReadContext(uint32_t inreadCount){
+        readCount = inreadCount;
+        readContext = true;
     }
 
     template <size_t nbrBlocks>
@@ -271,6 +284,9 @@ int main(int argc, char *argv[])
             eraseBack(reads);
     }
 
+    uint32_t readCount = length(reads);
+    ReadsContext ctx;
+
     if(split){
         auto startT = std::chrono::high_resolution_clock::now();
         int readlength = length(reads[0]);
@@ -321,6 +337,8 @@ int main(int argc, char *argv[])
     std::vector<hit> mydhits;
     std::vector<uint32_t> myreadOccCount;
     OSSContext myOSSContext(myhits, mydhits/*, myreadOccCount*/);
+    myOSSContext.setReadContext(readCount);
+
     if(editD){
         myOSSContext.itv = true;
         myOSSContext.normal.directsearch = true;
@@ -418,6 +436,7 @@ int main(int argc, char *argv[])
     std::vector<hit> hitsDefault;
     std::vector<hit> dummy;
     OSSContext ossContextDefault(hitsDefault, dummy);
+    ossContextDefault.readCount = readCount;
 //     ossContextDefault.itv = false;
 
     if(mdefault){
@@ -481,6 +500,7 @@ int main(int argc, char *argv[])
     std::vector<hit> dhitsDe;
 //     std::vector<uint32_t> myreadOccCountDe;
     OSSContext ossContextDefaultT(hitsDe, dhitsDe); //, myreadOccCountDe
+    ossContextDefaultT.readCount = readCount;
 //     ossContextDefaultT.itv = false;
 
     // default with in text search
