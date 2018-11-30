@@ -67,6 +67,7 @@ typedef sdsl::rank_support_v<> TSupport;
 
 struct hit{
     bool rev;
+    bool rc;
     Pair <uint32_t, uint32_t> occ;
     Pair <uint32_t, uint32_t> occEnd;
     uint8_t errors;

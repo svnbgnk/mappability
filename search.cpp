@@ -86,7 +86,7 @@ public:
     bool oneSBestXMapper = false;
 
     // Shared-memory read-write data.
-    ReadsContext       ctx;
+    ReadsContext<void, void>       ctx;
     std::vector<hit> & hits;
     std::vector<hit> & dhits;
     std::vector<uint32_t> /*&*/ readOccCount;
@@ -99,7 +99,8 @@ public:
     bool itv = true;
     bool readContext = false;
 
-    uint32_t readCount = 0;
+    uint32_t readCount = 999999999; //if readCount is not set than all reads are assumend to be one normal strand
+
 
     OSSContext(std::vector<hit> & inhits,
                std::vector<hit> & indhits/*,
@@ -129,6 +130,7 @@ public:
     void setReadContext(uint32_t inreadCount){
         readCount = inreadCount;
         readContext = true;
+        initReadsContext(ctx, readCount);
     }
 
     template <size_t nbrBlocks>
@@ -285,7 +287,6 @@ int main(int argc, char *argv[])
     }
 
     uint32_t readCount = length(reads);
-    ReadsContext ctx;
 
     if(split){
         auto startT = std::chrono::high_resolution_clock::now();
@@ -347,32 +348,39 @@ int main(int argc, char *argv[])
         myOSSContext.normal.suspectunidirectional = true;
     }
 
-    auto delegate = [&myhits](auto const & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
+    auto delegate = [&myhits](auto ossContext, auto const & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
     {
+        uint32_t readId = getReadId(needleId, ossContext.readCount);
+
         //NOTE have to get Occurrences from the forward iter otherwise filtering does not work properly
         uint32_t occLength = repLength(iter);
         for (auto occ : getOccurrences(iter)){
             hit me;
+            setReadId(me, ossContext.readCount, needleId); //this function also saves if read was reversecomplement
             me.occ = occ;
             me.occEnd = posAdd(occ, occLength);
             me.read = needle;
-            me.readId = needleId;
             me.errors = errors;
             me.rev = rev;
             myhits.push_back(me);
+            setMapped(ossContext.ctx, readId);
+            setMinErrors(ossContext.ctx, readId, errors);
         }
     };
-    auto delegateDirect = [&mydhits](Pair<uint16_t, uint32_t> const & pos, Pair<uint16_t, uint32_t> const & posEnd, DnaString const & needle, uint32_t const needleId, uint8_t const errors)
+    auto delegateDirect = [&mydhits](auto ossContext, Pair<uint16_t, uint32_t> const & pos, Pair<uint16_t, uint32_t> const & posEnd, DnaString const & needle, uint32_t const needleId, uint8_t const errors)
     {
         hit me;
         me.occ = pos;
         me.occEnd = posEnd;
-
+        setReadId(me, ossContext.readCount, needleId); //this function also saves if read was reversecomplement
         me.read = needle;
-        me.readId = needleId;
         me.errors = errors;
         me.rev = false;
         mydhits.push_back(me);
+//         if(readContext)
+        uint32_t readId = getReadId(needleId, ossContext.readCount);
+        setMapped(ossContext.ctx, readId);
+        setMinErrors(ossContext.ctx, readId, errors);
     };
 
 
@@ -500,15 +508,16 @@ int main(int argc, char *argv[])
     std::vector<hit> dhitsDe;
 //     std::vector<uint32_t> myreadOccCountDe;
     OSSContext ossContextDefaultT(hitsDe, dhitsDe); //, myreadOccCountDe
-    ossContextDefaultT.readCount = readCount;
+    ossContextDefaultT.setReadContext(readCount);
 //     ossContextDefaultT.itv = false;
 
     // default with in text search
     if(defaultT){
         ossContextDefaultT.comp.directsearch_th = 5;
         ossContextDefaultT.comp.directsearchblockoffset = 0;
-        auto delegate2 = [&hitsDe](auto & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
+        auto delegate2 = [&hitsDe](auto ossContext, auto & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
         {
+            uint32_t readId = getReadId(needleId, ossContext.readCount);
             uint32_t occLength = repLength(iter);
             for (auto occ : getOccurrences(iter)){
                 hit me;
@@ -519,18 +528,25 @@ int main(int argc, char *argv[])
                 me.errors = errors;
                 me.rev = false;
                 hitsDe.push_back(me);
+//         if(readContext)
+                setMapped(ossContext.ctx, readId);
+                setMinErrors(ossContext.ctx, readId, errors);
             }
         };
-        auto delegateDirect2 = [&dhitsDe](Pair<uint16_t, uint32_t> const & pos, Pair<uint16_t, uint32_t> const & posEnd, DnaString const & needle, uint32_t const needleId, uint8_t const errors)
+        auto delegateDirect2 = [&dhitsDe](auto ossContext, Pair<uint16_t, uint32_t> const & pos, Pair<uint16_t, uint32_t> const & posEnd, DnaString const & needle, uint32_t const needleId, uint8_t const errors)
         {
             hit me;
+            setReadId(me, ossContext.readCount, needleId); //this function also saves if read was reversecomplement
             me.occ = pos;
             me.occEnd = posEnd,
             me.read = needle;
-            me.readId = needleId;
             me.errors = errors;
             me.rev = false;
             dhitsDe.push_back(me);
+//         if(readContext)
+            uint32_t readId = getReadId(needleId, ossContext.readCount);
+            setMapped(ossContext.ctx, readId);
+            setMinErrors(ossContext.ctx, readId, errors);
         };
         auto start2 = std::chrono::high_resolution_clock::now();
         if(!editD)
@@ -543,16 +559,16 @@ int main(int argc, char *argv[])
         cout << "default DS Hits: " << hitsDe.size() + dhitsDe.size() << endl;
     }
 
-/*
-    if(!notmy){
-        readOccurrences(reads, ids, outputpath, fr, rc, stats, notmy);
-    }*/
+
+//     if(!notmy){
+//         readOccurrences(reads, ids, outputpath, fr, rc, stats, notmy);
+//     }
 
 
     if(ecompare && defaultT && mdefault){
         cout << "Hits with InTextSearch: " << endl;
         hitsDe.insert(hitsDe.end(), dhitsDe.begin(), dhitsDe.end());
-        std::sort(hitsDe.begin(), hitsDe.end(), occ_smaller/*read_occ_smaller*/);
+        std::sort(hitsDe.begin(), hitsDe.end(), occ_smaller); //read_occ_smaller
         hitsDe.erase(std::unique(hitsDe.begin(), hitsDe.end(), occ_same), hitsDe.end());
 
         cout << "unique number: "  << hitsDe.size()  << endl;
@@ -603,7 +619,7 @@ int main(int argc, char *argv[])
 
     if(ecompare && !notmy && editD && defaultT){
         hitsDe.insert(hitsDe.end(), dhitsDe.begin(), dhitsDe.end());
-        std::sort(hitsDe.begin(), hitsDe.end(), occ_smaller/*read_occ_smaller*/);
+        std::sort(hitsDe.begin(), hitsDe.end(), occ_smaller);//read_occ_smaller
         hitsDe.erase(std::unique(hitsDe.begin(), hitsDe.end(), occ_same), hitsDe.end());
 
         hitsDe = print_readocc_sorted(hitsDe, genome, editD, nerrors, true);

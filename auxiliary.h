@@ -6,18 +6,15 @@
 using namespace seqan;
 
 
-
+template <typename TSpec = void, typename TConfig = void>
 struct ReadsContext
 {
     String<unsigned char>       minErrors;
     String<bool>                mapped;
-
-    ReadsContext(){
-    }
 };
 
-
-inline void clear(ReadsContext & ctx)
+template <typename TReadsContext>
+inline void clear(TReadsContext & ctx)
 {
     clear(ctx.minErrors);
     clear(ctx.mapped);
@@ -25,11 +22,12 @@ inline void clear(ReadsContext & ctx)
     shrinkToFit(ctx.mapped);
 }
 
-template <typename TReadSeqs>
-inline void resize(ReadsContext & ctx, uint32_t const readCount)
+template <typename TReadsContext>
+inline void resize(TReadsContext & ctx, uint32_t const readCount)
 {
-    resize(ctx.minErrors, readCount, std::numeric_limits<unsigned char>::max());
-    resize(ctx.mapped, readCount, false);
+    resize(ctx.minErrors, readCount, std::numeric_limits<unsigned char>::max(), Exact());
+//     resize(ctx.minErrors, getReadSeqsCount(readSeqs), );
+    resize(ctx.mapped, readCount, false, Exact());
 }
 
 
@@ -46,7 +44,7 @@ inline unsigned char getMinErrors(TReadsContext const & ctx, TReadId readId)
 template <typename TReadsContext, typename TReadId, typename TErrors>
 inline void setMinErrors(TReadsContext & ctx, TReadId readId, TErrors errors)
 {
-    if (errors < getMinErrors(ctx,readId))
+    if (errors < getMinErrors(ctx, readId))
         assignValue(ctx.minErrors, readId, errors);
 }
 
@@ -70,9 +68,16 @@ inline bool isMapped(TReadsContext const & ctx, TReadId readId)
     return ctx.mapped[readId];
 }
 
-inline uint32_t getReadId(uint32_t const readId, uint32_t const readCount)
+inline uint32_t getReadId(uint32_t readId, uint32_t const readCount)
 {
     return (readId < readCount) ? readId : readId - readCount;
+}
+
+template <typename TReadId>
+void inline setReadId(hit & me, uint32_t const readCount, TReadId readId)
+{
+    me.rc = readId >= readCount;
+    me.readId = (readId < readCount) ? readId : readId - readCount;
 }
 
 template <typename TReadsContext>

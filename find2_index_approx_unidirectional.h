@@ -61,7 +61,7 @@ inline void genomeSearchRev(TContex & ossContext,
         }
     }
     sa_info.i2 = seqan::length(rgenome[sa_info.i1]) - sa_info.i2 - needleL;
-    delegateDirect(sa_info, posAdd(sa_info, length(needle)), needle, needleId, errors);
+    delegateDirect(ossContext, sa_info, posAdd(sa_info, length(needle)), needle, needleId, errors);
 }
 
 template <typename TContex,
@@ -275,7 +275,7 @@ inline ReturnCode uniCheckMappability(TContex & ossContext,
                         iter.vDesc.range.i1 = rangeStart + lastStart;
                         iter.vDesc.range.i2 = rangeStart + i - 1;
 //                         cout << iter.vDesc.range.i1 << " - " << iter.vDesc.range.i2;
-                        delegate(iter, needle, needleId, errors, rev);
+                        delegate(ossContext, iter, needle, needleId, errors, rev);
                     }
                     lastStart = i + 1;
                 }
@@ -283,12 +283,12 @@ inline ReturnCode uniCheckMappability(TContex & ossContext,
             if(lastStart < rangeEnd - rangeStart){
                 iter.vDesc.range.i1 = rangeStart + lastStart;
                 iter.vDesc.range.i2 = rangeStart + rangeEnd - rangeStart;
-                delegate(iter, needle, needleId, errors, rev);
+                delegate(ossContext, iter, needle, needleId, errors, rev);
             }
         }
         else
         {
-            delegate(iter, needle, needleId, errors, rev);
+            delegate(ossContext, iter, needle, needleId, errors, rev);
         }
         return ReturnCode::FINISHED;
     }
@@ -510,7 +510,7 @@ inline void _optimalSearchScheme(TContex & ossContext,
     bool rev = std::is_same<TDir, Rev>::value;
     if(done){
         if(true /*!lastEdit*/){
-            delegate(iter, needle, needleId, errors, rev);
+            delegate(ossContext, iter, needle, needleId, errors, rev);
         }
         return;
     }

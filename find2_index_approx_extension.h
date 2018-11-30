@@ -107,7 +107,7 @@ inline void genomeSearch(TContex & ossContext,
             return;
         }
     }
-    delegateDirect(sa_info, posAdd(sa_info, length(needle)), needle, needleId, errors);
+    delegateDirect(ossContext, sa_info, posAdd(sa_info, length(needle)), needle, needleId, errors);
 
 }
 
@@ -169,7 +169,7 @@ inline void alignmentMyersBitvector(TContex & ossContext,
             if(usingReverseText){
                 saPosOnFwd(sa_info_tmp, genomelength, needleL);
             }
-            delegateDirect(sa_info_tmp, posAdd(sa_info_tmp, length(needle)) , needle, needleId, errors2);
+            delegateDirect(ossContext, sa_info_tmp, posAdd(sa_info_tmp, length(needle)) , needle, needleId, errors2);
         }
 
         for(uint8_t e = 1; e <= max_e; ++e){
@@ -196,7 +196,7 @@ inline void alignmentMyersBitvector(TContex & ossContext,
                             if(usingReverseText){
                                 saPosOnFwd(sa_info_tmp, genomelength, occLength);
                             }
-                            delegateDirect(sa_info_tmp, posAdd(sa_info_tmp, occLength) , needle, needleId, errors2);
+                            delegateDirect(ossContext, sa_info_tmp, posAdd(sa_info_tmp, occLength) , needle, needleId, errors2);
                         }
                     }
                 }
@@ -214,7 +214,7 @@ inline void alignmentMyersBitvector(TContex & ossContext,
                             if(usingReverseText){
                                 saPosOnFwd(sa_info_tmp, genomelength, occLength);
                             }
-                            delegateDirect(sa_info_tmp, posAdd(sa_info_tmp, occLength) , needle, needleId, errors2);
+                            delegateDirect(ossContext, sa_info_tmp, posAdd(sa_info_tmp, occLength) , needle, needleId, errors2);
                         }
                     }
 
@@ -229,7 +229,7 @@ inline void alignmentMyersBitvector(TContex & ossContext,
                             if(usingReverseText){
                                 saPosOnFwd(sa_info_tmp, genomelength, occLength);
                             }
-                            delegateDirect(sa_info_tmp, posAdd(sa_info_tmp, occLength) , needle, needleId, errors2);
+                            delegateDirect(ossContext, sa_info_tmp, posAdd(sa_info_tmp, occLength) , needle, needleId, errors2);
                         }
                     }
                 }
@@ -822,11 +822,13 @@ inline void _optimalSearchSchemeExact(TContex & ossContext,
     }
 }
 
-template <typename TDelegate,
+template <typename TContex,
+          typename TDelegate,
           typename TText, typename TIndex, typename TIndexSpec,
           typename TNeedle,
           typename TVector, typename TVSupport>
-inline void filteredDelegate(TDelegate & delegate,
+inline void filteredDelegate(TContex & ossContext,
+                             TDelegate & delegate,
                              Iter<Index<TText, BidirectionalIndex<TIndex> >, VSTree<TopDown<TIndexSpec> > > iter,
                              TNeedle const & needle,
                              uint32_t needleId,
@@ -846,7 +848,7 @@ inline void filteredDelegate(TDelegate & delegate,
             if(i != lastStart){
                 iter.fwdIter.vDesc.range.i1 = rangeStart + lastStart;
                 iter.fwdIter.vDesc.range.i2 = rangeStart + i - 1;
-                delegate(iter, needle, needleId, errors, false);
+                delegate(ossContext, iter, needle, needleId, errors, false);
             }
             lastStart = i + 1;
         }
@@ -854,7 +856,7 @@ inline void filteredDelegate(TDelegate & delegate,
     if(lastStart < rangeEnd - rangeStart){
         iter.fwdIter.vDesc.range.i1 = rangeStart + lastStart;
         iter.fwdIter.vDesc.range.i2 = rangeStart + rangeEnd - rangeStart;
-        delegate(iter, needle, needleId, errors, false);
+        delegate(ossContext, iter, needle, needleId, errors, false);
     }
 }
 
@@ -894,11 +896,11 @@ inline void _optimalSearchScheme(TContex & ossContext,
         //last input only matters for unidirectional searches (has to be false in this case)
         if(/*!lastEdit*/true){
             if(checkMappa){
-                filteredDelegate(delegate, iter, needle, needleId, bitvectors, errors);
+                filteredDelegate(ossContext, delegate, iter, needle, needleId, bitvectors, errors);
             }
             else
             {
-                delegate(iter, needle, needleId, errors, false);
+                delegate(ossContext, iter, needle, needleId, errors, false);
             }
         }
         return;
