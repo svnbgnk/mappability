@@ -62,6 +62,7 @@ typedef Index<TText, TIndexConfig> MyIndex;
 typedef sdsl::bit_vector TBitvector;
 typedef sdsl::rank_support_v<> TSupport;
 // typedef sdsl::rank_support_v5<> TSupport;
+typedef Iter<Index<TText, TIndexConfig>, VSTree<TopDown<> > > MyIter;
 
 
 
@@ -153,7 +154,33 @@ inline void getConsOnes(std::vector<std::pair<TVector, TVSupport>> & bitvectors,
                  std::vector<std::pair<uint32_t, uint32_t>> & consOnesOutput);
 
 
+template<typename TIter>
+struct State{
+    TIter it;
+    uint32_t nlp;
+    uint32_t nrp;
+    uint8_t sId;
+    uint8_t blockIndex;
+    bool fwdDirection;
 
+//     template<typename TIter, typename TNeedleID, typename TNeedlePos>
+    State(TIter it,
+          uint32_t nlp,
+          uint32_t nrp,
+          uint8_t sId,
+          uint8_t blockIndex,
+          bool fwdDirection) :
+        it(it),
+        nlp(nlp),
+        nrp(nrp),
+        sId(sId),
+        blockIndex(blockIndex),
+        fwdDirection(fwdDirection)
+    {
+        ;
+    }
+
+};
 
 
 /*

@@ -75,6 +75,7 @@ public:
 class OSSContext
 {
 public:
+    typedef State<MyIter> TTState;
 
     //Parameters
     modusParameters normal;
@@ -161,6 +162,13 @@ public:
         return(itv && iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 < (s.pi.size() - blockIndex - 1 + comp.directsearchblockoffset) * comp.directsearch_th);
     }
 
+    bool itvConditionUni(uint8_t const blockSize,
+                         uint8_t const blockIndex,
+                         uint32_t ivalOne)
+    {
+        return(itv && ivalOne < (static_cast<int>(blockSize) - blockIndex - 1 + uni.directsearchblockoffset) * uni.directsearch_th);
+    }
+
     template<size_t nbrBlocks>
     bool inBlockCheckMappabilityCondition(uint32_t needleLeftPos,
                                           uint32_t needleRightPos,
@@ -201,10 +209,10 @@ int main(int argc, char *argv[])
     setRequired(parser, "index");
 
     addOption(parser, ArgParseOption("B", "ibitvector", "Path to the index", ArgParseArgument::INPUT_FILE, "IN"));
-    setRequired(parser, "index");
+//     setRequired(parser, "ibitvector");
 
     addOption(parser, ArgParseOption("R", "ireads", "Path to the index", ArgParseArgument::INPUT_FILE, "IN"));
-    setRequired(parser, "index");
+    setRequired(parser, "ireads");
 
     addOption(parser, ArgParseOption("O", "output", "Path to output directory", ArgParseArgument::OUTPUT_FILE, "OUT"));
 //     setRequired(parser, "output");
@@ -346,14 +354,9 @@ int main(int argc, char *argv[])
     std::vector<uint32_t> myreadOccCount;
     OSSContext myOSSContext(reads, myhits, mydhits/*, myreadOccCount*/);
     myOSSContext.setReadContext(readCount, nerrors, strata);
+    myOSSContext.itv = false;
+    myOSSContext.normal.suspectunidirectional = false;
 
-    if(editD){
-        myOSSContext.itv = true;
-        myOSSContext.normal.directsearch = true;
-        myOSSContext.uni.directsearch = true;
-        myOSSContext.comp.directsearch = true;
-        myOSSContext.normal.suspectunidirectional = true;
-    }
 
     auto delegate = [&myhits](OSSContext & ossContext, auto const & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
     {
@@ -388,6 +391,7 @@ int main(int argc, char *argv[])
         uint32_t readId = getReadId(needleId, ossContext.readCount);
         setMapped(ossContext.ctx, readId);
         setMinErrors(ossContext.ctx, readId, errors);
+        std::cout << "Direct Hit Needle Id: " << readId << "\n";
     };
 
 

@@ -214,7 +214,7 @@ inline ReturnCode uniCheckInterval(TContex & ossContext,
         return ReturnCode::NOMAPPABILITY;
 
     if(!done){
-        if(ossContext.uni.directsearch && ivalOne < (blockSize - blockIndex - 1 + ossContext.uni.directsearchblockoffset) * ossContext.uni.directsearch_th)
+        if(ossContext.uni.directsearch && ossContext.itvConditionUni(blockSize, blockIndex, ivalOne))
             return ReturnCode::DIRECTSEARCH;
     }
     //this is in the moment used to determine if we have to filter the delegate Call
