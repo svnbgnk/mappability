@@ -1073,7 +1073,7 @@ find(TContex & ossContext,
             uint32_t readId = getReadId(needleId, ossContext.readCount);
             if(isMapped(
                 ossContext.ctx, readId)){
-                if(getMinErrors(ossContext.ctx, readId) + ossContext.strata < minErrors || getMinErrors(ossContext.ctx, readId) == 0){
+                if(getMinErrors(ossContext.ctx, readId) + ossContext.strata < minErrors){
                     skip = true;
                 }
             }

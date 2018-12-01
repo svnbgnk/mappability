@@ -83,7 +83,7 @@ public:
     modusParameters uni;
 
 
-    bool bestXMapper = true; //still needed multiple searches
+    bool bestXMapper = false; //still needed multiple searches
     bool oneSBestXMapper = false;
 
     // Shared-memory read-write data.
@@ -93,6 +93,7 @@ public:
     std::vector<hit> & dhits;
     std::vector<uint32_t> /*&*/ readOccCount;
 //     TMatches &          matches;
+    std::vector<std::vector<TTState> > states;
 
     // Shared-memory read-only data.
 //     TContigSeqs const & contigSeqs;
@@ -139,7 +140,21 @@ public:
         strata = instrata;
         readContext = true;
         initReadsContext(ctx, readCount);
+        std::vector<TTState> v;
+        for(int i = 0; i < maxError + 1; ++i)
+            states.push_back(v);
+//         states.reserve(maxError);
     }
+
+//     template <typename TIter>
+    void saveState(MyIter iter, uint32_t nlp, uint32_t nrp, uint8_t sid, uint8_t blockIndex, bool right, uint8_t errors){
+        TTState state(iter, nlp, nrp, sid, blockIndex, right);
+        states[errors].push_back(state);
+//         int sizee = states[errors].size() - 1;
+//         std::cout << (int)states[errors][sizee].blockIndex << "\n";
+//         std::cout << "saved State" << "\n";
+    }
+
 
     template <size_t nbrBlocks>
     bool itvCondition(OptimalSearch<nbrBlocks> const & s,
