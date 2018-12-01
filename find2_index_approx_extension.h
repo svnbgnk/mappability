@@ -884,6 +884,30 @@ inline void _optimalSearchScheme(TContex & ossContext,
                                  TDir const & ,
                                  TDistanceTag const &)
 {
+/*
+    if(ossContext.oneSSBestXMapper){
+        bool save = false;
+        uint32_t readId = getReadId(needleId, ossContext.readCount);
+//         std::cout << "readId: " << (int)readId << "\n";
+//         std::cout << (int)errors << ":c:" <<  (int)getCurrentErrors(ossContext.ctx, readId) << "\n";
+        if(errors > getCurrentErrors(ossContext.ctx, readId))
+            save = true;
+//         if(isMapped(ossContext.ctx, readId)){
+//             if(errors > getMinErrors(ossContext.ctx, readId) + ossContext.strata)
+//                 return;
+//         }
+        if(save){
+            std::cout << "saving state: " << (int)errors << "\n";
+            std::cout << iter.fwdIter.vDesc.range << "\t" << needleLeftPos << "\t" << needleRightPos << "\t" << (int)s.id << "\t" << (int)blockIndex << "\n";
+            bool right = std::is_same<TDir, Rev>::value;
+
+            std::cout << (int)needleId << "\t" << (int)errors << "\t" << (int)s.pi[0] << "\t" << right << "\n";
+
+            ossContext.saveState(iter, needleLeftPos, needleRightPos, s.id, blockIndex, right, errors);
+            return;
+        }
+    }*/
+
     uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
     uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
     bool const done = minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1;
@@ -1010,8 +1034,47 @@ inline void _optimalSearchScheme(TContex & ossContext,
                                  uint32_t needleId,
                                  TDistanceTag const &)
 {
+//     uint32_t readId = getReadId(needleId, ossContext.readCount);
+//     setCurrentErrors(ossContext.ctx, readId, 0);
+
     for (auto & s : ss)
         _optimalSearchScheme(ossContext, delegate, delegateDirect, it, bitvectors, s, needle, needleId, TDistanceTag());
+
+
+    /*
+    uint32_t readId = getReadId(needleId, ossContext.readCount);
+    std::cout << "readId: " << (int)readId << "\n";
+    std::cout << "Current Errors: " << (int)getCurrentErrors(ossContext.ctx, readId) << "\n";
+
+//     std::cout << "Estimate Size: " << "56 bytes" << "\n";
+    for(int i = 0; i < ossContext.states.size(); ++i){
+        std::cout << "Errors: " << i << "\t times \t" << ossContext.states[i].size() << "\n";
+    }
+
+    std::cout << "Second Round" << "\n";
+    for(uint8_t e = 1; e < 2; ++e){ //ossContext.states.size()
+        setCurrentErrors(ossContext.ctx, readId, e);
+        for(int j = 0; j < ossContext.states[e].size(); ++j){
+//             auto state = ossContext.states[e][j];
+//             it =  ossContext.states[e][j].it;
+            std::cout << "Call OSS: " << j << "\n";
+            std::cout << "in context:" << "\n";
+            std::cout <<  ossContext.states[e][j].it.fwdIter.vDesc.range << "\t" <<  ossContext.states[e][j].nlp << "\t" <<  ossContext.states[e][j].nrp << "\t" << (int) ossContext.states[e][j].sId << "\t" << (int) ossContext.states[e][j].blockIndex << "\n";
+
+            std::cout << (int)needleId << "\t" << (int)e << "\t" << (int)ss[ ossContext.states[e][j].sId].pi[0] << "\t" <<  ossContext.states[e][j].fwdDirection << "\n";
+
+            if(ossContext.states[e][j].fwdDirection){
+                _optimalSearchScheme(ossContext, delegate, delegateDirect, ossContext.states[e][j].it, ossContext.reads[needleId], needleId, bitvectors,  ossContext.states[e][j].nlp,  ossContext.states[e][j].nrp, e, ss[ ossContext.states[e][j].sId],  ossContext.states[e][j].blockIndex, false, Rev(), TDistanceTag());
+            }else{
+                _optimalSearchScheme(ossContext, delegate, delegateDirect, ossContext.states[e][j].it, ossContext.reads[needleId], needleId, bitvectors,  ossContext.states[e][j].nlp,  ossContext.states[e][j].nrp, e, ss[ ossContext.states[e][j].sId],  ossContext.states[e][j].blockIndex, false, Fwd(), TDistanceTag());
+            }
+            std::cout << "Finished OSS: " << j << "\n";
+        }
+    }
+
+    for(int i = 0; i < ossContext.states.size(); ++i){
+        ossContext.states[i].clear();
+    }*/
 }
 
 template <size_t minErrors, size_t maxErrors,
