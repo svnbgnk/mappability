@@ -157,30 +157,40 @@ inline void getConsOnes(std::vector<std::pair<TVector, TVSupport>> & bitvectors,
                  std::vector<std::pair<uint32_t, uint32_t>> & consOnesOutput);
 
 
-template<typename TIter>
+
+struct SparseIter{
+    seqan::Pair<uint32_t, uint32_t> fwdRange;
+    uint32_t revRangeStart;
+    uint32_t repLen;
+
+};
+
+template<typename TIter2>
 struct State{
-    TIter it;
+    TIter2 it;
     uint32_t nlp;
     uint32_t nrp;
     uint8_t sId;
     uint8_t blockIndex;
     bool fwdDirection;
 
-//     template<typename TIter, typename TNeedleID, typename TNeedlePos>
-    State(TIter it,
+    template<typename TIter>
+    State(TIter inIt,
           uint32_t nlp,
           uint32_t nrp,
           uint8_t sId,
           uint8_t blockIndex,
           bool fwdDirection) :
-        it(it),
+//         it(inIt),
         nlp(nlp),
         nrp(nrp),
         sId(sId),
         blockIndex(blockIndex),
         fwdDirection(fwdDirection)
     {
-        ;
+        it.fwdRange = inIt.fwdIter.vDesc.range;
+        it.revRangeStart = inIt.revIter.vDesc.range.i1;
+        it.repLen = inIt.fwdIter.vDesc.repLen;
     }
 
 };

@@ -75,7 +75,7 @@ public:
 class OSSContext
 {
 public:
-    typedef State<MyIter> TTState;
+    typedef State<SparseIter/*MyIter*/> TTState;
 
     //Parameters
     modusParameters normal;
@@ -148,8 +148,8 @@ public:
 //         states.reserve(maxError);
     }
 
-//     template <typename TIter>
-    inline void saveState(MyIter & iter, uint32_t nlp, uint32_t nrp, uint8_t sid, uint8_t blockIndex, bool right, uint8_t errors){
+    template <typename TIter>
+    inline void saveState(TIter & iter, uint32_t nlp, uint32_t nrp, uint8_t sid, uint8_t blockIndex, bool right, uint8_t errors){
         TTState state(iter, nlp, nrp, sid, blockIndex, right);
         states[errors].push_back(state);
 //         int sizee = states[errors].size() - 1;
