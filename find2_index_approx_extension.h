@@ -819,17 +819,6 @@ inline void _optimalSearchSchemeExact(TContex & ossContext,
                                       TDir const &,
                                       TDistanceTag const &)
 {
-/*
-    std::cout << "Exact fwd it: " << iter.fwdIter.vDesc.range << "\t" << repLength(iter) << "\tp:" << iter.fwdIter._parentDesc.range << "\t" << parentRepLength(iter.fwdIter) << "\t" << iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 << "\n";
-
-    std::cout << "Exact rev it: " << iter.revIter.vDesc.range << "\t" << repLength(iter.revIter) << "\tp:" << iter.revIter._parentDesc.range << "\t" << parentRepLength(iter.revIter) << "\t" << iter.revIter.vDesc.range.i2 - iter.revIter.vDesc.range.i1 << "\n";
-
-    std::cout << "Exact State: " << "\n";
-    print_search(s);
-    std::cout << needleLeftPos << "\t" << needleRightPos << "\t" << (int) errors << "\t" << (int) blockIndex << "\t" << (std::is_same<TDir, Rev>::value) << "\n";
-    std::cout << needle << "\t" << (int)needleId << "\n";*/
-
-
     // not in last block and next Block is larger then current block
     bool goToRight2 = (blockIndex < s.pi.size() - 1) ? s.pi[blockIndex + 1] > s.pi[blockIndex] : s.pi[blockIndex] > s.pi[blockIndex - 1];
     uint8_t blockIndex2 = std::min(blockIndex + 1, static_cast<uint8_t>(s.u.size()) - 1);
@@ -929,16 +918,7 @@ inline void _optimalSearchScheme(TContex & ossContext,
                                  TDir const & ,
                                  TDistanceTag const &)
 {
-    uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
-/*
-    if(maxErrorsLeftInBlock == 0)
-        std::cout << "going to exact search: " << "\n";
-
-    std::cout << "NLP: " << needleLeftPos << "\t" << "NRP: " << needleRightPos << "\t" << (int)errors << "\t" << (int) maxErrorsLeftInBlock << "\n";
-    std::cout << "OSS fwd it: " << iter.fwdIter.vDesc.range << "\t" << repLength(iter) << "\tp:" << iter.fwdIter._parentDesc.range << "\t" << parentRepLength(iter.fwdIter) << "\t" << iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1 << "\n";
-
-    std::cout << "OSS rev it: " << iter.revIter.vDesc.range << "\t" << repLength(iter.revIter) << "\tp:" << iter.revIter._parentDesc.range << "\t" << parentRepLength(iter.revIter) << "\t" << iter.revIter.vDesc.range.i2 - iter.revIter.vDesc.range.i1 << "\n";*/
-
+    //add strata tag
     if(ossContext.oneSSBestXMapper){
         bool save = false;
         uint32_t readId = getReadId(needleId, ossContext.readCount);
@@ -962,7 +942,7 @@ inline void _optimalSearchScheme(TContex & ossContext,
         }
     }
 
-//     uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
+    uint8_t const maxErrorsLeftInBlock = s.u[blockIndex] - errors;
     uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
     bool const done = minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1;
     bool const atBlockEnd = (blockIndex > 0) ? needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex - 1] : false;        //is not true if we finished needle
@@ -1096,30 +1076,39 @@ inline void _optimalSearchScheme(TContex & ossContext,
     if(ossContext.oneSSBestXMapper){
         uint32_t readId = getReadId(needleId, ossContext.readCount);
         setCurrentErrors(ossContext.ctx, readId, 0);
-//         std::cout << "readId: " << (int)readId << "\n";
 /*
-    //     std::cout << "Estimate Size: " << "56 bytes" << "\n";
+    //
         for(int i = 0; i < ossContext.states.size(); ++i){
             std::cout << "Errors: " << i << "\t times \t" << ossContext.states[i].size() << "\n";
         }*/
 
 //         std::cout << "Second Round" << "\n";
-        for(uint8_t e = 1; e < ossContext.states.size() && e <= getMinErrors(ossContext.ctx, readId) + ossContext.strata; ++e){ //
+        for(uint8_t e = 1; e < ossContext.states.size() && e <= getMinErrors(ossContext.ctx, readId) + ossContext.strata; ++e){
+
+
             setCurrentErrors(ossContext.ctx, readId, e);
             for(int j = 0; j < ossContext.states[e].size(); ++j){
-    //             State<MyIter> state = ossContext.states[e][j];
-    //             it =  ossContext.states[e][j].it;
-    //             std::cout << "Call OSS: " << j << "\n";
-    //             std::cout << "in context:" << "\n";
-    //             std::cout <<  ossContext.states[e][j].it.fwdIter.vDesc.range << "\t" <<  ossContext.states[e][j].nlp << "\t" <<  ossContext.states[e][j].nrp << "\t" << (int) e << "\t" << (int) ossContext.states[e][j].sId << "\t" << (int) ossContext.states[e][j].blockIndex << "\t" << ossContext.states[e][j].fwdDirection << "\n";
+                State<MyIter> & state = ossContext.states[e][j];/*
+                MyIter tmp = it;
+                tmp.fwdIter.vDesc.range = state.it.fwdIter.vDesc.range;
+                tmp.revIter.vDesc.range.i1 = state.it.revIter.vDesc.range.i1;
+                tmp.revIter.vDesc.range.i2 = tmp.revIter.vDesc.range.i1 + tmp.fwdIter.vDesc.range.i2 - tmp.fwdIter.vDesc.range.i1;
+                tmp.fwdIter.vDesc.repLen = state.it.fwdIter.vDesc.repLen;
+                tmp.revIter.vDesc.repLen = tmp.fwdIter.vDesc.repLen;*/
 
+//                 std::cout << repLength(tmp.fwdIter) << "\n";
 
-                if(ossContext.states[e][j].fwdDirection){
+//                 repLength(tmp.fwdIter) = repLength(state.it.fwdIter);
+//                 repLength(tmp.revIter) = repLength(tmp.fwdIter);
+//                 std::cout << repLength(tmp.fwdIter) << "\n";
+// (all)192	176(iter)
+//                 std::cout << "Estimate Size: " << sizeof(state) << "\t"<< sizeof(state.it) << "\t"  << sizeof(state.fwdDirection) << "\t" << sizeof(state.nlp) << "\t"<< sizeof(state.sId) << "\n";
+                if(state.fwdDirection){
     //                 std::cout << "searching forward" << "\n";
-                    _optimalSearchScheme(ossContext, delegate, delegateDirect, ossContext.states[e][j].it, needle, needleId, bitvectors,  ossContext.states[e][j].nlp,  ossContext.states[e][j].nrp, e, ss[ossContext.states[e][j].sId],  ossContext.states[e][j].blockIndex, false, Rev(), TDistanceTag());
+                    _optimalSearchScheme(ossContext, delegate, delegateDirect, state.it, needle, needleId, bitvectors,  state.nlp,  state.nrp, e, ss[state.sId],  state.blockIndex, false, Rev(), TDistanceTag());
                 }else{
     //                 std::cout << "searching backwards" << "\n";
-                    _optimalSearchScheme(ossContext, delegate, delegateDirect, ossContext.states[e][j].it, needle, needleId, bitvectors,  ossContext.states[e][j].nlp,  ossContext.states[e][j].nrp, e, ss[ossContext.states[e][j].sId],  ossContext.states[e][j].blockIndex, false, Fwd(), TDistanceTag());
+                    _optimalSearchScheme(ossContext, delegate, delegateDirect, state.it, needle, needleId, bitvectors,  state.nlp,  state.nrp, e, ss[state.sId],  state.blockIndex, false, Fwd(), TDistanceTag());
                 }
     //             std::cout << "Finished OSS: " << j << "\n";
             }

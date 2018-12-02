@@ -149,7 +149,7 @@ public:
     }
 
 //     template <typename TIter>
-    void saveState(MyIter iter, uint32_t nlp, uint32_t nrp, uint8_t sid, uint8_t blockIndex, bool right, uint8_t errors){
+    inline void saveState(MyIter & iter, uint32_t nlp, uint32_t nrp, uint8_t sid, uint8_t blockIndex, bool right, uint8_t errors){
         TTState state(iter, nlp, nrp, sid, blockIndex, right);
         states[errors].push_back(state);
 //         int sizee = states[errors].size() - 1;
