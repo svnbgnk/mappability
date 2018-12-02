@@ -922,8 +922,6 @@ inline void _optimalSearchScheme(TContex & ossContext,
     if(ossContext.oneSSBestXMapper){
         bool save = false;
         uint32_t readId = getReadId(needleId, ossContext.readCount);
-//         std::cout << "readId: " << (int)readId << "\n";
-//         std::cout << (int)errors << ":c:" <<  (int)getCurrentErrors(ossContext.ctx, readId) << "\n";
         if(errors > getCurrentErrors(ossContext.ctx, readId))
             save = true;
         if(isMapped(ossContext.ctx, readId)){
@@ -931,7 +929,7 @@ inline void _optimalSearchScheme(TContex & ossContext,
                 return;
         }
         if(save){
-//             std::cout << "saving state: " << (int)errors << "\n"; //INFO nice
+//             std::cout << "saving state: " << (int)errors << "\n";
 //             std::cout << iter.fwdIter.vDesc.range << "\t" << needleLeftPos << "\t" << needleRightPos << "\t" << (int)s.id << "\t" << (int)blockIndex << "\n";
             bool right = std::is_same<TDir, Rev>::value;
 
@@ -1082,6 +1080,11 @@ inline void loadIter(TIter & it, TSparseIter & itsparse){
     it.revIter._parentDesc.lastChar = itsparse.revp.lastChar;*/
 }
 
+template<typename TIter>
+inline void loadIter(TIter & it, TIter & stateIter){
+    it = stateIter;
+}
+
 template <typename TContex,
           typename TDelegate, typename TDelegateD,
           typename TText, typename TIndex, typename TIndexSpec,
@@ -1106,24 +1109,19 @@ inline void _optimalSearchScheme(TContex & ossContext,
 
     if(ossContext.oneSSBestXMapper){
         uint32_t readId = getReadId(needleId, ossContext.readCount);
-        setCurrentErrors(ossContext.ctx, readId, 0);
-/*
-    //
-        for(int i = 0; i < ossContext.states.size(); ++i){
-            std::cout << "Errors: " << i << "\t times \t" << ossContext.states[i].size() << "\n";
-        }*/
+        setCurrentErrors(ossContext.ctx, readId, 0); //TODO this is not needed
 
-//         std::cout << "Second Round" << "\n";
         for(uint8_t e = 1; e < ossContext.states.size() && e <= getMinErrors(ossContext.ctx, readId) + ossContext.strata; ++e){
             setCurrentErrors(ossContext.ctx, readId, e);
             for(int j = 0; j < ossContext.states[e].size(); ++j){
                 State<MySparseIter> & state = ossContext.states[e][j];
-//                 MyIter tmp = it;
-//                 loadIter(tmp, state.it);
-                MyIter tmp = state.it;
+                MyIter tmp = it;
+                loadIter(tmp, state.it);
+//                 MyIter tmp = state.it;
 
 
 /*
+ * test creating a sparse Iter
                 tmp.fwdIter.vDesc.range = state.it.fwdIter.vDesc.range;
                 tmp.revIter.vDesc.range.i1 = state.it.revIter.vDesc.range.i1;
                 tmp.revIter.vDesc.range.i2 = tmp.revIter.vDesc.range.i1 + tmp.fwdIter.vDesc.range.i2 - tmp.fwdIter.vDesc.range.i1;

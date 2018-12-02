@@ -188,6 +188,7 @@ struct State{
     bool fwdDirection;
 
 
+    //TODO use this only when TIter2 == MyIter
     State(MyIter inIt,
           uint32_t nlp,
           uint32_t nrp,
@@ -203,8 +204,7 @@ struct State{
     {
         ;
     }
-
-    template<typename TIter>
+/*
     State(TIter inIt,
           uint32_t nlp,
           uint32_t nrp,
@@ -218,6 +218,17 @@ struct State{
         blockIndex(blockIndex),
         fwdDirection(fwdDirection)
     {
+
+
+
+        it.fwdRange = inIt.fwdIter.vDesc.range;
+        it.revRangeStart = inIt.revIter.vDesc.range.i1;
+        it.repLen = inIt.fwdIter.vDesc.repLen;
+    }*/
+
+};
+
+
 /*
         it.fwd.range = inIt.fwdIter.vDesc.range;
         it.fwd.smaller = inIt.fwdIter.vDesc.smaller;
@@ -238,16 +249,6 @@ struct State{
         it.revp.smaller = inIt.revIter._parentDesc.smaller;
         it.revp.repLen = inIt.revIter._parentDesc.repLen;
         it.revp.lastChar = inIt.revIter._parentDesc.lastChar;*/
-
-
-        it.fwdRange = inIt.fwdIter.vDesc.range;
-        it.revRangeStart = inIt.revIter.vDesc.range.i1;
-        it.repLen = inIt.fwdIter.vDesc.repLen;
-    }
-
-};
-
-
 
 
 /*

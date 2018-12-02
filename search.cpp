@@ -139,7 +139,7 @@ public:
         maxError = nerrors;
         strata = instrata;
         readContext = true;
-        if(instrata != 0)
+        if(instrata != 99)
             oneSSBestXMapper = true;
         initReadsContext(ctx, readCount);
         std::vector<TTState> v;
