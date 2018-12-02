@@ -84,7 +84,7 @@ public:
 
 
     bool bestXMapper = false; //still needed multiple searches
-    bool oneSBestXMapper = false;
+    bool oneSSBestXMapper = false;
 
     // Shared-memory read-write data.
     ReadsContext<void, void>       ctx;
@@ -104,7 +104,7 @@ public:
 
     uint32_t readCount = length(reads); //if readCount is not set than all reads are assumend to be on one strand
     uint8_t maxError = 0;
-    uint8_t strata = 0;
+    uint8_t strata = 99;
 
 
     OSSContext(StringSet<DnaString> inreads,
@@ -134,11 +134,13 @@ public:
         uni.print();
     }
 
-    void setReadContext(uint32_t inreadCount, uint8_t nerrors = 0, uint8_t instrata = 0){
+    void setReadContext(uint32_t inreadCount, uint8_t nerrors = 0, uint8_t instrata = 99){
         readCount = inreadCount;
         maxError = nerrors;
         strata = instrata;
         readContext = true;
+        if(instrata != 0)
+            oneSSBestXMapper = true;
         initReadsContext(ctx, readCount);
         std::vector<TTState> v;
         for(int i = 0; i < maxError + 1; ++i)
@@ -239,6 +241,8 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("E", "errors", "Max errors allowed during mapping", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "errors");
 
+    addOption(parser, ArgParseOption("s", "strata", "Number of additional errors to optimal alignment allowed during mapping", ArgParseArgument::INTEGER, "INT"));
+
     addOption(parser, ArgParseOption("e", "edit", "Search Edit Distance, correct bitvectors have to be selected"));
 
     addOption(parser, ArgParseOption("r", "r", "number of reads to test ", ArgParseArgument::INTEGER, "INT"));
@@ -279,13 +283,14 @@ int main(int argc, char *argv[])
 
     CharString indexPath, bitvectorpath, readspath;
     string outputpath;
-    int K, nerrors, benchparams, threshold = 10, r = 0, strata = 0;
+    int K, nerrors, benchparams, threshold = 10, r = 0, strata = 99;
     getOptionValue(indexPath, parser, "index");
     getOptionValue(bitvectorpath, parser, "ibitvector");
     getOptionValue(readspath, parser, "ireads");
     getOptionValue(outputpath, parser, "output");
     getOptionValue(K, parser, "length");
     getOptionValue(nerrors, parser, "errors");
+    getOptionValue(strata, parser, "strata");
     getOptionValue(r, parser, "r");
     getOptionValue(threshold, parser, "threshold");
     getOptionValue(benchparams, parser, "benchparams");
@@ -365,12 +370,15 @@ int main(int argc, char *argv[])
 
 
     std::vector<hit> myhits;
+//     myhits.reserve(20029761);
     std::vector<hit> mydhits;
     std::vector<uint32_t> myreadOccCount;
     OSSContext myOSSContext(reads, myhits, mydhits/*, myreadOccCount*/);
     myOSSContext.setReadContext(readCount, nerrors, strata);
-    myOSSContext.itv = false;
-    myOSSContext.normal.suspectunidirectional = false;
+    if(myOSSContext.oneSSBestXMapper){
+        myOSSContext.itv = false;
+        myOSSContext.normal.suspectunidirectional = false;
+    }
 
 
     auto delegate = [&myhits](OSSContext & ossContext, auto const & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
@@ -406,7 +414,6 @@ int main(int argc, char *argv[])
         uint32_t readId = getReadId(needleId, ossContext.readCount);
         setMapped(ossContext.ctx, readId);
         setMinErrors(ossContext.ctx, readId, errors);
-        std::cout << "Direct Hit Needle Id: " << readId << "\n";
     };
 
 
@@ -468,9 +475,10 @@ int main(int argc, char *argv[])
     // Test default
     //TODO change vector name of lambda function
     std::vector<hit> hitsDefault;
+//     hitsDefault.reserve(20029761);
     std::vector<hit> dummy;
-    OSSContext ossContextDefault(reads, hitsDefault, dummy);
-    ossContextDefault.readCount = readCount;
+//     OSSContext ossContextDefault(reads, hitsDefault, dummy);
+//     ossContextDefault.readCount = readCount;
 //     ossContextDefault.itv = false;
 
     if(mdefault){
@@ -535,6 +543,9 @@ int main(int argc, char *argv[])
 //     std::vector<uint32_t> myreadOccCountDe;
     OSSContext ossContextDefaultT(reads, hitsDe, dhitsDe); //, myreadOccCountDe
     ossContextDefaultT.setReadContext(readCount, nerrors, strata);
+    if(ossContextDefaultT.oneSSBestXMapper){
+        ossContextDefaultT.itv = false;
+    }
 //     ossContextDefaultT.itv = false;
 
     // default with in text search
@@ -584,14 +595,14 @@ int main(int argc, char *argv[])
 
         cout << "Default Version with DS: " << elapsed.count() << "s" << endl;
         cout << "default DS Hits: " << hitsDe.size() + dhitsDe.size() << endl;
-
+/*
         start2 = std::chrono::high_resolution_clock::now();
         find(0, nerrors, ossContextDefaultT, delegate2, delegateDirect2, index, reads, EditDistance());
         finish2 = std::chrono::high_resolution_clock::now();
         elapsed = finish2 - start2;
 
         cout << "Default Version with DS: " << elapsed.count() << "s" << endl;
-        cout << "default DS Hits: " << hitsDe.size() + dhitsDe.size() << endl;
+        cout << "default DS Hits: " << hitsDe.size() + dhitsDe.size() << endl;*/
     }
 
 

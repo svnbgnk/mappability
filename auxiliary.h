@@ -10,6 +10,7 @@ template <typename TSpec = void, typename TConfig = void>
 struct ReadsContext
 {
     String<unsigned char>       minErrors;
+    String<unsigned char>       currentErrors;
     String<bool>                mapped;
 };
 
@@ -17,8 +18,10 @@ template <typename TReadsContext>
 inline void clear(TReadsContext & ctx)
 {
     clear(ctx.minErrors);
+    clear(ctx.currentErrors);
     clear(ctx.mapped);
     shrinkToFit(ctx.minErrors);
+    shrinkToFit(ctx.currentErrors);
     shrinkToFit(ctx.mapped);
 }
 
@@ -26,6 +29,7 @@ template <typename TReadsContext>
 inline void resize(TReadsContext & ctx, uint32_t const readCount)
 {
     resize(ctx.minErrors, readCount, std::numeric_limits<unsigned char>::max(), Exact());
+    resize(ctx.currentErrors, readCount, std::numeric_limits<unsigned char>::min(), Exact());
 //     resize(ctx.minErrors, getReadSeqsCount(readSeqs), );
     resize(ctx.mapped, readCount, false, Exact());
 }
@@ -47,6 +51,22 @@ inline void setMinErrors(TReadsContext & ctx, TReadId readId, TErrors errors)
     if (errors < getMinErrors(ctx, readId))
         assignValue(ctx.minErrors, readId, errors);
 }
+
+
+
+template <typename TReadsContext, typename TReadId>
+inline unsigned char getCurrentErrors(TReadsContext const & ctx, TReadId readId)
+{
+    return ctx.currentErrors[readId];
+}
+
+
+template <typename TReadsContext, typename TReadId, typename TErrors>
+inline void setCurrentErrors(TReadsContext & ctx, TReadId readId, TErrors errors)
+{
+    assignValue(ctx.currentErrors, readId, errors);
+}
+
 
 // ----------------------------------------------------------------------------
 // Function setMapped()
