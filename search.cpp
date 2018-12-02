@@ -75,7 +75,7 @@ public:
 class OSSContext
 {
 public:
-    typedef State<SparseIter/*MyIter*/> TTState;
+    typedef State<MySparseIter> TTState;
 
     //Parameters
     modusParameters normal;
@@ -370,7 +370,6 @@ int main(int argc, char *argv[])
 
 
     std::vector<hit> myhits;
-//     myhits.reserve(20029761);
     std::vector<hit> mydhits;
     std::vector<uint32_t> myreadOccCount;
     OSSContext myOSSContext(reads, myhits, mydhits/*, myreadOccCount*/);
@@ -539,6 +538,7 @@ int main(int argc, char *argv[])
 
 
     std::vector<hit> hitsDe;
+    //     hitsDe.reserve(20029761);
     std::vector<hit> dhitsDe;
 //     std::vector<uint32_t> myreadOccCountDe;
     OSSContext ossContextDefaultT(reads, hitsDe, dhitsDe); //, myreadOccCountDe
@@ -595,14 +595,6 @@ int main(int argc, char *argv[])
 
         cout << "Default Version with DS: " << elapsed.count() << "s" << endl;
         cout << "default DS Hits: " << hitsDe.size() + dhitsDe.size() << endl;
-/*
-        start2 = std::chrono::high_resolution_clock::now();
-        find(0, nerrors, ossContextDefaultT, delegate2, delegateDirect2, index, reads, EditDistance());
-        finish2 = std::chrono::high_resolution_clock::now();
-        elapsed = finish2 - start2;
-
-        cout << "Default Version with DS: " << elapsed.count() << "s" << endl;
-        cout << "default DS Hits: " << hitsDe.size() + dhitsDe.size() << endl;*/
     }
 
 

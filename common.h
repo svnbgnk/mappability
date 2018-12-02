@@ -65,7 +65,6 @@ typedef sdsl::rank_support_v<> TSupport;
 typedef Iter<Index<TText, TIndexConfig>, VSTree<TopDown<> > > MyIter;
 
 
-
 struct hit{
     bool rev;
     bool rc;
@@ -158,12 +157,26 @@ inline void getConsOnes(std::vector<std::pair<TVector, TVSupport>> & bitvectors,
 
 
 
+struct SparseVDesc{
+    seqan::Pair<uint32_t, uint32_t> range;
+    uint32_t smaller;
+    uint32_t repLen;
+    Dna lastChar;
+};
+
+
 struct SparseIter{
     seqan::Pair<uint32_t, uint32_t> fwdRange;
     uint32_t revRangeStart;
     uint32_t repLen;
-
+    /*
+    SparseVDesc fwd;
+    SparseVDesc rev;
+    SparseVDesc fwdp;
+    SparseVDesc revp;*/
 };
+
+typedef MyIter MySparseIter;
 
 template<typename TIter2>
 struct State{
@@ -173,6 +186,23 @@ struct State{
     uint8_t sId;
     uint8_t blockIndex;
     bool fwdDirection;
+
+
+    State(MyIter inIt,
+          uint32_t nlp,
+          uint32_t nrp,
+          uint8_t sId,
+          uint8_t blockIndex,
+          bool fwdDirection) :
+        it(inIt),
+        nlp(nlp),
+        nrp(nrp),
+        sId(sId),
+        blockIndex(blockIndex),
+        fwdDirection(fwdDirection)
+    {
+        ;
+    }
 
     template<typename TIter>
     State(TIter inIt,
@@ -188,12 +218,36 @@ struct State{
         blockIndex(blockIndex),
         fwdDirection(fwdDirection)
     {
+/*
+        it.fwd.range = inIt.fwdIter.vDesc.range;
+        it.fwd.smaller = inIt.fwdIter.vDesc.smaller;
+        it.fwd.repLen = inIt.fwdIter.vDesc.repLen;
+        it.fwd.lastChar = inIt.fwdIter.vDesc.lastChar;
+
+        it.rev.range = inIt.revIter.vDesc.range;
+        it.rev.smaller = inIt.revIter.vDesc.smaller;
+        it.rev.repLen = inIt.revIter.vDesc.repLen;
+        it.rev.lastChar = inIt.revIter.vDesc.lastChar;
+
+        it.fwdp.range = inIt.fwdIter._parentDesc.range;
+        it.fwdp.smaller = inIt.fwdIter._parentDesc.smaller;
+        it.fwdp.repLen = inIt.fwdIter._parentDesc.repLen;
+        it.fwdp.lastChar = inIt.fwdIter._parentDesc.lastChar;
+
+        it.revp.range = inIt.revIter._parentDesc.range;
+        it.revp.smaller = inIt.revIter._parentDesc.smaller;
+        it.revp.repLen = inIt.revIter._parentDesc.repLen;
+        it.revp.lastChar = inIt.revIter._parentDesc.lastChar;*/
+
+
         it.fwdRange = inIt.fwdIter.vDesc.range;
         it.revRangeStart = inIt.revIter.vDesc.range.i1;
         it.repLen = inIt.fwdIter.vDesc.repLen;
     }
 
 };
+
+
 
 
 /*

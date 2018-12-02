@@ -1053,17 +1053,33 @@ inline void _optimalSearchScheme(TContex & ossContext,
 
 template<typename TIter, typename TSparseIter>
 inline void loadIter(TIter & it, TSparseIter & itsparse){
+
     it.fwdIter.vDesc.range = itsparse.fwdRange;
     it.revIter.vDesc.range.i1 = itsparse.revRangeStart;
     it.revIter.vDesc.range.i2 = it.revIter.vDesc.range.i1 + it.fwdIter.vDesc.range.i2 - it.fwdIter.vDesc.range.i1;
     it.fwdIter.vDesc.repLen = itsparse.repLen;
     it.revIter.vDesc.repLen = itsparse.repLen;
-    /*
-                tmp.fwdIter.vDesc.range = state.it.fwdRange;
-                tmp.revIter.vDesc.range.i1 = state.it.revRangeStart;
-                tmp.revIter.vDesc.range.i2 = tmp.revIter.vDesc.range.i1 + tmp.fwdIter.vDesc.range.i2 - tmp.fwdIter.vDesc.range.i1;
-                tmp.fwdIter.vDesc.repLen = state.it.repLen;
-                tmp.revIter.vDesc.repLen = state.it.repLen;*/
+
+/*
+    it.fwdIter.vDesc.range = itsparse.fwd.range;
+    it.fwdIter.vDesc.smaller = itsparse.fwd.smaller;
+    it.fwdIter.vDesc.repLen = itsparse.fwd.repLen;
+    it.fwdIter.vDesc.lastChar = itsparse.fwd.lastChar;
+
+    it.revIter.vDesc.range = itsparse.rev.range;
+    it.revIter.vDesc.smaller = itsparse.rev.smaller;
+    it.revIter.vDesc.repLen = itsparse.rev.repLen;
+    it.revIter.vDesc.lastChar = itsparse.rev.lastChar;
+
+    it.fwdIter._parentDesc.range = itsparse.fwdp.range;
+    it.fwdIter._parentDesc.smaller = itsparse.fwdp.smaller;
+    it.fwdIter._parentDesc.repLen = itsparse.fwdp.repLen;
+    it.fwdIter._parentDesc.lastChar = itsparse.fwdp.lastChar;
+
+    it.revIter._parentDesc.range = itsparse.revp.range;
+    it.revIter._parentDesc.smaller = itsparse.revp.smaller;
+    it.revIter._parentDesc.repLen = itsparse.revp.repLen;
+    it.revIter._parentDesc.lastChar = itsparse.revp.lastChar;*/
 }
 
 template <typename TContex,
@@ -1101,9 +1117,11 @@ inline void _optimalSearchScheme(TContex & ossContext,
         for(uint8_t e = 1; e < ossContext.states.size() && e <= getMinErrors(ossContext.ctx, readId) + ossContext.strata; ++e){
             setCurrentErrors(ossContext.ctx, readId, e);
             for(int j = 0; j < ossContext.states[e].size(); ++j){
-                State</*MyIter*/SparseIter> & state = ossContext.states[e][j];
-                MyIter tmp = it;
-                loadIter(tmp, state.it);
+                State<MySparseIter> & state = ossContext.states[e][j];
+//                 MyIter tmp = it;
+//                 loadIter(tmp, state.it);
+                MyIter tmp = state.it;
+
 
 /*
                 tmp.fwdIter.vDesc.range = state.it.fwdIter.vDesc.range;
