@@ -6,7 +6,7 @@ using namespace std;
 using namespace seqan;
 
 template <typename value_t>
-void dump(CharString const & inputPath, CharString const & outputPath)
+void dump(CharString const & inputPath, CharString const & outputPath, uint64_t const runBound)
 {
     vector<value_t> v;
     ifstream file(toCString(inputPath), std::ios::binary);
@@ -14,8 +14,8 @@ void dump(CharString const & inputPath, CharString const & outputPath)
     {
         file.seekg(0, std::ios_base::end);
         std::streampos fileSize = file.tellg();
-        std::cout << "File size: " << fileSize << '\n';
-        std::cout << "Sizeof: " << sizeof(value_t) << '\n';
+        //std::cout << "File size: " << fileSize << '\n';
+        //std::cout << "Sizeof: " << sizeof(value_t) << '\n';
         v.resize(fileSize / sizeof(value_t));
         file.seekg(0, std::ios_base::beg);
         file.read((char*) & v[0], fileSize);
@@ -23,26 +23,31 @@ void dump(CharString const & inputPath, CharString const & outputPath)
 
         cout << "Load successful\n";
 
-        cout << "v.size(): " << v.size() << '\n';
+        //cout << "v.size(): " << v.size() << '\n';
 
         // TODO: progress bar
         ofstream outfile(toCString(outputPath), std::ios::out | std::ofstream::binary);
         copy(v.begin(), v.end(), (std::ostream_iterator<value_t>(outfile), std::ostream_iterator<int>(outfile, " ")));
 
+        if (runBound > 0)
+        {
+            uint64_t i = 0;
+            cout << "Number of runs:\n";
+            for (uint64_t j = 0; j < v.size(); ++j)
+            {
+                while (v[i + j] == 1 && v[i + j] < v.size())
+                    ++i;
+
+                if (runBound > 100)
+                    cout <<"Pos: " << j << ", run's length: " << i << '\n';
+
+                j += i;
+                i = 0;
+            }
+        }
+
         cout << "Done.\n";
-       int i=0;
-        cout << "number of runs\n";
-        for (int j=0; j< v.size();j++){
 
-        while (v[i+j]==1 && v[i+j]< v.size())
-        i++;
-
-        if (i>100)
-          cout <<"pos " << j <<" run's len "<< i <<'\n';
-
-        j+=i;
-        i=0;
-}
         return;
     }
 
@@ -63,37 +68,30 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("O", "output", "Path to output file", ArgParseArgument::OUTPUT_FILE, "OUT"));
     setRequired(parser, "output");
 
+    addOption(parser, ArgParseOption("R", "runs", "Output number of runs with mappability value of at least R", ArgParseArgument::INTEGER, "INT"));
+
+
     ArgumentParser::ParseResult res = parse(parser, argc, argv);
     if (res != ArgumentParser::PARSE_OK)
         return res == ArgumentParser::PARSE_ERROR;
 
     // Retrieve input parameters
+    uint64_t runBound;
     CharString inputPath, outputPath;
     getOptionValue(inputPath, parser, "input");
     getOptionValue(outputPath, parser, "output");
 
+    if (isSet(parser, "runs"))
+        getOptionValue(runBound, parser, "runs");
+    else
+        runBound = 0;
+
     string _inputPath = toCString(inputPath);
 
     if (_inputPath.substr(_inputPath.find_last_of(".") + 1) == "gmapp8")
-        dump<uint8_t>(inputPath, outputPath);
+        dump<uint8_t>(inputPath, outputPath, runBound);
     else
-        dump<uint16_t>(inputPath, outputPath);
-
-    // {
-    //     vector<uint8_t>  v1 {0, 1, 255, 255};
-    //     vector<uint16_t> v2 {0, 1, 255, 256, 16000, 65535};
-    //
-    //     CharString v1_path = "/dev/shm/v1";
-    //     CharString v2_path = "/dev/shm/v2";
-    //
-    //     ofstream outfile1(toCString(v1_path), ios::out | ios::binary);
-    //     outfile1.write((const char*) &v1[0], v1.size() * sizeof(uint8_t));
-    //     outfile1.close();
-    //
-    //     ofstream outfile2(toCString(v2_path), ios::out | ios::binary);
-    //     outfile2.write((const char*) &v2[0], v2.size() * sizeof(uint16_t));
-    //     outfile2.close();
-    // }
+        dump<uint16_t>(inputPath, outputPath, runBound);
 
     return 0;
 }
