@@ -94,9 +94,10 @@ inline void uniDirectSearch(TContex & ossContext,
 
     if(std::is_same<TDistanceTag, EditDistance>::value){
         uint8_t max_e = s.u[s.u.size() - 1];
-        int intIns = 0;
-        int intDel = 0;
+        uint8_t intIns = 0;
+        uint8_t intDel = 0;
         //calculate net sum of internal Insertions - Deletions
+        //TODO use intIns to modify overlap_r and overlap_l
 
         if(repLength(iter) < needleRightPos - needleLeftPos - 1)
             intIns = needleRightPos - needleLeftPos - 1 - repLength(iter);

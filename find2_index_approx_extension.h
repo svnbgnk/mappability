@@ -265,12 +265,12 @@ inline void directSearch(TContex & ossContext,
     auto const & genome = indexText(*iter.fwdIter.index);
 
     if (std::is_same<TDistanceTag, EditDistance>::value){
-        //TODO put this into a function
+
         //TODO if we are only interested in the best hit call return after delegate calls
         uint16_t needleL = length(needle);
         uint8_t max_e = s.u[s.u.size() - 1];
-        int intIns = 0;
-        int intDel = 0;
+        uint8_t intIns = 0;
+        uint8_t intDel = 0;
         //calculate net sum of internal Insertions - Deletions
 
         if(repLength(iter) < needleRightPos - needleLeftPos - 1)
@@ -279,10 +279,13 @@ inline void directSearch(TContex & ossContext,
             intDel = repLength(iter) - (needleRightPos - needleLeftPos - 1);
         uint8_t overlap_l = max_e;
         uint8_t overlap_r = max_e;
+        //TODO use intIns to modify overlap_r and overlap_l
+
 //         if(needleLeftPos == 0)
 //             overlap_l = intIns;
 //         if(needleRightPos == needleL + 1)
 //             overlap_r = intIns;
+
         uint16_t ex_infixL = needleL + overlap_l + overlap_r;
         for(uint32_t r = 0; r < iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1; ++r)
         {
