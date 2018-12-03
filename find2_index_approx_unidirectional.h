@@ -106,9 +106,16 @@ inline void uniDirectSearch(TContex & ossContext,
         uint8_t overlap_r = max_e;
 
         if(std::is_same<TDir, Rev>::value){
-            TNeedle needle2 = needle;
-            DnaStringReverse needleRev(needle2);
-            TNeedle needleRevCopy = needleRev; //why is this neccesary MyersBitVector() otherwise return error
+            TNeedle needleRev = needle;
+            reverse(needleRev);
+
+//             DnaStringReverse needleRevM(needle);
+
+//             DnaStringReverse needleRev(ossContext.reads[needleId]);
+//
+//             TNeedle needleCopy = needle;
+//             DnaStringReverse needleRev(needleCopy);
+//             TNeedle needleRevCopy = needleRev; //why is this neccesary MyersBitVector()
 
             for(uint32_t r = 0; r < iter.vDesc.range.i2 - iter.vDesc.range.i1; ++r){
                 if(checkSinglePos(bitvectors, brange, r))
@@ -122,7 +129,7 @@ inline void uniDirectSearch(TContex & ossContext,
                     DnaString ex_infix = infix(genome[sa_info.i1], sa_info.i2 - overlap_r, sa_info.i2 + needleL + overlap_l);
                     DnaString n_infix = infix(genome[sa_info.i1], sa_info.i2, sa_info.i2 + needleL);
 
-                    alignmentMyersBitvector(ossContext, delegateDirect, needleRevCopy, needleId, n_infix, ex_infix, chromlength, sa_info, max_e, overlap_l, overlap_r, intDel, true);
+                    alignmentMyersBitvector(ossContext, delegateDirect, needleRev, needleId, n_infix, ex_infix, chromlength, sa_info, max_e, overlap_l, overlap_r, intDel, true);
                 }
             }
         }
