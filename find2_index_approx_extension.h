@@ -1200,7 +1200,7 @@ bool id_smaller(const hit & x, const hit & y)
     return x.readId < y.readId;
 }
 
-
+//TODO make it faster
 template<typename TContex, typename THit>
 void removeBadHits(TContex & ossContext, std::vector<THit> & hits)
 {
@@ -1278,7 +1278,7 @@ find(TContex & ossContext,
 
     }
 //     takes to much time for editDistance
-    // wrong hits found with itv (we dont know before hand how many errors will be reported)
+    // wrong hits found with itv (we dont know before hand how many errors will be reported) //TODO make it optional
     if(ossContext.itv && ossContext.oneSSBestXMapper){
         removeBadHits(ossContext, ossContext.dhits);
     }
