@@ -1200,11 +1200,14 @@ bool id_smaller(const hit & x, const hit & y)
     return x.readId < y.readId;
 }
 
-//TODO make it faster
+//TODO make it faster takes 8.4 out of 20 seconds .. canceling the speed up of 1.6 sec
 template<typename TContex, typename THit>
 void removeBadHits(TContex & ossContext, std::vector<THit> & hits)
 {
     std::cout << "Start removing Bad Hits: " << "\n";
+    uint32_t correct_errors;
+    auto condition = [& correct_errors](const THit & v) { return v.errors > correct_errors;};
+
     auto start = std::chrono::high_resolution_clock::now();
     uint32_t count = hits.size();
     sort(hits.begin(), hits.end(), id_smaller);
@@ -1216,12 +1219,11 @@ void removeBadHits(TContex & ossContext, std::vector<THit> & hits)
     for(auto it = hits.begin(); it != hits.end();){
         auto startI = it;
         lastId = (*it).readId;
-        uint32_t correct_errors = getMinErrors(ossContext.ctx, lastId) + ossContext.strata;
+        correct_errors = getMinErrors(ossContext.ctx, lastId) + ossContext.strata;
         while(lastId == (*it).readId && it != hits.end()){
             ++it;
         }
-        auto condition = [& correct_errors](const THit & v) { return v.errors > correct_errors;};
-        hits.erase(std::remove_if(startI, it, condition), it);
+        it = hits.erase(std::remove_if(startI, it, condition), it);
     }
     finish = std::chrono::high_resolution_clock::now();
     elapsed = finish - start;

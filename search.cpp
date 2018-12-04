@@ -538,10 +538,10 @@ int main(int argc, char *argv[])
 //     std::vector<uint32_t> myreadOccCountDe;
     OSSContext ossContextDefaultT(reads, hitsDe, dhitsDe); //, myreadOccCountDe
     ossContextDefaultT.setReadContext(readCount, nerrors, strata);
-/*
+
     if(ossContextDefaultT.oneSSBestXMapper){
         ossContextDefaultT.itv = false;
-    }*/
+    }
 //     ossContextDefaultT.itv = false;
 
     // default with in text search
