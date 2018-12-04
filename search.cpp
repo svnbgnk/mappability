@@ -215,8 +215,6 @@ StringSet<DnaString> createRCReads(StringSet<DnaString> & reads)
     return(rcReads);
 }
 
-
-
 int main(int argc, char *argv[])
 {
     ArgumentParser parser("Search");
@@ -375,7 +373,6 @@ int main(int argc, char *argv[])
     OSSContext myOSSContext(reads, myhits, mydhits/*, myreadOccCount*/);
     myOSSContext.setReadContext(readCount, nerrors, strata);
     if(myOSSContext.oneSSBestXMapper){
-        myOSSContext.itv = false;
         myOSSContext.normal.suspectunidirectional = false;
     }
 
@@ -383,7 +380,6 @@ int main(int argc, char *argv[])
     auto delegate = [&myhits](OSSContext & ossContext, auto const & iter, DnaString const & needle, uint32_t const needleId, uint8_t errors, bool const rev)
     {
         uint32_t readId = getReadId(needleId, ossContext.readCount);
-
         //NOTE have to get Occurrences from the forward iter otherwise filtering does not work properly
         uint32_t occLength = repLength(iter);
         for (auto occ : getOccurrences(iter)){
@@ -409,7 +405,6 @@ int main(int argc, char *argv[])
         me.errors = errors;
         me.rev = false;
         mydhits.push_back(me);
-//         if(readContext)
         uint32_t readId = getReadId(needleId, ossContext.readCount);
         setMapped(ossContext.ctx, readId);
         setMinErrors(ossContext.ctx, readId, errors);
@@ -543,9 +538,10 @@ int main(int argc, char *argv[])
 //     std::vector<uint32_t> myreadOccCountDe;
     OSSContext ossContextDefaultT(reads, hitsDe, dhitsDe); //, myreadOccCountDe
     ossContextDefaultT.setReadContext(readCount, nerrors, strata);
+/*
     if(ossContextDefaultT.oneSSBestXMapper){
         ossContextDefaultT.itv = false;
-    }
+    }*/
 //     ossContextDefaultT.itv = false;
 
     // default with in text search
@@ -558,10 +554,10 @@ int main(int argc, char *argv[])
             uint32_t occLength = repLength(iter);
             for (auto occ : getOccurrences(iter)){
                 hit me;
+                setReadId(me, ossContext.readCount, needleId); //this function also saves if read was reversecomplement
                 me.occ = occ;
                 me.occEnd = posAdd(occ, occLength);
                 me.read = needle;
-                me.readId = needleId;
                 me.errors = errors;
                 me.rev = false;
                 hitsDe.push_back(me);
@@ -594,7 +590,8 @@ int main(int argc, char *argv[])
         elapsed = finish2 - start2;
 
         cout << "Default Version with DS: " << elapsed.count() << "s" << endl;
-        cout << "default DS Hits: " << hitsDe.size() + dhitsDe.size() << endl;
+        cout << "default DS dHits: " <<  dhitsDe.size() << "\n";
+        cout << "default DS overall Hits: " << dhitsDe.size() + hitsDe.size() << "\n";
     }
 
 

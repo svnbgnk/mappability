@@ -1116,12 +1116,12 @@ inline void _optimalSearchScheme(TContex & ossContext,
 
         for(uint8_t e = 1; e < ossContext.states.size() && e <= getMinErrors(ossContext.ctx, readId) + ossContext.strata; ++e){
             setCurrentErrors(ossContext.ctx, readId, e);
+//             std::cout << "Read: " << readId << "\n";
             for(int j = 0; j < ossContext.states[e].size(); ++j){
                 State<MySparseIter> & state = ossContext.states[e][j];
                 MyIter tmp = it;
                 loadIter(tmp, state.it);
 //                 MyIter tmp = state.it;
-
 
 /*
  * test creating a sparse Iter
@@ -1162,6 +1162,7 @@ inline void _optimalSearchScheme(TContex & ossContext,
         for(int i = 0; i < ossContext.states.size(); ++i){
             ossContext.states[i].clear();
         }
+
     }
 }
 
@@ -1191,6 +1192,40 @@ find(TContex & ossContext,
 //     Iter<Index<TText, BidirectionalIndex<TIndexSpec> >, VSTree<TopDown<> > > it(index);
      MyIter it(index);
     _optimalSearchScheme(ossContext, delegate, delegateDirect, it, bitvectors, scheme, needle, needleId, TDistanceTag());
+}
+
+//TODO create Sortkey ?
+bool id_smaller(const hit & x, const hit & y)
+{
+    return x.readId < y.readId;
+}
+
+
+template<typename TContex, typename THit>
+void removeBadHits(TContex & ossContext, std::vector<THit> & hits)
+{
+    std::cout << "Start removing Bad Hits: " << "\n";
+    auto start = std::chrono::high_resolution_clock::now();
+    uint32_t count = hits.size();
+    sort(hits.begin(), hits.end(), id_smaller);
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = finish - start;
+    std::cout << "Finished sorting after ID: " << elapsed.count() << "s" << "\n";
+
+    uint32_t lastId = 0;
+    for(auto it = hits.begin(); it != hits.end();){
+        auto startI = it;
+        lastId = (*it).readId;
+        uint32_t correct_errors = getMinErrors(ossContext.ctx, lastId) + ossContext.strata;
+        while(lastId == (*it).readId && it != hits.end()){
+            ++it;
+        }
+        auto condition = [& correct_errors](const THit & v) { return v.errors > correct_errors;};
+        hits.erase(std::remove_if(startI, it, condition), it);
+    }
+    finish = std::chrono::high_resolution_clock::now();
+    elapsed = finish - start;
+    std::cout << "Deleted In Text Verification Hits (which were not fulfilling the strata condition): " << count - hits.size() << "\t" << elapsed.count() << "s" << "\n";
 }
 
 template <size_t minErrors, size_t maxErrors,
@@ -1241,6 +1276,11 @@ find(TContex & ossContext,
             lastcount += currentcount;
         }*/
 
+    }
+//     takes to much time for editDistance
+    // wrong hits found with itv (we dont know before hand how many errors will be reported)
+    if(ossContext.itv && ossContext.oneSSBestXMapper){
+        removeBadHits(ossContext, ossContext.dhits);
     }
 }
 
