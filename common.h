@@ -96,7 +96,7 @@ inline void calcConstParameters(std::array<OptimalSearch<nbrBlocks>, N> & ss)
             s.max[i] = max;
         }
         uint8_t lastValue = s.pi[nbrBlocks - 1];
-        int k = nbrBlocks - 2;
+        int k = (nbrBlocks > 1) ? nbrBlocks - 2 : 0;
         while(k >= 0){
             if(s.pi[k] == lastValue - 1 || s.pi[k] == lastValue + 1)
             {

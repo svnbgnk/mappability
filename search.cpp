@@ -415,6 +415,8 @@ int main(int argc, char *argv[])
     auto finish = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed;
 
+//     find(0, nerrors, strata, myOSSContext, delegate, delegateDirect, index, reads, bitvectors, HammingDistance());
+    
     if(!notmy){
         cout << "Start My Search!" << endl;
         start = std::chrono::high_resolution_clock::now();

@@ -1199,7 +1199,7 @@ bool id_smaller(const hit & x, const hit & y)
 {
     return x.readId < y.readId;
 }
-
+/*
 //TODO make it faster takes 8.4 out of 20 seconds .. canceling the speed up of 1.6 sec
 template<typename TContex, typename THit>
 void removeBadHits(TContex & ossContext, std::vector<THit> & hits)
@@ -1225,6 +1225,48 @@ void removeBadHits(TContex & ossContext, std::vector<THit> & hits)
         }
         it = hits.erase(std::remove_if(startI, it, condition), it);
     }
+    finish = std::chrono::high_resolution_clock::now();
+    elapsed = finish - start;
+    std::cout << "Deleted In Text Verification Hits (which were not fulfilling the strata condition): " << count - hits.size() << "\t" << elapsed.count() << "s" << "\n";
+}*/
+
+template<typename TContex, typename hit>
+void removeBadHits(TContex & ossContext, std::vector<hit> & hits)
+{
+    std::cout << "Start removing Bad Hits: " << "\n";
+    uint32_t correct_errors;
+    std::vector<bool> bad(hits.size());
+//     auto condition = [& correct_errors](const THit & v) { return v.errors > correct_errors;};
+
+    auto start = std::chrono::high_resolution_clock::now();
+    uint32_t count = hits.size();
+    sort(hits.begin(), hits.end(), id_smaller);
+    auto finish = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = finish - start;
+    std::cout << "Finished sorting after ID: " << elapsed.count() << "s" << "\n";
+
+    uint32_t lastId = 0;
+    auto itb = bad.begin();
+    for(auto it = hits.begin(); it != hits.end();){
+        auto startI = it;
+        lastId = (*it).readId;
+        correct_errors = getMinErrors(ossContext.ctx, lastId) + ossContext.strata;
+        while(lastId == (*it).readId && it != hits.end()){
+            *itb = (*it).errors > correct_errors;
+            ++itb;
+            ++it;
+        }
+//         it = hits.erase(std::remove_if(startI, it, condition), it);
+    }
+//     std::vector<int> v {1,2,3,4,5,6};
+//   std::vector<bool> b {true, false, true, false, true, false};
+    
+    hits.erase(std::remove_if(hits.begin(), hits.end(), 
+      [&bad, &hits](auto const &i) { return bad.at(&i - hits.data()); }), hits.end());
+    
+//     auto condition [&bad, &hits](int const &i) { return bad.at(&i - hits.data()); };
+//     hits.erase(std::remove_if(hits.begin(), hits.end(), condition), hits.end());
+    
     finish = std::chrono::high_resolution_clock::now();
     elapsed = finish - start;
     std::cout << "Deleted In Text Verification Hits (which were not fulfilling the strata condition): " << count - hits.size() << "\t" << elapsed.count() << "s" << "\n";
@@ -1285,6 +1327,40 @@ find(TContex & ossContext,
         removeBadHits(ossContext, ossContext.dhits);
     }
 }
+// 
+
+
+
+/*
+template <typename TContex,
+          typename TDelegate, typename TDelegateD,
+          typename TText, typename TIndexSpec,
+          typename TNeedle, typename TStringSetSpec,
+          typename TDistanceTag>
+inline void find(const int minErrors,
+                 const int maxErrors,
+                 TContex & ossContext,
+                 TDelegate & delegate,
+                 TDelegateD & delegateDirect,
+                 Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+                 StringSet<TNeedle, TStringSetSpec> const & needles,
+                 TDistanceTag const & )
+{
+    std::vector<std::pair<TBitvector, TSupport>> emtpy_bitvectors;
+    switch (maxErrors)
+    {
+        case 1: find<0, 1>(ossContext, delegate, delegateDirect, index, emtpy_bitvectors, needles, TDistanceTag());
+                break;
+        case 2: find<0, 2>(ossContext, delegate, delegateDirect, index, emtpy_bitvectors, needles, TDistanceTag());
+                break;
+        case 3: find<0, 3>(ossContext, delegate, delegateDirect, index, emtpy_bitvectors, needles, TDistanceTag());
+                break;
+        case 4: find<0, 4>(ossContext, delegate, delegateDirect, index, emtpy_bitvectors, needles, TDistanceTag());
+                break;
+        default: std::cerr << "E = " << maxErrors << " not yet supported.\n";
+                exit(1);
+    }
+}*/
 
 template <typename TContex,
           typename TDelegate, typename TDelegateD,
@@ -1310,11 +1386,210 @@ inline void find(const int minErrors,
                 break;
         case 3: find<0, 3>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
                 break;
+        case 4: find<0, 4>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                break;
         default: std::cerr << "E = " << maxErrors << " not yet supported.\n";
                 exit(1);
     }
 }
 
+//no strata (needed for one Scheme Best X)
+template <typename TContex,
+          typename TDelegate, typename TDelegateD,
+          typename TText, typename TIndexSpec,
+          typename TNeedle, typename TStringSetSpec,
+          typename TDistanceTag>
+inline void find(const int minErrors,
+                 const int maxErrors,
+                 TContex & ossContext,
+                 TDelegate & delegate,
+                 TDelegateD & delegateDirect,
+                 Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+                 StringSet<TNeedle, TStringSetSpec> const & needles,
+                 TDistanceTag const & )
+{
+    std::vector<std::pair<TBitvector, TSupport>> emtpy_bitvectors;
+    find(minErrors, maxErrors, ossContext, delegate, delegateDirect, index, needles, emtpy_bitvectors, TDistanceTag());
+
+}
+
+
+template <typename TContex,
+          typename TDelegate, typename TDelegateD,
+          typename TText, typename TIndexSpec,
+          typename TNeedle, typename TStringSetSpec,
+          typename TVector, typename TVSupport,
+          typename TDistanceTag>
+inline void find(const int minErrors,
+                 const int maxErrors,
+                 const int strata,
+                 TContex & ossContext,
+                 TDelegate & delegate,
+                 TDelegateD & delegateDirect,
+                 Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+                 StringSet<TNeedle, TStringSetSpec> const & needles,
+                 std::vector<std::pair<TVector, TVSupport>> & bitvectors, // cant be const since TVSupport.set_vector(&TVector)
+                 TDistanceTag const & )
+{
+//     std::vector<std::pair<TBitvector, TSupport>> emtpy_bitvectors;
+    switch (maxErrors)
+    {
+        case 1: 
+        {
+            switch (strata)
+            {
+                case 0 : 
+                {
+                    find<0, 0>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<1, 1>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    break;
+                }
+                case 1 : 
+                {
+                    find<0, 1>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    break;
+                }
+                default: std::cerr << "strata = " << strata << " not possible with current maxError.\n";
+                exit(1);
+            }
+            break;
+
+        }
+        case 2: 
+        {
+            switch (strata)
+            {
+                case 0 : 
+                {
+                    find<0, 0>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<1, 1>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<2, 2>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    break;
+                }
+                case 1 : 
+                {
+                    find<0, 1>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<2, 2>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    break;
+                }
+                case 2 : 
+                {
+                    find<0, 2>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    break;
+                }
+                default: std::cerr << "strata = " << strata << " not possible with current maxError.\n";
+                exit(1);
+            }
+            break;
+
+        }
+        case 3: 
+        {
+            switch (strata)
+            {
+                case 0 : 
+                {
+                    find<0, 0>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<1, 1>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<2, 2>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<3, 3>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    break;
+                }
+                case 1 : 
+                {
+                    find<0, 1>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<2, 2>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<3, 3>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    break;
+                }
+                case 2 : 
+                {
+                    find<0, 2>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<3, 3>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    break;
+                }
+                case 3 : 
+                {
+                    find<0, 3>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    break;
+                }
+                default: std::cerr << "strata = " << strata << " not possible with current maxError.\n";
+                exit(1);
+            }
+            break;
+
+        }
+        case 4: 
+        {
+            switch (strata)
+            {
+                case 0 : 
+                {
+                    find<0, 0>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<1, 1>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<2, 2>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<3, 3>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<4, 4>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    break;
+                }
+                case 1 : 
+                {
+                    find<0, 1>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<2, 2>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<3, 3>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<4, 4>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    break;
+                }
+                case 2 : 
+                {
+                    find<0, 2>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<3, 3>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<4, 4>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    break;
+                }
+                case 3 : 
+                {
+                    find<0, 3>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    find<4, 4>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    break;
+                }
+                case 4 : 
+                {
+                    find<0, 4>(ossContext, delegate, delegateDirect, index, bitvectors, needles, TDistanceTag());
+                    break;
+                }
+                default: std::cerr << "strata = " << strata << " not possible with current maxError.\n";
+                exit(1);
+            }
+            break;
+
+        }
+        default: std::cerr << "E = " << maxErrors << " not yet supported.\n";
+                 exit(1);
+    }
+}
+
+//no bitvectors so substitute them
+template <typename TContex,
+          typename TDelegate, typename TDelegateD,
+          typename TText, typename TIndexSpec,
+          typename TNeedle, typename TStringSetSpec,
+          typename TDistanceTag>
+inline void find(const int minErrors,
+                 const int maxErrors,
+                 const int strata,
+                 TContex & ossContext,
+                 TDelegate & delegate,
+                 TDelegateD & delegateDirect,
+                 Index<TText, BidirectionalIndex<TIndexSpec> > & index,
+                 StringSet<TNeedle, TStringSetSpec> const & needles,
+                 TDistanceTag const & )
+{
+    std::vector<std::pair<TBitvector, TSupport>> emtpy_bitvectors;
+    find(minErrors, maxErrors, strata, ossContext, delegate, delegateDirect, index, emtpy_bitvectors, needles, TDistanceTag());
+}
+
+// for find2_index_approx.h find function
 template <typename TDelegate,
           typename TText, typename TIndexSpec,
           typename TNeedle, typename TStringSetSpec,
@@ -1335,36 +1610,6 @@ inline void find(const int minErrors,
         case 3: find<0, 3>(delegate, index, needles, TDistanceTag());
                 break;
         case 4: find<0, 4>(delegate, index, needles, TDistanceTag());
-                break;
-        default: std::cerr << "E = " << maxErrors << " not yet supported.\n";
-                exit(1);
-    }
-}
-
-template <typename TContex,
-          typename TDelegate, typename TDelegateD,
-          typename TText, typename TIndexSpec,
-          typename TNeedle, typename TStringSetSpec,
-          typename TDistanceTag>
-inline void find(const int minErrors,
-                 const int maxErrors,
-                 TContex & ossContext,
-                 TDelegate & delegate,
-                 TDelegateD & delegateDirect,
-                 Index<TText, BidirectionalIndex<TIndexSpec> > & index,
-                 StringSet<TNeedle, TStringSetSpec> const & needles,
-                 TDistanceTag const & )
-{
-    std::vector<std::pair<TBitvector, TSupport>> emtpy_bitvectors;
-    switch (maxErrors)
-    {
-        case 1: find<0, 1>(ossContext, delegate, delegateDirect, index, emtpy_bitvectors, needles, TDistanceTag());
-                break;
-        case 2: find<0, 2>(ossContext, delegate, delegateDirect, index, emtpy_bitvectors, needles, TDistanceTag());
-                break;
-        case 3: find<0, 3>(ossContext, delegate, delegateDirect, index, emtpy_bitvectors, needles, TDistanceTag());
-                break;
-        case 4: find<0, 4>(ossContext, delegate, delegateDirect, index, emtpy_bitvectors, needles, TDistanceTag());
                 break;
         default: std::cerr << "E = " << maxErrors << " not yet supported.\n";
                 exit(1);
