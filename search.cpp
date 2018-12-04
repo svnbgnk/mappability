@@ -100,7 +100,6 @@ public:
     bool filterDelegate = true;
     bool trackReadCount = false;
     bool itv = true;
-    bool readContext = false;
 
     uint32_t readCount = length(reads); //if readCount is not set than all reads are assumend to be on one strand
     uint8_t maxError = 0;
@@ -134,18 +133,26 @@ public:
         uni.print();
     }
 
-    void setReadContext(uint32_t inreadCount, uint8_t nerrors = 0, uint8_t instrata = 99){
+    void setReadContext(uint32_t inreadCount, uint8_t nerrors = 0, uint8_t instrata = 99, bool mScheme = false){
         readCount = inreadCount;
         maxError = nerrors;
         strata = instrata;
-        readContext = true;
-        if(instrata != 99)
-            oneSSBestXMapper = true;
         initReadsContext(ctx, readCount);
-        std::vector<TTState> v;
-        for(int i = 0; i < maxError + 1; ++i)
-            states.push_back(v);
-//         states.reserve(maxError);
+
+        if(!mScheme){
+            std::cout << "Using one Scheme" << "\n";
+            if(instrata != 99)
+                oneSSBestXMapper = true;
+
+            std::vector<TTState> v;
+            for(int i = 0; i < maxError + 1; ++i)
+                states.push_back(v);
+    //         states.reserve(maxError);
+        }else{
+            std::cout << "Using multiple Schemes" << "\n";
+             if(instrata != 99)
+                 bestXMapper = true;
+        }
     }
 
     template <typename TIter>
@@ -241,6 +248,8 @@ int main(int argc, char *argv[])
 
     addOption(parser, ArgParseOption("s", "strata", "Number of additional errors to optimal alignment allowed during mapping", ArgParseArgument::INTEGER, "INT"));
 
+    addOption(parser, ArgParseOption("m", "mscheme", "Search with multiple Schemes to correct hits according to set strata"));
+
     addOption(parser, ArgParseOption("e", "edit", "Search Edit Distance, correct bitvectors have to be selected"));
 
     addOption(parser, ArgParseOption("r", "r", "number of reads to test ", ArgParseArgument::INTEGER, "INT"));
@@ -292,6 +301,7 @@ int main(int argc, char *argv[])
     getOptionValue(r, parser, "r");
     getOptionValue(threshold, parser, "threshold");
     getOptionValue(benchparams, parser, "benchparams");
+    bool mscheme = isSet(parser, "mscheme");
     bool editD = isSet(parser, "edit");
     bool mdefault = isSet(parser, "default");
     bool defaultT = isSet(parser, "defaultT");
@@ -366,13 +376,12 @@ int main(int argc, char *argv[])
         cout << "Bit vectors loaded. Number: " << bitvectors.size() << " Length: " << bitvectors[0].first.size() << endl;
     }
 
-
     std::vector<hit> myhits;
     std::vector<hit> mydhits;
     std::vector<uint32_t> myreadOccCount;
     OSSContext myOSSContext(reads, myhits, mydhits/*, myreadOccCount*/);
-    myOSSContext.setReadContext(readCount, nerrors, strata);
-    if(myOSSContext.oneSSBestXMapper){
+    myOSSContext.setReadContext(readCount, nerrors, strata, mscheme);
+    if(myOSSContext.oneSSBestXMapper || myOSSContext.bestXMapper){
         myOSSContext.normal.suspectunidirectional = false;
     }
 
@@ -416,14 +425,14 @@ int main(int argc, char *argv[])
     std::chrono::duration<double> elapsed;
 
 //     find(0, nerrors, strata, myOSSContext, delegate, delegateDirect, index, reads, bitvectors, HammingDistance());
-    
+
     if(!notmy){
         cout << "Start My Search!" << endl;
         start = std::chrono::high_resolution_clock::now();
         if(!editD)
-            find(0, nerrors, myOSSContext, delegate, delegateDirect, index, reads, bitvectors, HammingDistance());
+            find(0, nerrors, strata, myOSSContext, delegate, delegateDirect, index, bitvectors, reads, HammingDistance());
         else
-            find(0, nerrors, myOSSContext, delegate, delegateDirect, index, reads, bitvectors, EditDistance());
+            find(0, nerrors, strata, myOSSContext, delegate, delegateDirect, index, bitvectors, reads, EditDistance());
         finish = std::chrono::high_resolution_clock::now();
         elapsed = finish - start;
         cout << "Finished My Search" << endl;
@@ -539,11 +548,7 @@ int main(int argc, char *argv[])
     std::vector<hit> dhitsDe;
 //     std::vector<uint32_t> myreadOccCountDe;
     OSSContext ossContextDefaultT(reads, hitsDe, dhitsDe); //, myreadOccCountDe
-    ossContextDefaultT.setReadContext(readCount, nerrors, strata);
-
-    if(ossContextDefaultT.oneSSBestXMapper){
-        ossContextDefaultT.itv = false;
-    }
+    ossContextDefaultT.setReadContext(readCount, nerrors, strata, mscheme);
 //     ossContextDefaultT.itv = false;
 
     // default with in text search
@@ -585,9 +590,9 @@ int main(int argc, char *argv[])
         };
         auto start2 = std::chrono::high_resolution_clock::now();
         if(!editD)
-            find(0, nerrors, ossContextDefaultT, delegate2, delegateDirect2, index, reads, HammingDistance());
+            find(0, nerrors, strata, ossContextDefaultT, delegate2, delegateDirect2, index, reads, HammingDistance());
         else
-            find(0, nerrors, ossContextDefaultT, delegate2, delegateDirect2, index, reads, EditDistance());
+            find(0, nerrors, strata, ossContextDefaultT, delegate2, delegateDirect2, index, reads, EditDistance());
         auto finish2 = std::chrono::high_resolution_clock::now();
         elapsed = finish2 - start2;
 
