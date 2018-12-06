@@ -369,11 +369,18 @@ int main(int argc, char *argv[])
     cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
 
     // load bitvectors
-    vector<pair<TBitvector, TSupport>> bitvectors;
+    vector<pair<TBitvector, TSupport>> bitvectors_save;
     if(!notmy){
         cout << "Loading bitvectors" << endl;
-        bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
-        cout << "Bit vectors loaded. Number: " << bitvectors.size() << " Length: " << bitvectors[0].first.size() << endl;
+        bitvectors_save = loadBitvectors(bitvectorpath, K, nerrors);
+        cout << "Bit vectors loaded. Number: " << bitvectors_save.size() << " Length: " << bitvectors_save[0].first.size() << endl;
+    }
+
+//     auto & bitvectors = bitvectors_save;
+    //creating pointers to bitvectors
+    vector<pair<TBitvector, TSupport>* > bitvectors;
+    for(int i = 0; i < bitvectors_save.size(); ++i){
+        bitvectors.push_back(& bitvectors_save[i]);
     }
 
     std::vector<hit> myhits;
