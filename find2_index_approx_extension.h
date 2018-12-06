@@ -6,8 +6,6 @@
 #include "common.h"
 #include "find2_index_approx_unidirectional.h"
 
-// class OSSContext
-
 namespace seqan{
 
 template <typename TVector, typename TVSupport>
@@ -279,12 +277,6 @@ inline void directSearch(TContex & ossContext,
             intDel = repLength(iter) - (needleRightPos - needleLeftPos - 1);
         uint8_t overlap_l = max_e;
         uint8_t overlap_r = max_e;
-        //TODO use intIns to modify overlap_r and overlap_l
-
-//         if(needleLeftPos == 0)
-//             overlap_l = intIns;
-//         if(needleRightPos == needleL + 1)
-//             overlap_r = intIns;
 
         uint16_t ex_infixL = needleL + overlap_l + overlap_r;
         for(uint32_t r = 0; r < iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1; ++r)
@@ -921,7 +913,7 @@ inline void _optimalSearchScheme(TContex & ossContext,
                                  TDir const & ,
                                  TDistanceTag const &)
 {
-    //add strata tag
+    //TODO add strata tag
     if(ossContext.oneSSBestXMapper){
         bool save = false;
         uint32_t readId = getReadId(needleId, ossContext.readCount);
@@ -1199,36 +1191,6 @@ bool id_smaller(const hit & x, const hit & y)
 {
     return x.readId < y.readId;
 }
-/*
-//TODO make it faster takes 8.4 out of 20 seconds .. canceling the speed up of 1.6 sec
-template<typename TContex, typename THit>
-void removeBadHits(TContex & ossContext, std::vector<THit> & hits)
-{
-    std::cout << "Start removing Bad Hits: " << "\n";
-    uint32_t correct_errors;
-    auto condition = [& correct_errors](const THit & v) { return v.errors > correct_errors;};
-
-    auto start = std::chrono::high_resolution_clock::now();
-    uint32_t count = hits.size();
-    sort(hits.begin(), hits.end(), id_smaller);
-    auto finish = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = finish - start;
-    std::cout << "Finished sorting after ID: " << elapsed.count() << "s" << "\n";
-
-    uint32_t lastId = 0;
-    for(auto it = hits.begin(); it != hits.end();){
-        auto startI = it;
-        lastId = (*it).readId;
-        correct_errors = getMinErrors(ossContext.ctx, lastId) + ossContext.strata;
-        while(lastId == (*it).readId && it != hits.end()){
-            ++it;
-        }
-        it = hits.erase(std::remove_if(startI, it, condition), it);
-    }
-    finish = std::chrono::high_resolution_clock::now();
-    elapsed = finish - start;
-    std::cout << "Deleted In Text Verification Hits (which were not fulfilling the strata condition): " << count - hits.size() << "\t" << elapsed.count() << "s" << "\n";
-}*/
 
 template<typename TContex, typename hit>
 void removeBadHits(TContex & ossContext, std::vector<hit> & hits)
@@ -1285,6 +1247,7 @@ find(TContex & ossContext,
     calcConstParameters(scheme);
     uint32_t needleId = 0;
     uint32_t lastcount = 0;
+    //neede to fix ++needleID to make it parrallel
     while(needleId < length(needles))
     {
 //         find<minErrors, maxErrors>(ossContext, delegate, delegateDirect, index, bitvectors, scheme, needles[needleId], needleId, TDistanceTag());
@@ -1293,8 +1256,7 @@ find(TContex & ossContext,
         bool skip = false;
         if(ossContext.bestXMapper){
             uint32_t readId = getReadId(needleId, ossContext.readCount);
-            if(isMapped(
-                ossContext.ctx, readId)){
+            if(isMapped(ossContext.ctx, readId)){
                 if(getMinErrors(ossContext.ctx, readId) + ossContext.strata < minErrors){
                     skip = true;
 //                     std::cout << "Skip: " << needleId << "\n";
@@ -1304,7 +1266,7 @@ find(TContex & ossContext,
         if(!skip){
             find<minErrors, maxErrors>(ossContext, delegate, delegateDirect, index, bitvectors, scheme, needles[needleId], needleId, TDistanceTag());
         }
-        needleId++;
+        ++needleId;
 
         /*
         if(ossContext.trackReadCount){
@@ -1369,7 +1331,6 @@ inline void find(const int minErrors,
                  Index<TText, BidirectionalIndex<TIndexSpec> > & index,
                  std::vector<std::pair<TVector, TVSupport>> & bitvectors, // cant be const since TVSupport.set_vector(&TVector)
                  StringSet<TNeedle, TStringSetSpec> const & needles,
-
                  TDistanceTag const & )
 {
     switch (maxErrors)
@@ -1404,7 +1365,6 @@ inline void find(const int minErrors,
 {
     std::vector<std::pair<TBitvector, TSupport>> emtpy_bitvectors;
     find(minErrors, maxErrors, ossContext, delegate, delegateDirect, index, needles, emtpy_bitvectors, TDistanceTag());
-
 }
 
 
@@ -1561,10 +1521,6 @@ inline void find(const int minErrors,
         }
         default: std::cerr << "E = " << maxErrors << " not yet supported.\n";
                  exit(1);
-    }
-    //TODO remove since not used
-    if(ossContext.itv && ossContext.bestXMapper){
-        removeBadHits(ossContext, ossContext.dhits);
     }
 }
 

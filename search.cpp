@@ -544,7 +544,7 @@ int main(int argc, char *argv[])
 
 
     std::vector<hit> hitsDe;
-    //     hitsDe.reserve(20029761);
+//     hitsDe.reserve(20029761);
     std::vector<hit> dhitsDe;
 //     std::vector<uint32_t> myreadOccCountDe;
     OSSContext ossContextDefaultT(reads, hitsDe, dhitsDe); //, myreadOccCountDe
