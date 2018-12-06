@@ -41,14 +41,98 @@ vector<uint8_t> read(const string mappability_path){
     return(mappability_int);
 }
 
-template <unsigned errors>
-bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, uint32_t const len, uint32_t const threshold){
+auto loadBlockLengths(uint8_t se, uint32_t const len)
+{
+    vector<int> r;
+    vector<int> l;
+    switch (se)
+    {
+        case 0:
+        {
+            auto scheme = OptimalSearchSchemes<0, 0>::VALUE;
+            _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
+            _optimalSearchSchemeComputeChronBlocklength(scheme);
+            auto s = scheme[0];
+            for(int i = 0; i < s.pi.size(); ++i)
+            {
+                r.push_back(s.chronBL[i]);
+                l.push_back(s.revChronBL[i]);
+            }
+            break;
+        }
+        case 1:
+        {
+            auto scheme = OptimalSearchSchemes<0, 1>::VALUE;
+            _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
+            _optimalSearchSchemeComputeChronBlocklength(scheme);
+            auto s = scheme[0];
+            for(int i = 0; i < s.pi.size(); ++i)
+            {
+                r.push_back(s.chronBL[i]);
+                l.push_back(s.revChronBL[i]);
+            }
+            break;
+        }
+        case 2:
+        {
+            auto scheme = OptimalSearchSchemes<0, 2>::VALUE;
+            _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
+            _optimalSearchSchemeComputeChronBlocklength(scheme);
+            auto s = scheme[0];
+            for(int i = 0; i < s.pi.size(); ++i)
+            {
+                r.push_back(s.chronBL[i]);
+                l.push_back(s.revChronBL[i]);
+            }
+            break;
+        }
+        case 3:
+        {
+            auto scheme = OptimalSearchSchemes<0, 3>::VALUE;
+            _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
+            _optimalSearchSchemeComputeChronBlocklength(scheme);
+            auto s = scheme[0];
+            for(int i = 0; i < s.pi.size(); ++i)
+            {
+                r.push_back(s.chronBL[i]);
+                l.push_back(s.revChronBL[i]);
+            }
+            break;
+        }
+        case 4:
+        {
+            auto scheme = OptimalSearchSchemes<0, 4>::VALUE;
+            _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
+            _optimalSearchSchemeComputeChronBlocklength(scheme);
+            auto s = scheme[0];
+            for(int i = 0; i < s.pi.size(); ++i)
+            {
+                r.push_back(s.chronBL[i]);
+                l.push_back(s.revChronBL[i]);
+            }
+            break;
+        }
+        default: std::cerr << "E = " << (int)se << " not yet supported.\n";
+                exit(1);
+    }
+    return std::make_pair(r, l);
+}
+
+template<typename TVector, typename TElem>
+bool checkForElem(TVector const & v, TElem const & e)
+{
+   for(int i = 0; i < v.size(); ++i){
+       if(v[i].compare(e) == 0)
+           return true;
+   }
+   return false;
+}
+
+bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability,
+                                  uint32_t const len, uint32_t const threshold, uint8_t const errors, uint8_t const strata){
+    //TODO switch left and right in the moment they discribe in which direction the k-mere is
     bitvectors b;
     int e = errors;
-    auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
-    _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
-    _optimalSearchSchemeComputeChronBlocklength(scheme);
-    auto s = scheme[0];
     sdsl::bit_vector righti (mappability.size() + len - 1, 0);
     sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
     #pragma omp parallel for schedule(static)
@@ -60,15 +144,81 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, uint32_t
 
 
     b.bv.push_back(righti);
-    b.names.push_back("r_bit_vector_" + to_string(len) + "_" + to_string(e) + "_shift_0");
+    b.names.push_back("r_bit_vector_" + to_string(len) + "_shift_0");
     b.fwdd.push_back(true);
+    b.bv.push_back(lefti);
+    b.names.push_back("l_bit_vector_" + to_string(len) + "_shift_0");
+    b.fwdd.push_back(false);
+
+    std::cout << "\nAdditonal bitvectors besides shift_0\n";
+
+    vector<int> shift_r;
+    vector<int> shift_l;
+
+    for(int s = 0; s <= e - strata; ++s){
+        int se = e - s;
+        std::cout << "Bitvectors for Scheme <" << se << ", " << se << ">: \n";
+        auto blocklengths = loadBlockLengths(se, len);
+        shift_r = blocklengths.first;
+        shift_l = blocklengths.second;
+
+        for(int i = 0; i < shift_r.size() - 1; ++i){
+            uint32_t shift = shift_r[i];
+            bool skip = checkForElem(b.names, ("left_anchored_bvector_" + to_string(len) + "_shift_" + to_string(shift)));
+            if(skip){
+                std::cout << "Bitvector already included" << "\n";
+                continue;
+            }
+
+            b.names.push_back("left_anchored_bvector_" + to_string(len) + "_shift_" + to_string(shift));
+            std::cout << b.names.back()<< /*"\t shift : " << shift <<*/ "\n";
+
+            sdsl::bit_vector newright(mappability.size() + len - 1, 0);
+            #pragma omp parallel for schedule(static)
+            for(uint32_t j = 0; j < righti.size(); ++j){
+                if(j >= shift)
+                    newright[j] = righti[j - shift];
+            }
+            b.bv.push_back(newright);
+            b.fwdd.push_back(true);
+        }
+
+        for(int i = 1; i < shift_l.size(); ++i){
+            uint32_t shift = shift_l[i];
+            bool skip = checkForElem(b.names, ("right_anchored_bvector_" + to_string(len) + "_shift_" + to_string(shift)));
+            if(skip){
+                std::cout << "Bitvector already included" << "\n";
+                continue;
+            }
+
+            b.names.push_back("right_anchored_bvector_" + to_string(len) + "_shift_" + to_string(shift));
+            std::cout << b.names.back() << /*"\t shift : " << shift <<*/ "\n";
+
+            sdsl::bit_vector newleft(mappability.size() + len - 1, 0);
+            #pragma omp parallel for schedule(static)
+            for(uint32_t j = 0; j < righti.size(); ++j){
+                if(j + shift < lefti.size() - 1)
+                    newleft[j] = lefti[j + shift];
+            }
+            b.bv.push_back(newleft);
+            b.fwdd.push_back(false);
+        }
+    }
+
+    std::cout << "Number of Bitvectors: " << b.names.size() << "\n\n";
+
+/*
+    auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
+    _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
+    _optimalSearchSchemeComputeChronBlocklength(scheme);
+    auto s = scheme[0];
 
     uint8_t blocks = s.pi.size();
     if(errors != 0){
         for(uint32_t i = 0; i < blocks - 1; ++i){
             sdsl::bit_vector newright(mappability.size() + len - 1, 0);
             uint32_t shift = s.chronBL[i];
-            cout << "r bitvector  name: " << to_string(i + 1) << endl;
+            cout << "r bitvector  name: " << to_string(shift) << endl;
             cout << "with shift: " << shift << endl;
 
             #pragma omp parallel for schedule(static)
@@ -77,14 +227,14 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, uint32_t
                     newright[j] = righti[j - shift];
             }
             b.bv.push_back(newright);
-            b.names.push_back("r_bit_vector_" + to_string(len) + "_" + to_string(e) + "_shift_" + to_string(i + 1));
+            b.names.push_back("r_bit_vector_" + to_string(len) + "_shift_" + to_string(shift));
             b.fwdd.push_back(true);
         }
 
         for(uint32_t i = 1; i < blocks; ++i){
             sdsl::bit_vector newleft(mappability.size() + len - 1, 0);
             uint32_t shift = s.revChronBL[blocks - i];
-            cout << "l bitvector  name: " << to_string(i) << endl;
+            cout << "l bitvector  name: " << to_string(shift) << endl;
             cout << "with shift: " << shift << endl;
             #pragma omp parallel for schedule(static)
             for(uint32_t j = 0; j < righti.size(); ++j){
@@ -92,94 +242,17 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability, uint32_t
                     newleft[j] = lefti[j + shift];
             }
             b.bv.push_back(newleft);
-            b.names.push_back("l_bit_vector_" + to_string(len) + "_" + to_string(e) + "_shift_" + to_string(i));
+            b.names.push_back("l_bit_vector_" + to_string(len) + "_shift_" + to_string(shift));
             b.fwdd.push_back(false);
         }
-    }
+    }*/
 
-    b.bv.push_back(lefti);
-    b.names.push_back("l_bit_vector_" + to_string(len) + "_" + to_string(e) + "_shift_0");
-    b.fwdd.push_back(false);
+
     return(b);
 }
 
 
-template <unsigned errors>
-bitvectors create_bit_vectors(const vector <uint8_t> & mappability, uint32_t const len, uint32_t const threshold){
-
-    int e = errors;
-    cout << "Create minimum amount of bitvectors" << endl;
-    bitvectors b;
-    sdsl::bit_vector righti (mappability.size() + len - 1, 0);
-    sdsl::bit_vector lefti (mappability.size() + len - 1, 0);
-    //INFO mappability contains zeroes (important when using mappability instead of frequency)
-    #pragma omp parallel for schedule(static)
-    for(uint32_t i = 0; i < mappability.size(); ++i){
-        lefti[i + len - 1] = (mappability[i] <= threshold);
-        righti[i] = (mappability[i] <= threshold);
-    }
-    cout << "Finished Default Bit Vectors.  Length: " << righti.size() << endl;
-    vector<sdsl::bit_vector> bit_vectors;
-    vector<string> names;
-
-
-    auto scheme = OptimalSearchSchemes<0, errors>::VALUE;
-    _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
-    _optimalSearchSchemeComputeChronBlocklength(scheme);
-    for (auto & s : scheme){
-        bool fwd = (s.pi[0] < s.pi[1]);
-        uint32_t pos = s.pi[0];
-        cout << pos << endl;
-        cout << "Direction forward " << fwd << endl;
-        uint8_t blocks = s.pi.size();
-        if(pos == 1)
-            {
-                b.bv.push_back(righti);
-                b.names.push_back("right_bit_vector_" + to_string(len) + "_" + to_string(e));
-                b.fwdd.push_back(true);
-                cout << "case1" << endl;
-            }
-        else if(pos == blocks)
-            {
-                b.bv.push_back(lefti);
-                b.names.push_back("left_bit_vector_" + to_string(len) + "_" + to_string(e));
-                b.fwdd.push_back(false);
-                cout << "case2" << endl;
-            }
-        else
-            {
-                if(fwd){
-                    sdsl::bit_vector newright(mappability.size() + len - 1, 0); //TODO think 0 or 1 in edge cases
-                    uint32_t shift = s.chronBL[pos - 2];
-                    cout << "shift r_bit for: " << shift << endl;
-                    cout << "pos:  " << pos << endl;
-                    for(uint32_t j = 0; j < righti.size(); ++j){
-                        if(j >= shift)
-                            newright[j] = righti[j - shift];
-                    }
-                    b.bv.push_back(newright);
-                    b.names.push_back("middle_bit_vector_" + to_string(len) + "_" + to_string(e));
-                    b.fwdd.push_back(true);
-                }else{
-                    //NOTE int32_t is not large enought to handle all the positions in the hg
-                    sdsl::bit_vector newleft(mappability.size() + len - 1, 0);//TODO think 0 or 1 in edge cases
-                    uint32_t shift = s.revChronBL[pos];
-                    cout << "shift l_bit for: " << shift << endl;
-                    cout << "pos:  " << pos << endl;
-                    for(uint32_t j = 0; j < righti.size(); ++j){
-                        if(j + shift < lefti.size() - 1)
-                            newleft[j] = lefti[j + shift];
-                    }
-                    b.bv.push_back(newleft);
-                    b.names.push_back("middle_bit_vector_" + to_string(len) + "_" + to_string(e));
-                    b.fwdd.push_back(false);
-                }
-            }
-    }
-    return(b);
-}
-
-
+/*
 bitvectors create_bit_vectors(const vector <uint8_t> & mappability, uint32_t const len, uint32_t const threshold, bool const bit3, uint8_t const errors){
     bitvectors result;
     if(bit3){
@@ -212,7 +285,7 @@ bitvectors create_bit_vectors(const vector <uint8_t> & mappability, uint32_t con
         }
     }
     return(result);
-}
+}*/
 
 template <typename TChar, typename TAllocConfig>
 void order_bit_vector(bitvectors & b, CharString const indexPath, uint32_t const threads)
@@ -313,17 +386,16 @@ int main(int argc, char *argv[])
     addOption(parser, ArgParseOption("E", "errors", "Max errors allowed during mapping", ArgParseArgument::INTEGER, "INT"));
     setRequired(parser, "errors");
 
+    addOption(parser, ArgParseOption("s", "strata", "Max errors allowed during mapping", ArgParseArgument::INTEGER, "INT"));
+
     addOption(parser, ArgParseOption("d", "debug", "Also create chronical bit_vectors (for debugging)"));
 
-    addOption(parser, ArgParseOption("s", "startSa", "Create first 1500 lines from SA array fwd and rev and then quit"));
+    addOption(parser, ArgParseOption("S", "startSa", "Create first 1500 lines from SA array fwd and rev and then quit"));
 
     addOption(parser, ArgParseOption("m", "mmap",
         "Turns memory-mapping on, i.e. the index is not loaded into RAM but accessed directly in secondary-memory. "
         "This makes the algorithm only slightly slower but the index does not have to be loaded into main memory "
         "(which takes some time)."));
-
-    addOption(parser, ArgParseOption("min", "3bitversion",
-        "Only create the required 3 bitvectors needed for acquiring mappability in non-unidirectional cases"));
 
     addOption(parser, ArgParseOption("t", "threads", "Number of threads used", ArgParseArgument::INTEGER, "INT"));
 
@@ -342,10 +414,11 @@ int main(int argc, char *argv[])
     getOptionValue(len, parser, "length");
     getOptionValue(threshold, parser, "threshold");
     getOptionValue(errors, parser, "errors");
+    unsigned strata = errors;
+    getOptionValue(strata, parser, "strata");
     bool debug = isSet(parser, "debug");
     bool startSa = isSet(parser, "startSa");
     bool mmap = isSet(parser, "mmap");
-    bool bit3 = isSet(parser, "3bitversion");
     getOptionValue(threads, parser, "threads");
 
     StringSet<CharString> ids;
@@ -366,7 +439,6 @@ int main(int argc, char *argv[])
         exit(0);
     }
 
-
     if(!file_exists(mappability_path))
     {
         cout << "Cannot find mappability file" << endl;
@@ -374,10 +446,11 @@ int main(int argc, char *argv[])
     }
 
     cout << mytime() << "Program start." << endl;
+    cout << "Errors:" << errors << "\tStrata: " << strata << endl; //TODO comment
     vector<uint8_t> mappability = read(mappability_path);
     cout << mytime() << "Loaded Mappability vector. Size: " << mappability.size() << endl;
 
-    bitvectors result = create_bit_vectors(mappability, len, threshold, bit3, errors);
+    bitvectors result = create_all_bit_vectors(mappability, len, threshold, errors, strata);
 
     cout << mytime() << "Finished bit vectors." << endl;
 
