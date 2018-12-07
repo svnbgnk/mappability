@@ -41,83 +41,6 @@ vector<uint8_t> read(const string mappability_path){
     return(mappability_int);
 }
 
-auto loadBlockLengths(uint8_t se, uint32_t const len)
-{
-    vector<int> r;
-    vector<int> l;
-    switch (se)
-    {
-        case 0:
-        {
-            auto scheme = OptimalSearchSchemes<0, 0>::VALUE;
-            _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
-            _optimalSearchSchemeComputeChronBlocklength(scheme);
-            auto s = scheme[0];
-            for(int i = 0; i < s.pi.size(); ++i)
-            {
-                r.push_back(s.chronBL[i]);
-                l.push_back(s.revChronBL[i]);
-            }
-            break;
-        }
-        case 1:
-        {
-            auto scheme = OptimalSearchSchemes<0, 1>::VALUE;
-            _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
-            _optimalSearchSchemeComputeChronBlocklength(scheme);
-            auto s = scheme[0];
-            for(int i = 0; i < s.pi.size(); ++i)
-            {
-                r.push_back(s.chronBL[i]);
-                l.push_back(s.revChronBL[i]);
-            }
-            break;
-        }
-        case 2:
-        {
-            auto scheme = OptimalSearchSchemes<0, 2>::VALUE;
-            _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
-            _optimalSearchSchemeComputeChronBlocklength(scheme);
-            auto s = scheme[0];
-            for(int i = 0; i < s.pi.size(); ++i)
-            {
-                r.push_back(s.chronBL[i]);
-                l.push_back(s.revChronBL[i]);
-            }
-            break;
-        }
-        case 3:
-        {
-            auto scheme = OptimalSearchSchemes<0, 3>::VALUE;
-            _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
-            _optimalSearchSchemeComputeChronBlocklength(scheme);
-            auto s = scheme[0];
-            for(int i = 0; i < s.pi.size(); ++i)
-            {
-                r.push_back(s.chronBL[i]);
-                l.push_back(s.revChronBL[i]);
-            }
-            break;
-        }
-        case 4:
-        {
-            auto scheme = OptimalSearchSchemes<0, 4>::VALUE;
-            _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
-            _optimalSearchSchemeComputeChronBlocklength(scheme);
-            auto s = scheme[0];
-            for(int i = 0; i < s.pi.size(); ++i)
-            {
-                r.push_back(s.chronBL[i]);
-                l.push_back(s.revChronBL[i]);
-            }
-            break;
-        }
-        default: std::cerr << "E = " << (int)se << " not yet supported.\n";
-                exit(1);
-    }
-    return std::make_pair(r, l);
-}
-
 template<typename TVector, typename TElem>
 bool checkForElem(TVector const & v, TElem const & e)
 {
@@ -144,21 +67,21 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability,
 
 
     b.bv.push_back(righti);
-    b.names.push_back("r_bit_vector_" + to_string(len) + "_shift_0");
+    b.names.push_back("left_anchored_bvector_" + to_string(len) + "_shift_0");
     b.fwdd.push_back(true);
     b.bv.push_back(lefti);
-    b.names.push_back("l_bit_vector_" + to_string(len) + "_shift_0");
+    b.names.push_back("right_anchored_bvector_" + to_string(len) + "_shift_0");
     b.fwdd.push_back(false);
 
-    std::cout << "\nAdditonal bitvectors besides shift_0\n";
+    std::cout << "\nAdditonal bitvectors besides left_anchored and right_anchored bitvector: \n";
 
     vector<int> shift_r;
     vector<int> shift_l;
 
     for(int s = 0; s <= e - strata; ++s){
         int se = e - s;
-        std::cout << "Bitvectors for Scheme <" << se << ", " << se << ">: \n";
-        auto blocklengths = loadBlockLengths(se, len);
+        std::cout << "Bitvectors for Scheme <" << 0 << ", " << se << ">: \n";
+        auto blocklengths = loadBlockLimits(se, len);
         shift_r = blocklengths.first;
         shift_l = blocklengths.second;
 

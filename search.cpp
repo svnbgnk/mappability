@@ -104,6 +104,7 @@ public:
     uint32_t readCount = length(reads); //if readCount is not set than all reads are assumend to be on one strand
     uint8_t maxError = 0;
     uint8_t strata = 99;
+    std::vector<std::pair<int, bool> > bitvector_meta;
 
 
     OSSContext(StringSet<DnaString> inreads,
@@ -114,9 +115,7 @@ public:
         hits(inhits),
         dhits(indhits)
 //         readOccCount(inreadOccCount)
-    {
-        ;
-    }
+    {}
 
     void setdefault(){
         normal.setdefault();
@@ -133,12 +132,12 @@ public:
         uni.print();
     }
 
-    void setReadContext(uint32_t inreadCount, uint8_t nerrors = 0, uint8_t instrata = 99, bool mScheme = false){
+    void setReadContext(std::vector<std::pair<int, bool> > & inbitvector_meta, uint32_t inreadCount, uint8_t nerrors = 0, uint8_t instrata = 99, bool mScheme = false){
         readCount = inreadCount;
         maxError = nerrors;
         strata = instrata;
+        bitvector_meta = inbitvector_meta;
         initReadsContext(ctx, readCount);
-
         if(!mScheme){
             std::cout << "Using one Scheme" << "\n";
             if(instrata != 99)
@@ -369,25 +368,22 @@ int main(int argc, char *argv[])
     cout << "Loaded Index. Size:" << seqan::length(index.fwd.sa) << endl;
 
     // load bitvectors
-    vector<pair<TBitvector, TSupport>> bitvectors_save;
+    std::vector<std::pair<int, bool> > bitvector_meta;
+
+    vector<pair<TBitvector, TSupport>> bitvectors;
     if(!notmy){
         cout << "Loading bitvectors" << endl;
-        bitvectors_save = loadBitvectors(bitvectorpath, K, nerrors);
-        cout << "Bit vectors loaded. Number: " << bitvectors_save.size() << " Length: " << bitvectors_save[0].first.size() << endl;
-    }
-
-//     auto & bitvectors = bitvectors_save;
-    //creating pointers to bitvectors
-    vector<pair<TBitvector, TSupport>* > bitvectors;
-    for(int i = 0; i < bitvectors_save.size(); ++i){
-        bitvectors.push_back(& bitvectors_save[i]);
+        loadAllBitvectors(bitvectorpath, bitvectors, bitvector_meta, K);
+//         bitvectors = loadBitvectors(bitvectorpath, K, nerrors);
+        cout << "Bit vectors loaded. Number: " << bitvectors.size() << " Length: " << bitvectors[0].first.size() << endl;
     }
 
     std::vector<hit> myhits;
     std::vector<hit> mydhits;
     std::vector<uint32_t> myreadOccCount;
     OSSContext myOSSContext(reads, myhits, mydhits/*, myreadOccCount*/);
-    myOSSContext.setReadContext(readCount, nerrors, strata, mscheme);
+    //TODO condition for no strata
+    myOSSContext.setReadContext(bitvector_meta, readCount, nerrors, strata, mscheme);
     if(myOSSContext.oneSSBestXMapper || myOSSContext.bestXMapper){
         myOSSContext.normal.suspectunidirectional = false;
     }
@@ -555,7 +551,7 @@ int main(int argc, char *argv[])
     std::vector<hit> dhitsDe;
 //     std::vector<uint32_t> myreadOccCountDe;
     OSSContext ossContextDefaultT(reads, hitsDe, dhitsDe); //, myreadOccCountDe
-    ossContextDefaultT.setReadContext(readCount, nerrors, strata, mscheme);
+    ossContextDefaultT.setReadContext(bitvector_meta, readCount, nerrors, strata, mscheme);
 //     ossContextDefaultT.itv = false;
 
     // default with in text search

@@ -8,10 +8,9 @@
 
 namespace seqan{
 
-
 template<typename TVector, typename TVSupport,
          typename TSAValue>
-TVector & getTVector(std::vector<std::pair<TVector, TVSupport> > & bitvectors,
+inline TVector & getTVector(std::vector<std::pair<TVector, TVSupport> > & bitvectors,
            Pair<uint8_t, Pair<TSAValue, TSAValue>> & brange)
 {
     return bitvectors[brange.i1].first;
@@ -19,7 +18,7 @@ TVector & getTVector(std::vector<std::pair<TVector, TVSupport> > & bitvectors,
 
 template<typename TVector, typename TVSupport,
          typename TSAValue>
-TVSupport & getTVSupport(std::vector<std::pair<TVector, TVSupport> > & bitvectors,
+inline TVSupport & getTVSupport(std::vector<std::pair<TVector, TVSupport> > & bitvectors,
            Pair<uint8_t, Pair<TSAValue, TSAValue>> & brange)
 {
     return bitvectors[brange.i1].second;
@@ -27,7 +26,7 @@ TVSupport & getTVSupport(std::vector<std::pair<TVector, TVSupport> > & bitvector
 
 template<typename TVector, typename TVSupport,
          typename TSAValue>
-TVector & getTVector(std::vector<std::pair<TVector, TVSupport>* > & bitvectors,
+inline TVector & getTVector(std::vector<std::pair<TVector, TVSupport>* > & bitvectors,
            Pair<uint8_t, Pair<TSAValue, TSAValue>> & brange)
 {
     return bitvectors[brange.i1]->first;
@@ -35,7 +34,7 @@ TVector & getTVector(std::vector<std::pair<TVector, TVSupport>* > & bitvectors,
 
 template<typename TVector, typename TVSupport,
          typename TSAValue>
-TVSupport & getTVSupport(std::vector<std::pair<TVector, TVSupport>* > & bitvectors,
+inline TVSupport & getTVSupport(std::vector<std::pair<TVector, TVSupport>* > & bitvectors,
            Pair<uint8_t, Pair<TSAValue, TSAValue>> & brange)
 {
     return bitvectors[brange.i1]->second;
@@ -208,8 +207,10 @@ inline void alignmentMyersBitvector(TContex & ossContext,
             }
             delegateDirect(ossContext, sa_info_tmp, posAdd(sa_info_tmp, length(needle)) , needle, needleId, errors2);
         }
-
+//         int bestHit = errors2;
         for(uint8_t e = 1; e <= max_e; ++e){
+//             if(bestHit < e)
+//                 return;
 //             cout << "E: " << (int)e << endl;
             for(uint8_t del = 0; del <= e; ++del){
                 //del is number of deletions
@@ -234,6 +235,8 @@ inline void alignmentMyersBitvector(TContex & ossContext,
                                 saPosOnFwd(sa_info_tmp, genomelength, occLength);
                             }
                             delegateDirect(ossContext, sa_info_tmp, posAdd(sa_info_tmp, occLength) , needle, needleId, errors2);
+//                             if(bestHit > errors2)
+//                                 bestHit = errors2;
                         }
                     }
                 }
@@ -252,6 +255,8 @@ inline void alignmentMyersBitvector(TContex & ossContext,
                                 saPosOnFwd(sa_info_tmp, genomelength, occLength);
                             }
                             delegateDirect(ossContext, sa_info_tmp, posAdd(sa_info_tmp, occLength) , needle, needleId, errors2);
+//                             if(bestHit > errors2)
+//                                 bestHit = errors2;
                         }
                     }
 
@@ -267,6 +272,8 @@ inline void alignmentMyersBitvector(TContex & ossContext,
                                 saPosOnFwd(sa_info_tmp, genomelength, occLength);
                             }
                             delegateDirect(ossContext, sa_info_tmp, posAdd(sa_info_tmp, occLength) , needle, needleId, errors2);
+//                             if(bestHit > errors2)
+//                                 bestHit = errors2;
                         }
                     }
                 }
@@ -1218,12 +1225,13 @@ find(TContex & ossContext,
      TDistanceTag const & )
 {
 //     auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
-    auto scheme = ss;
-    _optimalSearchSchemeComputeFixedBlocklength(scheme, length(needle));
-    _optimalSearchSchemeComputeChronBlocklength(scheme);
+//     auto scheme = ss;
+//     _optimalSearchSchemeComputeFixedBlocklength(scheme, length(needle));
+//     _optimalSearchSchemeComputeChronBlocklength(scheme);
+
 //     Iter<Index<TText, BidirectionalIndex<TIndexSpec> >, VSTree<TopDown<> > > it(index);
      MyIter it(index);
-    _optimalSearchScheme(ossContext, delegate, delegateDirect, it, bitvectors, scheme, needle, needleId, TDistanceTag());
+    _optimalSearchScheme(ossContext, delegate, delegateDirect, it, bitvectors, ss, needle, needleId, TDistanceTag());
 }
 
 //TODO create Sortkey ?
@@ -1282,17 +1290,24 @@ find(TContex & ossContext,
      StringSet<TNeedle, TStringSetSpec> const & needles,
      TDistanceTag const & )
 {
-
     auto scheme = OptimalSearchSchemes<minErrors, maxErrors>::VALUE;
+    calcConstParameters(scheme);
+    uint32_t len = length(needles[0]);
+
+    _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
+    _optimalSearchSchemeComputeChronBlocklength(scheme);
+
+
+    //load Bitvectors needed for scheme (Blocklength and chronblockLengths have to be calculated therefore I need to assume needle length)
+    std::vector<TBitvector * > lbitvectors;
+    linkBitvectors(ossContext, scheme, bitvectors, lbitvectors);
+
     calcConstParameters(scheme);
     uint32_t needleId = 0;
     uint32_t lastcount = 0;
     //neede to fix ++needleID to make it parrallel
     while(needleId < length(needles))
     {
-//         find<minErrors, maxErrors>(ossContext, delegate, delegateDirect, index, bitvectors, scheme, needles[needleId], needleId, TDistanceTag());
-//         ++needleId;
-
         bool skip = false;
         if(ossContext.bestXMapper){
             uint32_t readId = getReadId(needleId, ossContext.readCount);
@@ -1304,8 +1319,9 @@ find(TContex & ossContext,
             }
         }
         if(!skip){
-            find<minErrors, maxErrors>(ossContext, delegate, delegateDirect, index, bitvectors, scheme, needles[needleId], needleId, TDistanceTag());
+            find<minErrors, maxErrors>(ossContext, delegate, delegateDirect, index, lbitvectors, scheme, needles[needleId], needleId, TDistanceTag());
         }
+        //TODO fix this to make parrallelization possible
         ++needleId;
 
         /*
@@ -1317,7 +1333,7 @@ find(TContex & ossContext,
 
     }
 //     takes to much time for editDistance
-    // wrong hits found with itv (we dont know before hand how many errors will be reported) //TODO make it optional
+    // wrong hits found with itv (we dont know before hand how many errors will be reported)
     if(ossContext.itv && ossContext.oneSSBestXMapper){
         removeBadHits(ossContext, ossContext.dhits);
     }

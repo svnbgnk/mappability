@@ -75,7 +75,6 @@ struct hit{
     DnaString read;
 };
 
-
 template <size_t nbrBlocks, size_t N>
 inline void calcConstParameters(std::array<OptimalSearch<nbrBlocks>, N> & ss)
 {
@@ -143,6 +142,150 @@ template <size_t nbrBlocks, size_t N>
     }
 }
 
+auto loadBlockLimits(uint8_t se, uint32_t const len)
+{
+    std::vector<int> r;
+    std::vector<int> l;
+    switch (se)
+    {
+        case 0:
+        {
+            auto scheme = OptimalSearchSchemes<0, 0>::VALUE;
+            _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
+            _optimalSearchSchemeComputeChronBlocklength(scheme);
+            auto s = scheme[0];
+            for(int i = 0; i < s.pi.size(); ++i)
+            {
+                r.push_back(s.chronBL[i]);
+                l.push_back(s.revChronBL[i]);
+            }
+            break;
+        }
+        case 1:
+        {
+            auto scheme = OptimalSearchSchemes<0, 1>::VALUE;
+            _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
+            _optimalSearchSchemeComputeChronBlocklength(scheme);
+            auto s = scheme[0];
+            for(int i = 0; i < s.pi.size(); ++i)
+            {
+                r.push_back(s.chronBL[i]);
+                l.push_back(s.revChronBL[i]);
+            }
+            break;
+        }
+        case 2:
+        {
+            auto scheme = OptimalSearchSchemes<0, 2>::VALUE;
+            _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
+            _optimalSearchSchemeComputeChronBlocklength(scheme);
+            auto s = scheme[0];
+            for(int i = 0; i < s.pi.size(); ++i)
+            {
+                r.push_back(s.chronBL[i]);
+                l.push_back(s.revChronBL[i]);
+            }
+            break;
+        }
+        case 3:
+        {
+            auto scheme = OptimalSearchSchemes<0, 3>::VALUE;
+            _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
+            _optimalSearchSchemeComputeChronBlocklength(scheme);
+            auto s = scheme[0];
+            for(int i = 0; i < s.pi.size(); ++i)
+            {
+                r.push_back(s.chronBL[i]);
+                l.push_back(s.revChronBL[i]);
+            }
+            break;
+        }
+        case 4:
+        {
+            auto scheme = OptimalSearchSchemes<0, 4>::VALUE;
+            _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
+            _optimalSearchSchemeComputeChronBlocklength(scheme);
+            auto s = scheme[0];
+            for(int i = 0; i < s.pi.size(); ++i)
+            {
+                r.push_back(s.chronBL[i]);
+                l.push_back(s.revChronBL[i]);
+            }
+            break;
+        }
+        default: std::cerr << "E = " << (int)se << " not yet supported.\n";
+                exit(1);
+    }
+    return std::make_pair(r, l);
+}
+
+template<size_t nbrBlocks, size_t N>
+inline auto loadBlockLimits(std::array<OptimalSearch<nbrBlocks>, N> const & ss)
+{
+    std::vector<int> r(1, 0);
+    std::vector<int> l;
+    auto s = ss[0];
+    for(int i = 0; i < s.pi.size() - 1; ++i)
+    {
+        r.push_back(s.chronBL[i]);
+        l.push_back(s.revChronBL[i + 1]);
+    }
+    l.push_back(0);
+
+    return std::make_pair(r, l);
+}
+
+template<typename TContext,
+         size_t nbrBlocks, size_t N,
+         typename TBitvector>
+inline void linkBitvectors(TContext & ossContext,
+                    std::array<OptimalSearch<nbrBlocks>, N> const ss,
+                    std::vector<TBitvector > & bitvectors,
+                    std::vector<TBitvector * > & bit_filtered)
+{
+    if(bitvectors.empty())
+        return;
+    auto blocklengths = loadBlockLimits(ss);
+    std::vector<int> shift_r = blocklengths.first;
+    std::vector<int> shift_l = blocklengths.second;
+
+    std::vector<std::pair<int, bool> > & meta = ossContext.bitvector_meta;
+    std::cout << "SearchScheme has: " << ss[0].pi.size() << " parts" << "\n";
+
+    //test blocklengths of search scheme
+    for(int i = 0; i < shift_r.size() - 1; ++i){
+        if(shift_r[i] > shift_r[i + 1] || shift_l[i] > shift_l[i]){
+            std::cerr << "blocklengths not in the right order" << "\n";
+            exit(0);
+        }
+    }
+    for(int i = 0; i < shift_r.size(); ++i){
+        for(int j = 0; j < meta.size(); ++j){
+            if(shift_r[i] == meta[j].first && meta[j].second)
+            {
+                std::cout << "left anchored with shift: " << meta[j].first << "\n";
+                bit_filtered.push_back(& bitvectors[j]);
+                break;
+            }
+        }
+    }
+
+    for(int i = shift_l.size() - 1; i >= 0; --i){
+        for(int j = 0; j < meta.size(); ++j){
+            if(shift_l[i] == meta[j].first && !meta[j].second)
+            {
+                std::cout << "right anchored with shift: " << meta[j].first << "\n";
+                bit_filtered.push_back(& bitvectors[j]);
+                break;
+            }
+        }
+    }
+
+    if((shift_r.size() + shift_l.size()) != bit_filtered.size()){
+        std::cerr << "Unable to load appropiate bitvectors for scheme with " << ss[0].pi.size() << " pieces\n";
+        exit(0);
+    }
+}
 
 
 enum class ReturnCode {

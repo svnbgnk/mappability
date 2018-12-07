@@ -653,7 +653,45 @@ void print_genome(auto it, //Iter<Index<TText, BidirectionalIndex<TIndex> >, VST
 //}
 
 
-std::vector<std::pair<TBitvector, TSupport>> loadBitvectors(CharString const bitvectorpath, const int K, const int errors){
+void loadAllBitvectors(CharString const bitvectorpath,
+                       std::vector<std::pair<TBitvector, TSupport>> & bitvectorsOutput,
+                       std::vector<std::pair<int, bool> > & metaOutput,
+                       uint32_t const K){
+
+     std::string tmp_file_name = std::string("") + toCString(bitvectorpath) + "left_anchored_bvector_" +  std::to_string(K) + "_shift_" +  std::to_string(0);
+     if(file_exists(tmp_file_name)){
+         std::cout << "Load the following Bitvectors:" << "\n";
+         for(int shift = 0; shift < K + 1; ++shift){
+            tmp_file_name = std::string("") + toCString(bitvectorpath) + "left_anchored_bvector_" +  std::to_string(K) + "_shift_" +  std::to_string(shift);
+            if(file_exists(tmp_file_name)){
+                std::cout << "Filename: " << tmp_file_name << "\n";
+                TBitvector b;
+                load_from_file(b, tmp_file_name);
+                TSupport rb(& b);
+                metaOutput.push_back(std::make_pair(shift, true));
+                bitvectorsOutput.push_back(std::make_pair(b, rb));
+             }
+         }
+
+        for(int shift = 0; shift < K + 1; ++shift){
+            tmp_file_name = std::string("") + toCString(bitvectorpath) + "right_anchored_bvector_" +  std::to_string(K) + "_shift_" +  std::to_string(shift);
+            if(file_exists(tmp_file_name)){
+                std::cout << "Filename: " << tmp_file_name << "\n";
+                TBitvector b;
+                load_from_file(b, tmp_file_name);
+                TSupport rb(& b);
+                metaOutput.push_back(std::make_pair(shift, false));
+                bitvectorsOutput.push_back(std::make_pair(b, rb));
+            }
+        }
+    }
+    else
+    {
+        std::cerr << tmp_file_name << " not found" <<  "\n";
+    }
+}
+
+std::vector<std::pair<TBitvector, TSupport> > loadBitvectors(CharString const bitvectorpath, const int K, const int errors){
     std::vector<std::pair<TBitvector, TSupport>> bit_vectors;
     if(file_exists(std::string("") + toCString(bitvectorpath) + "l_bit_vector_" +  std::to_string(K) + "_" +  std::to_string(errors) + "_shift_" +  std::to_string(0)))
     {
