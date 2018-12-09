@@ -144,7 +144,7 @@ template <size_t nbrBlocks, size_t N>
 
 auto loadBlockLimits(uint8_t se, uint32_t const len)
 {
-    std::vector<int> r;
+    std::vector<int> r(1, 0);
     std::vector<int> l;
     switch (se)
     {
@@ -154,10 +154,10 @@ auto loadBlockLimits(uint8_t se, uint32_t const len)
             _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
             _optimalSearchSchemeComputeChronBlocklength(scheme);
             auto s = scheme[0];
-            for(int i = 0; i < s.pi.size(); ++i)
+            for(int i = 0; i < s.pi.size() - 1; ++i)
             {
                 r.push_back(s.chronBL[i]);
-                l.push_back(s.revChronBL[i]);
+                l.push_back(s.revChronBL[i + 1]);
             }
             break;
         }
@@ -167,10 +167,10 @@ auto loadBlockLimits(uint8_t se, uint32_t const len)
             _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
             _optimalSearchSchemeComputeChronBlocklength(scheme);
             auto s = scheme[0];
-            for(int i = 0; i < s.pi.size(); ++i)
+            for(int i = 0; i < s.pi.size() - 1; ++i)
             {
                 r.push_back(s.chronBL[i]);
-                l.push_back(s.revChronBL[i]);
+                l.push_back(s.revChronBL[i + 1]);
             }
             break;
         }
@@ -180,10 +180,10 @@ auto loadBlockLimits(uint8_t se, uint32_t const len)
             _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
             _optimalSearchSchemeComputeChronBlocklength(scheme);
             auto s = scheme[0];
-            for(int i = 0; i < s.pi.size(); ++i)
+            for(int i = 0; i < s.pi.size() - 1; ++i)
             {
                 r.push_back(s.chronBL[i]);
-                l.push_back(s.revChronBL[i]);
+                l.push_back(s.revChronBL[i + 1]);
             }
             break;
         }
@@ -193,10 +193,10 @@ auto loadBlockLimits(uint8_t se, uint32_t const len)
             _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
             _optimalSearchSchemeComputeChronBlocklength(scheme);
             auto s = scheme[0];
-            for(int i = 0; i < s.pi.size(); ++i)
+            for(int i = 0; i < s.pi.size() - 1; ++i)
             {
                 r.push_back(s.chronBL[i]);
-                l.push_back(s.revChronBL[i]);
+                l.push_back(s.revChronBL[i + 1]);
             }
             break;
         }
@@ -206,16 +206,17 @@ auto loadBlockLimits(uint8_t se, uint32_t const len)
             _optimalSearchSchemeComputeFixedBlocklength(scheme, len);
             _optimalSearchSchemeComputeChronBlocklength(scheme);
             auto s = scheme[0];
-            for(int i = 0; i < s.pi.size(); ++i)
+            for(int i = 0; i < s.pi.size() - 1; ++i)
             {
                 r.push_back(s.chronBL[i]);
-                l.push_back(s.revChronBL[i]);
+                l.push_back(s.revChronBL[i + 1]);
             }
             break;
         }
         default: std::cerr << "E = " << (int)se << " not yet supported.\n";
                 exit(1);
     }
+    l.push_back(0);
     return std::make_pair(r, l);
 }
 

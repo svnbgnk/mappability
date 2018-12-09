@@ -32,7 +32,7 @@ struct Options
 string get_output_path(Options const & opt, SearchParams const & searchParams)
 {
     string output_path = toCString(opt.outputPath);
-    output_path += "_" + to_string(opt.errors) + "_" + to_string(searchParams.length) + "_" + to_string(searchParams.overlap);
+    output_path += "_" + to_string(opt.errors) + "_" + to_string(searchParams.length) /*+ "_" + to_string(searchParams.overlap)*/;
     output_path += ".gmapp" + string(opt.high ? "16" : "8");
     return output_path;
 }

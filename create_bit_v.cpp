@@ -85,7 +85,7 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability,
         shift_r = blocklengths.first;
         shift_l = blocklengths.second;
 
-        for(int i = 0; i < shift_r.size() - 1; ++i){
+        for(int i = 0; i < shift_r.size(); ++i){
             uint32_t shift = shift_r[i];
             bool skip = checkForElem(b.names, ("left_anchored_bvector_" + to_string(len) + "_shift_" + to_string(shift)));
             if(skip){
@@ -106,7 +106,7 @@ bitvectors create_all_bit_vectors(const vector <uint8_t> & mappability,
             b.fwdd.push_back(true);
         }
 
-        for(int i = 1; i < shift_l.size(); ++i){
+        for(int i = 0; i < shift_l.size(); ++i){
             uint32_t shift = shift_l[i];
             bool skip = checkForElem(b.names, ("right_anchored_bvector_" + to_string(len) + "_shift_" + to_string(shift)));
             if(skip){
