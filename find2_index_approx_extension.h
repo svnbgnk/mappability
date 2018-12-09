@@ -323,6 +323,30 @@ inline void directSearch(TContex & ossContext,
             intDel = repLength(iter) - (needleRightPos - needleLeftPos - 1);
         uint8_t overlap_l = max_e;
         uint8_t overlap_r = max_e;
+/*
+        uint8_t overlap_l;
+        uint8_t overlap_r;
+        if(s.pi[0] == 1){
+            if(needleLeftPos == 0)
+                overlap_l = intDel;
+            else
+                overlap_l = 0;
+        }
+        else
+        {
+                overlap_l = max_e;
+        }
+        if(s.pi[s.pi.back()] == s.pi.size()){
+            if(needleRightPos == needleL + 1)
+                overlap_r
+            else
+                overlap_r = 0;
+        }
+        else
+        {
+                overlap_r = max_e;
+        }*/
+
 
         uint16_t ex_infixL = needleL + overlap_l + overlap_r;
         for(uint32_t r = 0; r < iter.fwdIter.vDesc.range.i2 - iter.fwdIter.vDesc.range.i1; ++r)
@@ -333,22 +357,27 @@ inline void directSearch(TContex & ossContext,
                 uint32_t chromlength;
                 if(std::is_same<TDir, Rev>::value){
                     sa_info = iter.fwdIter.index->sa[iter.fwdIter.vDesc.range.i1 + r];
-                    chromlength = length(genome[sa_info.i1]);
-                    if(!(needleLeftPos + overlap_l <= sa_info.i2  && chromlength - 1 >= sa_info.i2 - needleLeftPos + needleL - 1 + overlap_r))
+                    uint32_t seqOffset = getSeqOffset(sa_info);
+                    chromlength = length(genome[getSeqNo(sa_info)]);
+                    if(!(needleLeftPos + overlap_l <= seqOffset  && chromlength - 1 >= seqOffset - needleLeftPos + needleL - 1 + overlap_r))
                         continue;
-                    sa_info.i2 = sa_info.i2 - needleLeftPos;
+                    setSeqOffset(sa_info, seqOffset - needleLeftPos);
+//                     sa_info.i2 = sa_info.i2 - needleLeftPos;
                 }
                 else
                 {
                     sa_info = iter.revIter.index->sa[iter.revIter.vDesc.range.i1 + r];
-                    chromlength = length(genome[sa_info.i1]);
-                    if(!(chromlength - 1 >= sa_info.i2 + needleRightPos - 1 + overlap_r && sa_info.i2 + needleRightPos - 1 - overlap_l >= length(needle) + 1))
+                    uint32_t seqOffset = getSeqOffset(sa_info);
+                    chromlength = length(genome[getSeqNo(sa_info)]);
+                    if(!(chromlength - 1 >= seqOffset + needleRightPos - 1 + overlap_r && seqOffset + needleRightPos - 1 - overlap_l >= length(needle) + 1))
                         continue;
-                    sa_info.i2 = chromlength - sa_info.i2 - needleRightPos + 1;
+//                     sa_info.i2 = chromlength - sa_info.i2 - needleRightPos + 1;
+                    setSeqOffset(sa_info, chromlength - seqOffset - needleRightPos + 1);
                 }
 
-                DnaString const & ex_infix = infix(genome[sa_info.i1], sa_info.i2 - overlap_l, sa_info.i2 + needleL + overlap_r);
-                DnaString const & n_infix = infix(genome[sa_info.i1], sa_info.i2, sa_info.i2 + needleL);
+                uint32_t seqOffset = getSeqOffset(sa_info);
+                DnaString const & ex_infix = infix(genome[getSeqNo(sa_info)], seqOffset - overlap_l,seqOffset + needleL + overlap_r);
+                DnaString const & n_infix = infix(genome[getSeqNo(sa_info)], seqOffset, seqOffset + needleL);
 
                 alignmentMyersBitvector(ossContext, delegateDirect, needle, needleId, n_infix, ex_infix, chromlength, sa_info, max_e, overlap_l, overlap_r, intDel, false);
             }
