@@ -332,8 +332,9 @@ struct State{
     bool fwdDirection;
 
 
-    //TODO use this only when TIter2 == MyIter
-    State(MyIter inIt,
+    //TODO use this only when TIter2 == TIter
+    template<typename TIter>
+    State(TIter inIt,
           uint32_t nlp,
           uint32_t nrp,
           uint8_t sId,
@@ -349,6 +350,7 @@ struct State{
         ;
     }
 /*
+    template<typename TIter>
     State(TIter inIt,
           uint32_t nlp,
           uint32_t nrp,

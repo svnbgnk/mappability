@@ -1000,12 +1000,8 @@ inline void _optimalSearchScheme(TContex & ossContext,
                 return;
         }
         if(save){
-//             std::cout << "saving state: " << (int)errors << "\n";
-//             std::cout << iter.fwdIter.vDesc.range << "\t" << needleLeftPos << "\t" << needleRightPos << "\t" << (int)s.id << "\t" << (int)blockIndex << "\n";
+
             bool right = std::is_same<TDir, Rev>::value;
-
-//             std::cout << (int)needleId << "\t" << (int)errors << "\t" << (int)s.pi[0] << "\t" << right << "\n";
-
             ossContext.saveState(iter, needleLeftPos, needleRightPos, s.id, blockIndex, right, errors);
             return;
         }
@@ -1470,7 +1466,7 @@ inline void find(const int minErrors,
                  StringSet<TNeedle, TStringSetSpec> const & needles,
                  TDistanceTag const & )
 {
-    if(strata == 99 || ossContext.oneSSBestXMapper)
+    if(strata == 99 || ossContext.oneSSBestXMapper) //TODO this is not necessary anymore
         strata = maxErrors;
 
     switch (maxErrors)
