@@ -370,7 +370,7 @@ int main(int argc, char *argv[])
     // load bitvectors
     std::vector<std::pair<int, bool> > bitvector_meta;
 
-    vector<pair<TBitvector, TSupport>> bitvectors;
+    std::vector<pair<TBitvector, TSupport>> bitvectors;
     if(!notmy){
         cout << "Loading bitvectors" << endl;
         loadAllBitvectors(bitvectorpath, bitvectors, bitvector_meta, K);
