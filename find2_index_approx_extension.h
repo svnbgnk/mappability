@@ -147,7 +147,7 @@ inline bool checkSinglePos(std::vector<TBitvector> & bitvectors,
                            Pair<uint8_t, Pair<uint32_t, uint32_t> > & brange,
                            uint32_t offset)
 {
-    if(bitvectors.size() == 0){
+    if(bitvectors.emtpy()){
         return true;
     }
     else
@@ -1011,7 +1011,7 @@ inline void _optimalSearchScheme(TContex & ossContext,
     uint8_t const minErrorsLeftInBlock = (s.l[blockIndex] > errors) ? (s.l[blockIndex] - errors) : 0;
     bool const done = minErrorsLeftInBlock == 0 && needleLeftPos == 0 && needleRightPos == length(needle) + 1;
     bool const atBlockEnd = (blockIndex > 0) ? needleRightPos - needleLeftPos - 1 == s.blocklength[blockIndex - 1] : false;        //is not true if we finished needle
-    bool const checkMappa = bitvectors.size() != 0;
+    bool const checkMappa = !bitvectors.empty();
 
     // Done. (Last step)
     if (done)
