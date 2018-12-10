@@ -110,9 +110,9 @@ inline void uniDirectSearch(TContex & ossContext,
             TNeedle needleRev = needle;
             reverse(needleRev);
 
-//             DnaStringReverse needleRevM(needle);
+//             ModifiedString<String<Dna>, ModReverse> needleR(ossContext.reads[needleId]/*needle*/);
+//             DnaString const & needleRev = needleR;
 
-//             DnaStringReverse needleRev(ossContext.reads[needleId]);
 //
 //             TNeedle needleCopy = needle;
 //             DnaStringReverse needleRev(needleCopy);
@@ -127,8 +127,8 @@ inline void uniDirectSearch(TContex & ossContext,
                         continue;
                     sa_info.i2 = sa_info.i2 - needleL + needleRightPos - 1;
                     //since we reverse the needle the overlap in infices must also me switched
-                    DnaString ex_infix = infix(genome[sa_info.i1], sa_info.i2 - overlap_r, sa_info.i2 + needleL + overlap_l);
-                    DnaString n_infix = infix(genome[sa_info.i1], sa_info.i2, sa_info.i2 + needleL);
+                    DnaString const & ex_infix = infix(genome[sa_info.i1], sa_info.i2 - overlap_r, sa_info.i2 + needleL + overlap_l);
+                    DnaString const & n_infix = infix(genome[sa_info.i1], sa_info.i2, sa_info.i2 + needleL);
 
                     alignmentMyersBitvector(ossContext, delegateDirect, needleRev, needleId, n_infix, ex_infix, chromlength, sa_info, max_e, overlap_l, overlap_r, intDel, true);
                 }
