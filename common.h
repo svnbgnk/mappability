@@ -91,7 +91,7 @@ struct SearchParams
     unsigned length;
     unsigned overlap;
     unsigned threads;
-    // bool indels;
+    bool indels;
     static constexpr bool outputProgress = false;
 };
 

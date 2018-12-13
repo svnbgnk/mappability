@@ -36,6 +36,11 @@ string get_output_path(Options const & opt, SearchParams const & searchParams)
 template <typename T>
 inline void save(vector<T> const & c, string const & output_path)
 {
+
+//     for(int i = 0; i < c.size(); ++i)
+//         std::cout << (int)c[i] << " ";
+//     std::cout << "\n";
+
     ofstream outfile(output_path, ios::out | ios::binary);
     outfile.write((const char*) &c[0], c.size() * sizeof(T));
     outfile.close();
@@ -164,6 +169,7 @@ int main(int argc, char *argv[])
     getOptionValue(searchParams.length, parser, "length");
     getOptionValue(searchParams.threads, parser, "threads");
     getOptionValue(searchParams.overlap, parser, "overlap");
+    searchParams.indels = opt.indels;
 
     if (searchParams.overlap > searchParams.length - 1)
     {

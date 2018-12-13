@@ -16,6 +16,7 @@ inline void runAlgo4(TIndex & index, TText const & text, TContainer & c, SearchP
     for (uint64_t i = 0; i < max_i; i += step_size)
     {
         uint64_t max_pos = std::min(i + params.length - params.overlap, textLength - params.length) + 1;
+        std::cout << "I: " << i << "\t" << params.length - params.overlap << "\t" << "maxPos " << max_pos << "\n";
 
         // overlap is the length of the infix!
 
@@ -32,6 +33,7 @@ inline void runAlgo4(TIndex & index, TText const & text, TContainer & c, SearchP
             uint64_t begin_pos = i + leading;
             uint64_t end_pos = max_pos - trailing; // excluding
             uint64_t new_overlap = params.length - (end_pos - begin_pos) + 1;
+            std::cout << "bp " << begin_pos << "\t" << end_pos << "\n";
 
             auto scheme = OptimalSearchSchemes<0, errors>::VALUE; // TODO: move out as array
             _optimalSearchSchemeComputeFixedBlocklength(scheme, new_overlap); // only do when new_overlap != overlap
@@ -59,9 +61,14 @@ inline void runAlgo4(TIndex & index, TText const & text, TContainer & c, SearchP
                 }
             };
 
+            std::cout << "old overlap: " << params.overlap << "\tnew_overlap: " << new_overlap << "\n";
             auto const & needle = infix(text, begin_pos + params.length - new_overlap, begin_pos + params.length);
+            std::cout << "Infix: " << begin_pos + params.length - new_overlap << "\t " << begin_pos + params.length << "\n";
             TIter it(index);
-            _optimalSearchScheme(delegate, it, needle, scheme, HammingDistance());
+//             if(!params.indels)
+                _optimalSearchScheme(delegate, it, needle, scheme, HammingDistance());
+//             else
+//                 _optimalSearchScheme(delegate, it, needle, scheme, EditDistance());
             for (uint64_t j = begin_pos; j < end_pos; ++j)
             {
                 if (countOccurrences(it_zero_errors[j - begin_pos]) > 1) // guaranteed to exist, since there has to be at least one match!

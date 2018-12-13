@@ -67,12 +67,18 @@ inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, TTex
     }
     if (errors_left > 0)
     {
+        // Insertion Sven
+        approxSearch(it, hits, errors_left - 1, text, length, a, b + 1, ab, bb, b_new, Rev());
+
         if (goDown(it, Rev()))
         {
             do {
                 bool delta = !ordEqual(parentEdgeLabel(it, Rev()), text[b + 1]);
                 approxSearch(it, hits, errors_left - delta, text, length, a, b + 1, ab, bb, b_new, Rev());
             } while (goRight(it, Rev()));
+
+            // Deletion Sven
+            approxSearch(it, hits, errors_left - 1, text, length, a, b, ab, bb, b_new, Rev());
         }
     }
     else
@@ -100,12 +106,19 @@ inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, TTex
     }
     if (errors_left > 0)
     {
+        //Insertion Sven
+        approxSearch(it, hits, errors_left - 1, text, length, a - 1, b, ab, bb, a_new, Fwd());
+
+
         if (goDown(it, Fwd()))
         {
             do {
                 bool delta = !ordEqual(parentEdgeLabel(it, Fwd()), text[a - 1]);
                 approxSearch(it, hits, errors_left - delta, text, length, a - 1, b, ab, bb, a_new, Fwd());
             } while (goRight(it, Fwd()));
+
+             //Deletion Sven
+            approxSearch(it, hits, errors_left - 1, text, length, a, b, ab, bb, a_new, Fwd());
         }
     }
     else
