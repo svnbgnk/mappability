@@ -104,7 +104,7 @@ public:
     uint32_t readCount = length(reads); //if readCount is not set than all reads are assumend to be on one strand
     uint8_t maxError = 0;
     uint8_t strata = 99;
-    std::vector<std::pair<int, bool> > bitvector_meta;
+    std::vector<std::pair<int, bool> > bitvectorMeta;
 
 
     OSSContext(StringSet<DnaString> inreads,
@@ -198,9 +198,12 @@ public:
                                            OptimalSearch<nbrBlocks> const & s,
                                           uint8_t blockIndex)
     {
+        uint32_t step = (needleRightPos - needleLeftPos - 1);
+        if(normal.distancetoblockend > step)
+            return false;
         uint32_t prevBlocklength = (blockIndex > 0) ? s.blocklength[blockIndex - 1] : 0;
         uint32_t nextBlocklength = s.blocklength[blockIndex];
-        uint32_t step = (needleRightPos - needleLeftPos - 1);
+        
 
 
         bool enoughDistanceToBlockEnds = step + normal.distancetoblockend < nextBlocklength && step - normal.distancetoblockend > prevBlocklength;

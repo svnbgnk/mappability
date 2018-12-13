@@ -11,7 +11,7 @@ namespace seqan{
 template<typename TVector, typename TVSupport,
          typename TSAValue>
 inline TVector & getTVector(std::vector<std::pair<TVector, TVSupport> > & bitvectors,
-           Pair<uint8_t, Pair<TSAValue, TSAValue>> & brange)
+           Pair<uint8_t, Pair<TSAValue, TSAValue>> const & brange)
 {
     return bitvectors[brange.i1].first;
 }
@@ -19,7 +19,7 @@ inline TVector & getTVector(std::vector<std::pair<TVector, TVSupport> > & bitvec
 template<typename TVector, typename TVSupport,
          typename TSAValue>
 inline TVSupport & getTVSupport(std::vector<std::pair<TVector, TVSupport> > & bitvectors,
-           Pair<uint8_t, Pair<TSAValue, TSAValue>> & brange)
+           Pair<uint8_t, Pair<TSAValue, TSAValue>> const & brange)
 {
     return bitvectors[brange.i1].second;
 }
@@ -27,7 +27,7 @@ inline TVSupport & getTVSupport(std::vector<std::pair<TVector, TVSupport> > & bi
 template<typename TVector, typename TVSupport,
          typename TSAValue>
 inline TVector & getTVector(std::vector<std::pair<TVector, TVSupport>* > & bitvectors,
-           Pair<uint8_t, Pair<TSAValue, TSAValue>> & brange)
+           Pair<uint8_t, Pair<TSAValue, TSAValue>> const & brange)
 {
     return bitvectors[brange.i1]->first;
 }
@@ -35,7 +35,7 @@ inline TVector & getTVector(std::vector<std::pair<TVector, TVSupport>* > & bitve
 template<typename TVector, typename TVSupport,
          typename TSAValue>
 inline TVSupport & getTVSupport(std::vector<std::pair<TVector, TVSupport>* > & bitvectors,
-           Pair<uint8_t, Pair<TSAValue, TSAValue>> & brange)
+           Pair<uint8_t, Pair<TSAValue, TSAValue>> const & brange)
 {
     return bitvectors[brange.i1]->second;
 }
@@ -640,8 +640,8 @@ inline ReturnCode checkCurrentMappability(TContex & ossContext,
 
         case ReturnCode::COMPMAPPABLE:
         {
-            std::vector<TBitvector> emtpy_bitvectors;
-            _optimalSearchSchemeChildren(ossContext, delegate, delegateDirect, iter, needle, needleId, emtpy_bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), TDistanceTag());
+            std::vector<TBitvector> empty_bitvectors;
+            _optimalSearchSchemeChildren(ossContext, delegate, delegateDirect, iter, needle, needleId, empty_bitvectors, needleLeftPos, needleRightPos, errors, s, blockIndex, minErrorsLeftInBlock, TDir(), TDistanceTag());
             return ReturnCode::FINISHED;
         }
 
@@ -693,8 +693,8 @@ inline ReturnCode checkMappability(TContex & ossContext,
 
         case ReturnCode::COMPMAPPABLE:
         {
-            std::vector<TBitvector> emtpy_bitvectors;
-            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, emtpy_bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, lastEdit, TDir(), TDistanceTag());
+            std::vector<TBitvector> empty_bitvectors;
+            _optimalSearchScheme(ossContext, delegate, delegateDirect, iter, needle, needleId, empty_bitvectors, current_needleLeftPos, current_needleRightPos, errors, s, blockIndex, lastEdit, TDir(), TDistanceTag());
             return ReturnCode::FINISHED;
         }
 
@@ -1179,8 +1179,15 @@ inline void _optimalSearchScheme(TContex & ossContext,
         setCurrentErrors(ossContext.ctx, readId, 0); //TODO this is not needed
 
         for(uint8_t e = 1; e < ossContext.states.size() && e <= getMinErrors(ossContext.ctx, readId) + ossContext.strata; ++e){
-            setCurrentErrors(ossContext.ctx, readId, e);
+           
 //             std::cout << "Read: " << readId << "\n";
+/*
+       if(isMapped(ossContext.ctx, readId)){
+            if(e > getMinErrors(ossContext.ctx, readId) + ossContext.strata)
+                return;
+        }
+*/
+            setCurrentErrors(ossContext.ctx, readId, e);
             for(int j = 0; j < ossContext.states[e].size(); ++j){
                 State<MySparseIter> & state = ossContext.states[e][j];
                 MyIter tmp = it;
@@ -1382,16 +1389,16 @@ inline void find(const int minErrors,
                  StringSet<TNeedle, TStringSetSpec> const & needles,
                  TDistanceTag const & )
 {
-    std::vector<std::pair<TBitvector, TSupport>> emtpy_bitvectors;
+    std::vector<std::pair<TBitvector, TSupport>> empty_bitvectors;
     switch (maxErrors)
     {
-        case 1: find<0, 1>(ossContext, delegate, delegateDirect, index, emtpy_bitvectors, needles, TDistanceTag());
+        case 1: find<0, 1>(ossContext, delegate, delegateDirect, index, empty_bitvectors, needles, TDistanceTag());
                 break;
-        case 2: find<0, 2>(ossContext, delegate, delegateDirect, index, emtpy_bitvectors, needles, TDistanceTag());
+        case 2: find<0, 2>(ossContext, delegate, delegateDirect, index, empty_bitvectors, needles, TDistanceTag());
                 break;
-        case 3: find<0, 3>(ossContext, delegate, delegateDirect, index, emtpy_bitvectors, needles, TDistanceTag());
+        case 3: find<0, 3>(ossContext, delegate, delegateDirect, index, empty_bitvectors, needles, TDistanceTag());
                 break;
-        case 4: find<0, 4>(ossContext, delegate, delegateDirect, index, emtpy_bitvectors, needles, TDistanceTag());
+        case 4: find<0, 4>(ossContext, delegate, delegateDirect, index, empty_bitvectors, needles, TDistanceTag());
                 break;
         default: std::cerr << "E = " << maxErrors << " not yet supported.\n";
                 exit(1);
@@ -1444,8 +1451,8 @@ inline void find(const int minErrors,
                  StringSet<TNeedle, TStringSetSpec> const & needles,
                  TDistanceTag const & )
 {
-    std::vector<std::pair<TBitvector, TSupport>> emtpy_bitvectors;
-    find(minErrors, maxErrors, ossContext, delegate, delegateDirect, index, needles, emtpy_bitvectors, TDistanceTag());
+    std::vector<std::pair<TBitvector, TSupport>> empty_bitvectors;
+    find(minErrors, maxErrors, ossContext, delegate, delegateDirect, index, needles, empty_bitvectors, TDistanceTag());
 }
 
 
@@ -1621,8 +1628,8 @@ inline void find(const int minErrors,
                  StringSet<TNeedle, TStringSetSpec> const & needles,
                  TDistanceTag const & )
 {
-    std::vector<std::pair<TBitvector, TSupport>> emtpy_bitvectors;
-    find(minErrors, maxErrors, strata, ossContext, delegate, delegateDirect, index, emtpy_bitvectors, needles, TDistanceTag());
+    std::vector<std::pair<TBitvector, TSupport>> empty_bitvectors;
+    find(minErrors, maxErrors, strata, ossContext, delegate, delegateDirect, index, empty_bitvectors, needles, TDistanceTag());
 }
 
 // for find2_index_approx.h find function
