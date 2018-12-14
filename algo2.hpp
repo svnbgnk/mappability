@@ -1,16 +1,23 @@
 using namespace seqan;
 
-template <typename TIter, typename value_type, typename TText>
-inline void extendExact(TIter it, value_type * hits, TText const & text, unsigned const length,
+struct smallHit;
+
+template <typename TIter, typename TOcc, typename TText>
+inline void extendExact(TIter it, TOcc * hits, TText const & text, unsigned const length,
     uint64_t a, uint64_t b, // searched interval
     uint64_t ab, uint64_t bb // entire interval
 )
 {
-    constexpr uint64_t max_val = std::numeric_limits<value_type>::max();
+//     constexpr uint64_t max_val = std::numeric_limits<value_type>::max();
 
     if (b - a + 1 == length)
     {
-        hits[a-ab] = std::min((uint64_t) countOccurrences(it) + hits[a-ab], max_val);
+        //Sven occ
+        for (auto occ : getOccurrences(it)){
+            smallHit hit(occ);
+            hits[a-ab].push_back(hit);
+        }
+//         hits[a-ab] = std::min((uint64_t) countOccurrences(it) + hits[a-ab], max_val);
         return;
     }
     //if (b + 1 <= bb)
@@ -44,16 +51,16 @@ inline void extendExact(TIter it, value_type * hits, TText const & text, unsigne
 }
 
 // forward
-template <typename TIter, typename value_type, typename TText>
-inline void extend(TIter it, value_type * hits, unsigned errors_left, TText const & text,
+template <typename TIter, typename TOcc, typename TText>
+inline void extend(TIter it, TOcc * hits, unsigned errors_left, TText const & text,
             unsigned const length,
             uint64_t a, uint64_t b, // searched interval
             uint64_t ab, uint64_t bb // entire interval
 );
 
 // TODO: remove text everywhere: auto & text = indexText(index(it));
-template <typename TIter, typename value_type, typename TText>
-inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, TText const & text, unsigned const length,
+template <typename TIter, typename TOcc, typename TText>
+inline void approxSearch(TIter it, TOcc * hits, unsigned errors_left, TText const & text, unsigned const length,
             uint64_t a, uint64_t b, // searched interval
             uint64_t ab, uint64_t bb, // entire interval
             uint64_t b_new,
@@ -75,10 +82,10 @@ inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, TTex
             do {
                 bool delta = !ordEqual(parentEdgeLabel(it, Rev()), text[b + 1]);
                 approxSearch(it, hits, errors_left - delta, text, length, a, b + 1, ab, bb, b_new, Rev());
-            } while (goRight(it, Rev()));
 
-            // Deletion Sven
-            approxSearch(it, hits, errors_left - 1, text, length, a, b, ab, bb, b_new, Rev());
+                // Deletion Sven
+                approxSearch(it, hits, errors_left - 1, text, length, a, b, ab, bb, b_new, Rev());
+            } while (goRight(it, Rev()));
         }
     }
     else
@@ -91,8 +98,8 @@ inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, TTex
         extendExact(it, hits, text, length, a, b_new, ab, bb);
     }
 }
-template <typename TIter, typename value_type, typename TText>
-inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, TText const & text, unsigned const length,
+template <typename TIter, typename TOcc, typename TText>
+inline void approxSearch(TIter it, TOcc * hits, unsigned errors_left, TText const & text, unsigned const length,
                   uint64_t a, uint64_t b, // searched interval
                   uint64_t ab, uint64_t bb, // entire interval
                   int64_t a_new,
@@ -115,10 +122,10 @@ inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, TTex
             do {
                 bool delta = !ordEqual(parentEdgeLabel(it, Fwd()), text[a - 1]);
                 approxSearch(it, hits, errors_left - delta, text, length, a - 1, b, ab, bb, a_new, Fwd());
-            } while (goRight(it, Fwd()));
 
-             //Deletion Sven
-            approxSearch(it, hits, errors_left - 1, text, length, a, b, ab, bb, a_new, Fwd());
+                //Deletion Sven
+                approxSearch(it, hits, errors_left - 1, text, length, a, b, ab, bb, a_new, Fwd());
+            } while (goRight(it, Fwd()));
         }
     }
     else
@@ -132,13 +139,13 @@ inline void approxSearch(TIter it, value_type * hits, unsigned errors_left, TTex
     }
 }
 
-template <typename TIter, typename value_type, typename TText>
-inline void extend(TIter it, value_type * hits, unsigned errors_left, TText const & text, unsigned const length,
+template <typename TIter, typename TOcc, typename TText>
+inline void extend(TIter it, TOcc * hits, unsigned errors_left, TText const & text, unsigned const length,
     uint64_t a, uint64_t b, // searched interval
     uint64_t ab, uint64_t bb // entire interval
 )
 {
-    constexpr uint64_t max_val = std::numeric_limits<value_type>::max();
+//     constexpr uint64_t max_val = std::numeric_limits<value_type>::max();
 
     if (errors_left == 0)
     {
@@ -147,7 +154,12 @@ inline void extend(TIter it, value_type * hits, unsigned errors_left, TText cons
     }
     if (b - a + 1 == length)
     {
-        hits[a-ab] = std::min((uint64_t) countOccurrences(it) + hits[a-ab], max_val);
+        // Sven occ
+        for (auto occ : getOccurrences(it)){
+            smallHit hit(occ);
+            hits[a-ab].push_back(hit);
+        }
+//         hits[a-ab] = std::min((uint64_t) countOccurrences(it) + hits[a-ab], max_val);
         return;
     }
     //if (b + 1 <= bb)
@@ -177,7 +189,7 @@ inline void extend(TIter it, value_type * hits, unsigned errors_left, TText cons
         );
     }
 }
-
+/*
 template <unsigned errors, typename TIndex, typename TText, typename TContainer>
 inline void runAlgo2(TIndex & index, TText const & text, TContainer & c, SearchParams const & params)
 {
@@ -194,7 +206,7 @@ inline void runAlgo2(TIndex & index, TText const & text, TContainer & c, SearchP
     for (uint64_t i = 0; i < max_i; i += step_size)
     {
         value_type hits[params.length - params.overlap + 1] = {};
-        auto delegate = [&hits, i, textLength, &params, &text](auto it, auto const & /*read*/, unsigned const errors_spent) {
+        auto delegate = [&hits, i, textLength, &params, &text](auto it, auto const & , unsigned const errors_spent) {
             uint64_t const bb = std::min(textLength - 1, i + params.length - 1 + params.length - params.overlap);
             extend(it, hits, errors - errors_spent, text, params.length,
                 i + params.length - params.overlap, i + params.length - 1, // searched interval
@@ -211,4 +223,4 @@ inline void runAlgo2(TIndex & index, TText const & text, TContainer & c, SearchP
     }
 
     resetLimits(indexText(index), c, params.length);
-}
+}*/

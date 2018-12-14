@@ -37,9 +37,9 @@ template <typename T>
 inline void save(vector<T> const & c, string const & output_path)
 {
 
-//     for(int i = 0; i < c.size(); ++i)
-//         std::cout << (int)c[i] << " ";
-//     std::cout << "\n";
+    for(int i = 0; i < c.size(); ++i)
+        std::cout << (int)c[i] << " ";
+    std::cout << "\n";
 
     ofstream outfile(output_path, ios::out | ios::binary);
     outfile.write((const char*) &c[0], c.size() * sizeof(T));
@@ -185,12 +185,12 @@ int main(int argc, char *argv[])
 
     // searchParams.overlap - length of common overlap
     searchParams.overlap = searchParams.length - searchParams.overlap;
-
+/*
     if (opt.indels)
     {
         cerr << "ERROR: Indels are not supported yet.\n";
         exit(1);
-    }
+    }*/
 
     CharString _indexPath = opt.indexPath;
     _indexPath += ".alphabet";
