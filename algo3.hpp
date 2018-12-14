@@ -55,39 +55,43 @@ inline void extendExact3(TIter it, TOcc * hits, TIter * it_zero_errors, TText co
 }
 
 // forward
-template <unsigned max_errors, typename TIter, typename TOcc, typename TText>
+template <unsigned max_errors, typename TIter, typename TOcc, typename TText, typename TDistanceTag>
 inline void extend3(TIter it, TOcc * hits, TIter * it_zero_errors, unsigned errors_left, TText const & text, unsigned const length,
             uint64_t a, uint64_t b, // searched interval
-            uint64_t ab, uint64_t bb // entire interval
+            uint64_t ab, uint64_t bb, // entire interval
+            TDistanceTag const &
 );
 
 // TODO: remove text everywhere: auto & text = indexText(index(it));
-template <unsigned max_errors, typename TIter, typename TOcc, typename TText>
+template <unsigned max_errors, typename TIter, typename TOcc, typename TText, typename TDistanceTag>
 inline void approxSearch3(TIter it, TOcc * hits, TIter * it_zero_errors, unsigned errors_left, TText const & text, unsigned const length,
             uint64_t a, uint64_t b, // searched interval
             uint64_t ab, uint64_t bb, // entire interval
             uint64_t b_new,
-            Rev const &
+            Rev const &,
+            TDistanceTag const &
 )
 {
     if (b == b_new)
     {
-        extend3<max_errors>(it, hits, it_zero_errors, errors_left, text, length, a, b, ab, bb);
+        extend3<max_errors>(it, hits, it_zero_errors, errors_left, text, length, a, b, ab, bb, TDistanceTag());
         return;
     }
     if (errors_left > 0)
     {
         // Sven Insertion
-        approxSearch3<max_errors>(it, hits, it_zero_errors, errors_left - 1, text, length, a, b + 1, ab, bb, b_new, Rev());
+        if(std::is_same<TDistanceTag, EditDistance>::value)
+            approxSearch3<max_errors>(it, hits, it_zero_errors, errors_left - 1, text, length, a, b + 1, ab, bb, b_new, Rev(), TDistanceTag());
 
         if (goDown(it, Rev()))
         {
             do {
                 bool delta = !ordEqual(parentEdgeLabel(it, Rev()), text[b + 1]);
-                approxSearch3<max_errors>(it, hits, it_zero_errors, errors_left - delta, text, length, a, b + 1, ab, bb, b_new, Rev());
+                approxSearch3<max_errors>(it, hits, it_zero_errors, errors_left - delta, text, length, a, b + 1, ab, bb, b_new, Rev(), TDistanceTag());
 
                 // Sven Deletion
-                approxSearch3<max_errors>(it, hits, it_zero_errors, errors_left - 1, text, length, a, b, ab, bb, b_new, Rev());
+                if(std::is_same<TDistanceTag, EditDistance>::value)
+                    approxSearch3<max_errors>(it, hits, it_zero_errors, errors_left - 1, text, length, a, b, ab, bb, b_new, Rev(), TDistanceTag());
 
             } while (goRight(it, Rev()));
         }
@@ -102,32 +106,35 @@ inline void approxSearch3(TIter it, TOcc * hits, TIter * it_zero_errors, unsigne
         extendExact3<max_errors>(it, hits, it_zero_errors, text, length, a, b_new, ab, bb);
     }
 }
-template <unsigned max_errors, typename TIter, typename TOcc, typename TText>
+template <unsigned max_errors, typename TIter, typename TOcc, typename TText, typename TDistanceTag>
 inline void approxSearch3(TIter it, TOcc * hits, TIter * it_zero_errors, unsigned errors_left, TText const & text, unsigned const length,
                   uint64_t a, uint64_t b, // searched interval
                   uint64_t ab, uint64_t bb, // entire interval
                   int64_t a_new,
-                  Fwd const & /*tag*/
+                  Fwd const & /*tag*/,
+                  TDistanceTag const &
 )
 {
     if (a == a_new)
     {
-        extend3<max_errors>(it, hits, it_zero_errors, errors_left, text, length, a, b, ab, bb);
+        extend3<max_errors>(it, hits, it_zero_errors, errors_left, text, length, a, b, ab, bb, TDistanceTag());
         return;
     }
     if (errors_left > 0)
     {
         //Insertion Sven
-        approxSearch3<max_errors>(it, hits, it_zero_errors, errors_left - 1, text, length, a - 1, b, ab, bb, a_new, Fwd());
+        if(std::is_same<TDistanceTag, EditDistance>::value)
+            approxSearch3<max_errors>(it, hits, it_zero_errors, errors_left - 1, text, length, a - 1, b, ab, bb, a_new, Fwd(), TDistanceTag());
 
         if (goDown(it, Fwd()))
         {
             do {
                 bool delta = !ordEqual(parentEdgeLabel(it, Fwd()), text[a - 1]);
-                approxSearch3<max_errors>(it, hits, it_zero_errors, errors_left - delta, text, length, a - 1, b, ab, bb, a_new, Fwd());
+                approxSearch3<max_errors>(it, hits, it_zero_errors, errors_left - delta, text, length, a - 1, b, ab, bb, a_new, Fwd(), TDistanceTag());
 
                 //Deletion Sven
-                approxSearch3<max_errors>(it, hits, it_zero_errors, errors_left - 1, text, length, a, b, ab, bb, a_new, Fwd());
+                if(std::is_same<TDistanceTag, EditDistance>::value)
+                    approxSearch3<max_errors>(it, hits, it_zero_errors, errors_left - 1, text, length, a, b, ab, bb, a_new, Fwd(), TDistanceTag());
             } while (goRight(it, Fwd()));
         }
     }
@@ -142,10 +149,11 @@ inline void approxSearch3(TIter it, TOcc * hits, TIter * it_zero_errors, unsigne
     }
 }
 
-template <unsigned max_errors, typename TIter, typename TOcc, typename TText>
+template <unsigned max_errors, typename TIter, typename TOcc, typename TText, typename TDistanceTag>
 inline void extend3(TIter it, TOcc * hits, TIter * it_zero_errors, unsigned errors_left, TText const & text, unsigned const length,
     uint64_t a, uint64_t b, // searched interval
-    uint64_t ab, uint64_t bb // entire interval
+    uint64_t ab, uint64_t bb, // entire interval
+    TDistanceTag const &
 )
 {
 //     constexpr uint64_t max_val = std::numeric_limits<value_type>::max();
@@ -177,7 +185,8 @@ inline void extend3(TIter it, TOcc * hits, TIter * it_zero_errors, unsigned erro
                          a, b, // searched interval
                          ab, bb, // entire interval
                          b_new,
-                         Rev()
+                         Rev(),
+                         TDistanceTag()
             );
         }
     //}
@@ -190,7 +199,8 @@ inline void extend3(TIter it, TOcc * hits, TIter * it_zero_errors, unsigned erro
                      a, b, // searched interval
                      ab, bb, // entire interval
                      a_new,
-                     Fwd()
+                     Fwd(),
+                     TDistanceTag()
         );
     }
 }

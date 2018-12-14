@@ -51,20 +51,40 @@ inline void run(TIndex & index, TText const & text, Options const & opt, SearchP
 {
     vector<value_type> c(length(text) - searchParams.length + 1, 0);
 
-    switch (opt.errors)
+    if(!opt.indels){
+        switch (opt.errors)
+        {
+            case 0:  runAlgo4<0>(index, text, c, searchParams, HammingDistance());
+                    break;
+            case 1:  runAlgo4<1>(index, text, c, searchParams, HammingDistance());
+                    break;
+            case 2:  runAlgo4<2>(index, text, c, searchParams, HammingDistance());
+                    break;
+            case 3:  runAlgo4<3>(index, text, c, searchParams, HammingDistance());
+                    break;
+            case 4:  runAlgo4<4>(index, text, c, searchParams, HammingDistance());
+                    break;
+            default: cerr << "E = " << opt.errors << " not yet supported.\n";
+                    exit(1);
+        }
+    }
+    else
     {
-        case 0:  runAlgo4<0>(index, text, c, searchParams);
-                 break;
-        case 1:  runAlgo4<1>(index, text, c, searchParams);
-                 break;
-        case 2:  runAlgo4<2>(index, text, c, searchParams);
-                 break;
-        case 3:  runAlgo4<3>(index, text, c, searchParams);
-                 break;
-        case 4:  runAlgo4<4>(index, text, c, searchParams);
-                 break;
-        default: cerr << "E = " << opt.errors << " not yet supported.\n";
-                 exit(1);
+        switch (opt.errors)
+        {
+            case 0:  runAlgo4<0>(index, text, c, searchParams, EditDistance());
+                    break;
+            case 1:  runAlgo4<1>(index, text, c, searchParams, EditDistance());
+                    break;
+            case 2:  runAlgo4<2>(index, text, c, searchParams, EditDistance());
+                    break;
+            case 3:  runAlgo4<3>(index, text, c, searchParams, EditDistance());
+                    break;
+            case 4:  runAlgo4<4>(index, text, c, searchParams, EditDistance());
+                    break;
+            default: cerr << "E = " << opt.errors << " not yet supported.\n";
+                    exit(1);
+        }
     }
 
     if (SearchParams::outputProgress)

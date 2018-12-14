@@ -26,8 +26,8 @@ bool occ_sim(const smallHit & x, const smallHit & y)
     return(getSeqNo(x.occ) == getSeqNo(y.occ) && getSeqOffset(x.occ) + disT >= getSeqOffset(y.occ) && getSeqOffset(x.occ) <= getSeqOffset(y.occ) + disT);
 }
 
-template <unsigned errors, typename TIndex, typename TText, typename TContainer>
-inline void runAlgo4(TIndex & index, TText const & text, TContainer & c, SearchParams const & params)
+template <unsigned errors, typename TIndex, typename TText, typename TContainer, typename TDistanceTag>
+inline void runAlgo4(TIndex & index, TText const & text, TContainer & c, SearchParams const & params, TDistanceTag const &)
 {
     typedef typename TContainer::value_type value_type;
 
@@ -78,14 +78,14 @@ inline void runAlgo4(TIndex & index, TText const & text, TContainer & c, SearchP
                 {
                     extend3<errors>(it, hits, it_zero_errors, errors - errors_spent, text, params.length,
                         begin_pos + params.length - new_overlap, begin_pos + params.length - 1, // searched interval
-                        begin_pos, bb // entire interval
+                        begin_pos, bb, TDistanceTag() // entire interval
                     );
                 }
                 else
                 {
                     extend(it, hits, errors - errors_spent, text, params.length,
                         begin_pos + params.length - new_overlap, begin_pos + params.length - 1, // searched interval
-                        begin_pos, bb // entire interval
+                        begin_pos, bb, TDistanceTag() // entire interval
                     );
                 }
             };
@@ -94,10 +94,7 @@ inline void runAlgo4(TIndex & index, TText const & text, TContainer & c, SearchP
             auto const & needle = infix(text, begin_pos + params.length - new_overlap, begin_pos + params.length);
 //             std::cout << "Infix: " << begin_pos + params.length - new_overlap << "\t " << begin_pos + params.length << "\n";
             TIter it(index);
-            if(params.indels)
-                _optimalSearchScheme(delegate, it, needle, scheme, EditDistance());
-            else
-                _optimalSearchScheme(delegate, it, needle, scheme, HammingDistance());
+            _optimalSearchScheme(delegate, it, needle, scheme, TDistanceTag());
             for (uint64_t j = begin_pos; j < end_pos; ++j)
             {
                 value_type cValue;
