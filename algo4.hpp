@@ -1,9 +1,32 @@
 using namespace seqan;
 
+struct smallHit{
+    Pair <uint32_t, uint32_t> occ;
+//     uint8_t errors;
+//     DnaString read;
+};
+
+bool occ_s(const smallHit & x, const smallHit & y)
+{
+    if(getSeqNo(x.occ) == getSeqNo(y.occ))
+        return getSeqOffset(x.occ) < getSeqOffset(y.occ);
+    else
+        return getSeqNo(x.occ) < getSeqNo(y.occ);
+
+}
+
+template<int disT>
+bool occ_sim(const smallHit & x, const smallHit & y)
+{
+    return(getSeqNo(x.occ) == getSeqNo(y.occ) && getSeqOffset(x.occ) + disT >= getSeqOffset(y.occ) && getSeqOffset(x.occ) <= getSeqOffset(y.occ) + disT);
+}
+
 template <unsigned errors, typename TIndex, typename TText, typename TContainer>
 inline void runAlgo4(TIndex & index, TText const & text, TContainer & c, SearchParams const & params)
 {
     typedef typename TContainer::value_type value_type;
+
+    constexpr uint64_t max_val = std::numeric_limits<value_type>::max();
     typedef Iter<TIndex, VSTree<TopDown<> > > TIter;
 
     auto const & limits = stringSetLimits(indexText(index));
@@ -40,6 +63,7 @@ inline void runAlgo4(TIndex & index, TText const & text, TContainer & c, SearchP
 
             TIter it_zero_errors[end_pos - begin_pos];
             value_type hits[end_pos - begin_pos] = {};
+            std::vector<smallHit> hits2[end_pos - begin_pos] = {};
 
             auto delegate = [&hits, &it_zero_errors, begin_pos, &params, textLength, new_overlap, &text](
                 TIter it, auto const & /*read*/, unsigned const errors_spent)
@@ -65,23 +89,35 @@ inline void runAlgo4(TIndex & index, TText const & text, TContainer & c, SearchP
             auto const & needle = infix(text, begin_pos + params.length - new_overlap, begin_pos + params.length);
             std::cout << "Infix: " << begin_pos + params.length - new_overlap << "\t " << begin_pos + params.length << "\n";
             TIter it(index);
-//             if(!params.indels)
+            if(!params.indels)
+                _optimalSearchScheme(delegate, it, needle, scheme, EditDistance());
+            else
                 _optimalSearchScheme(delegate, it, needle, scheme, HammingDistance());
-//             else
-//                 _optimalSearchScheme(delegate, it, needle, scheme, EditDistance());
             for (uint64_t j = begin_pos; j < end_pos; ++j)
             {
+                value_type cValue;/*
+                if(params.indels){
+                    std::vector<smallHit> & chits = hits[j - begin_pos];
+                    std::sort(chits.begin(), chits.end(), occ_s);
+                    chits.erase(std::unique(chits.begin(), chits.end(), occ_sim<15>), chits.end());
+                    cValue = std::min((uint64_t) chits.size(), max_val);
+                }
+                else*/
+                {
+                    cValue = hits[j - begin_pos];
+                }
+
                 if (countOccurrences(it_zero_errors[j - begin_pos]) > 1) // guaranteed to exist, since there has to be at least one match!
-                {;
+                {
                     for (auto const & occ : getOccurrences(it_zero_errors[j-begin_pos], Fwd()))
                     {
                         auto const occ_pos = posGlobalize(occ, limits);
-                        c[occ_pos] = hits[j - begin_pos];
+                        c[occ_pos] = cValue;//hits[j - begin_pos];
                     }
                 }
                 else
                 {
-                    c[j] = hits[j - begin_pos];
+                    c[j] = cValue;//hits[j - begin_pos];
                 }
             }
         }
