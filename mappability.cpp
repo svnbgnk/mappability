@@ -36,10 +36,10 @@ string get_output_path(Options const & opt, SearchParams const & searchParams)
 template <typename T>
 inline void save(vector<T> const & c, string const & output_path)
 {
-
+/*
     for(int i = 0; i < c.size(); ++i)
         std::cout << (int)c[i] << " ";
-    std::cout << "\n";
+    std::cout << "\n";*/
 
     ofstream outfile(output_path, ios::out | ios::binary);
     outfile.write((const char*) &c[0], c.size() * sizeof(T));
